@@ -198,4 +198,22 @@ tasks.register<Test>("benchmarkTest") {
     classpath = sourceSets.test.get().runtimeClasspath
     include("**/*BenchmarkTest.*", "**/*ProfilingTest.*")
     shouldRunAfter(tasks.test)
+
+    // ModDevGradle only gives the regular test task the NeoForge test environment, so take it over from there.
+    val regular = tasks.test.get()
+    dependsOn("prepareNeoForgeTestFiles")
+    workingDir = regular.workingDir
+    systemProperties(regular.systemProperties)
+    jvmArgs(regular.jvmArgs.orEmpty())
+    jvmArgumentProviders.addAll(regular.jvmArgumentProviders)
+}
+
+// NeoForge 21.1 applies its patches with this version of binarypatcher, while the resolved dependencies have a newer one.
+// Without it in the artifact manifest, every setup warns and downloads it separately.
+val binaryPatcher: Configuration by configurations.creating { isTransitive = false }
+dependencies {
+    binaryPatcher("net.neoforged.installertools:binarypatcher:2.1.2:fatjar")
+}
+tasks.withType<net.neoforged.nfrtgradle.CreateMinecraftArtifacts>().configureEach {
+    addArtifactsToManifest(binaryPatcher)
 }
