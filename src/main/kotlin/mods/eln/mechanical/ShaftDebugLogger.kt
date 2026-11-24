@@ -1,5 +1,7 @@
 package mods.eln.mechanical
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.misc.Coordinate
 import mods.eln.misc.Direction

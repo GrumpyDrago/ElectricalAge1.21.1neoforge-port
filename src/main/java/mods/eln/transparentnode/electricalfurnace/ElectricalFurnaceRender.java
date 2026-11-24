@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.electricalfurnace;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.client.FrameTime;
 import mods.eln.misc.Direction;
@@ -8,9 +10,9 @@ import mods.eln.node.transparent.TransparentNodeDescriptor;
 import mods.eln.node.transparent.TransparentNodeElementInventory;
 import mods.eln.node.transparent.TransparentNodeElementRender;
 import mods.eln.node.transparent.TransparentNodeEntity;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,7 +28,7 @@ public class ElectricalFurnaceRender extends TransparentNodeElementRender {
     public float temperature = 0;
     public boolean powerOn, heatingCorpOn;
     //float temperatureTarget;
-    EntityItem entityItemIn = null;
+    ItemEntity entityItemIn = null;
 
     long time;
 
@@ -71,7 +73,7 @@ public class ElectricalFurnaceRender extends TransparentNodeElementRender {
 
     @Nullable
     @Override
-    public GuiScreen newGuiDraw(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public Screen newGuiDraw(@NotNull Direction side, @NotNull Player player) {
         return new ElectricalFurnaceGuiDraw(player, inventory, this);
     }
 
@@ -98,12 +100,7 @@ public class ElectricalFurnaceRender extends TransparentNodeElementRender {
 
             temperature = stream.readShort();
 
-            if ((read = stream.readShort()) == -1) {
-                entityItemIn = null;
-                stream.readShort();
-            } else {
-                entityItemIn = new EntityItem(getTileEntity().getWorldObj(), getTileEntity().xCoord + 0.5, getTileEntity().yCoord + 0.5, getTileEntity().zCoord + 1.2, Utils.newItemStack(read, 1, stream.readShort()));
-            }
+            entityItemIn = Utils.unserializeItemStackToEntityItem(stream, entityItemIn, getTileEntity());
 
             heatingCorpResistorP = stream.readShort();
             voltage = stream.readFloat();

@@ -1,16 +1,19 @@
 package mods.eln.railroad
 
+import mods.eln.compat.*
+
 import mods.eln.generic.GenericItemUsingDamageDescriptor
-import net.minecraft.block.BlockRailBase
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.ItemStack
-import net.minecraft.world.World
+import net.minecraft.core.component.DataComponents
+import net.minecraft.world.level.block.BaseRailBlock
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.Level
 
 class ElectricMinecartItem(name: String) : GenericItemUsingDamageDescriptor(name) {
     override fun onItemUse(
         stack: ItemStack?,
-        player: EntityPlayer?,
-        world: World?,
+        player: Player?,
+        world: Level?,
         x: Int,
         y: Int,
         z: Int,
@@ -20,21 +23,13 @@ class ElectricMinecartItem(name: String) : GenericItemUsingDamageDescriptor(name
         vz: Float
     ): Boolean {
         if (world == null || stack == null) return false
-        return if (BlockRailBase.func_150051_a(world.getBlock(x, y, z))) {
-            if (!world.isRemote) {
-                val minecart = EntityElectricMinecart(
-                    world,
-                    (x.toFloat() + 0.5f).toDouble(),
-                    (y.toFloat() + 0.5f).toDouble(),
-                    (z.toFloat() + 0.5f).toDouble()
-                )
-                if (stack.hasDisplayName()) {
-                    minecart.setMinecartName(stack.displayName)
-                }
-                world.spawnEntityInWorld(minecart)
-            }
-            --stack.stackSize
-            true
-        } else false
+        if (!BaseRailBlock.isRail(world.getState(x, y, z))) return false
+        if (!world.isClientSide) {
+            val minecart = EntityElectricMinecart(world, x + 0.5, y + 0.0625, z + 0.5)
+            if (stack.has(DataComponents.CUSTOM_NAME)) minecart.customName = stack.hoverName
+            world.spawnEntityInWorld(minecart)
+        }
+        stack.shrink(1)
+        return true
     }
 }

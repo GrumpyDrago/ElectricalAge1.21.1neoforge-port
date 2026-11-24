@@ -1,5 +1,7 @@
 package mods.eln.sim
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.misc.Utils
 import mods.eln.node.Node

@@ -1,5 +1,7 @@
 package mods.eln.transparentnode
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.cable.CableRenderType
@@ -51,16 +53,14 @@ import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
 import mods.eln.sixnode.electricalcable.UtilityCableDescriptor
 import mods.eln.sound.LoopedSound
 import mods.eln.wiki.Data
-import net.minecraft.client.audio.ISound
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.Container
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraftforge.client.IItemRenderer
-import org.lwjgl.opengl.GL11
+import net.minecraft.client.resources.sounds.SoundInstance
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import mods.eln.compat.client.GL11
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -132,7 +132,7 @@ class OneWayDcDcDescriptor(
         Data.addWiring(newItemStack())
     }
 
-    override fun addInformation(itemStack: ItemStack, entityPlayer: EntityPlayer, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack, entityPlayer: Player, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
         Collections.addAll(list, *tr("Moves power from the input side\nto the output side only.").split("\n").toTypedArray())
         if (variable) {
@@ -350,11 +350,11 @@ class OneWayDcDcElement(
 
     override fun hasGui(): Boolean = true
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu {
         return OneWayDcDcContainer(player, inventory, oneWayDescriptor.variable)
     }
 
-    override fun onBlockActivated(player: EntityPlayer, side: Direction, vx: Float, vy: Float, vz: Float): Boolean = false
+    override fun onBlockActivated(player: Player, side: Direction, vx: Float, vy: Float, vz: Float): Boolean = false
 
     override fun getLightOpacity(): Float = 1.0f
 
@@ -518,7 +518,7 @@ class OneWayDcDcElement(
         )
     }
 
-    override fun readConfigTool(compound: NBTTagCompound, invoker: EntityPlayer) {
+    override fun readConfigTool(compound: CompoundTag, invoker: Player) {
         if (ConfigCopyToolDescriptor.readGenDescriptor(compound, "primary", inventory, OneWayDcDcContainer.primaryCableSlotId, invoker))
             inventoryChange(inventory)
         if (ConfigCopyToolDescriptor.readGenDescriptor(compound, "secondary", inventory, OneWayDcDcContainer.secondaryCableSlotId, invoker))
@@ -527,7 +527,7 @@ class OneWayDcDcElement(
             inventoryChange(inventory)
     }
 
-    override fun writeConfigTool(compound: NBTTagCompound, invoker: EntityPlayer) {
+    override fun writeConfigTool(compound: CompoundTag, invoker: Player) {
         ConfigCopyToolDescriptor.writeGenDescriptor(compound, "primary", inventory.getStackInSlot(OneWayDcDcContainer.primaryCableSlotId))
         ConfigCopyToolDescriptor.writeGenDescriptor(compound, "secondary", inventory.getStackInSlot(OneWayDcDcContainer.secondaryCableSlotId))
         ConfigCopyToolDescriptor.writeGenDescriptor(compound, "core", inventory.getStackInSlot(OneWayDcDcContainer.ferromagneticSlotId))
@@ -862,7 +862,7 @@ class OneWayDcDcRender(
     private var cableRenderType: CableRenderType? = null
 
     init {
-        addLoopedSound(object : LoopedSound("eln:Transformer", coordinate(), ISound.AttenuationType.LINEAR) {
+        addLoopedSound(object : LoopedSound("eln:Transformer", coordinate(), SoundInstance.Attenuation.LINEAR) {
             override fun getVolume(): Float {
                 return if (load.position > oneWayDescriptor.minimalLoadToHum)
                     0.1f * (load.position - oneWayDescriptor.minimalLoadToHum) / (1 - oneWayDescriptor.minimalLoadToHum)
@@ -1009,13 +1009,13 @@ class OneWayDcDcRender(
         }
     }
 
-    override fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen {
+    override fun newGuiDraw(side: Direction, player: Player): Screen {
         return OneWayDcDcGui(player, inventory, this, oneWayDescriptor.variable)
     }
 }
 
 class OneWayDcDcGui(
-    player: EntityPlayer,
+    player: Player,
     inventory: IInventory,
     val render: OneWayDcDcRender,
     variable: Boolean
@@ -1026,7 +1026,7 @@ class OneWayDcDcGui(
     }
 }
 
-class OneWayDcDcContainer(player: EntityPlayer, inventory: IInventory, variable: Boolean) : BasicContainer(
+class OneWayDcDcContainer(player: Player, inventory: IInventory, variable: Boolean) : BasicContainer(
     player,
     inventory,
     arrayOf(

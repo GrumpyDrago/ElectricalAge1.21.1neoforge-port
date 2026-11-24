@@ -1,5 +1,10 @@
 package mods.eln.transparentnode.eggincubator;
 
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
+
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.i18n.I18N;
 import mods.eln.misc.Direction;
@@ -18,13 +23,11 @@ import mods.eln.sim.mna.component.Resistor;
 import mods.eln.sim.nbt.NbtElectricalLoad;
 import mods.eln.sim.process.destruct.VoltageStateWatchDog;
 import mods.eln.sim.process.destruct.WorldExplosion;
-import net.minecraft.entity.EntityLiving;
-import net.minecraft.entity.passive.EntityChicken;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.MathHelper;
+import net.minecraft.world.entity.animal.Chicken;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import mods.eln.compat.IInventory;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -76,16 +79,15 @@ public class EggIncubatorElement extends TransparentNodeElement {
                 descriptor.setState(powerResistor, true);
                 if (energy <= 0) {
                     inventory.decrStackSize(EggIncubatorContainer.EggSlotId, 1);
-                    EntityChicken chicken = new EntityChicken(node.coordinate.world());
-                    chicken.setGrowingAge(-24000);
-                    EntityLiving entityliving = (EntityLiving) chicken;
-                    entityliving.setLocationAndAngles(node.coordinate.x + 0.5, node.coordinate.y + 0.5, node.coordinate.z + 0.5, MathHelper.wrapAngleTo180_float(node.coordinate.world().rand.nextFloat() * 360.0F), 0.0F);
-                    entityliving.rotationYawHead = entityliving.rotationYaw;
-                    entityliving.renderYawOffset = entityliving.rotationYaw;
-                    //entityliving.func_110161_a((EntityLivingData)null); 1.6.4
-                    node.coordinate.world().spawnEntityInWorld(entityliving);
-                    entityliving.playLivingSound();
-                    //node.coordonate.world().spawnEntityInWorld());
+                    Level level = node.coordinate.world();
+                    Chicken chicken = EntityType.CHICKEN.create(level);
+                    if (chicken != null) {
+                        chicken.setBaby(true);
+                        chicken.moveTo(node.coordinate.x + 0.5, node.coordinate.y + 0.5, node.coordinate.z + 0.5, level.random.nextFloat() * 360.0F, 0.0F);
+                        Mc.spawnEntityInWorld(level, chicken);
+                        chicken.playAmbientSound();
+                    }
+                    //Mc.spawnEntityInWorld(node.coordonate.world()));
                     resetEnergy();
 
                     needPublish();
@@ -98,13 +100,13 @@ public class EggIncubatorElement extends TransparentNodeElement {
         }
 
         @Override
-        public void readFromNBT(NBTTagCompound nbt, String str) {
+        public void readFromNBT(CompoundTag nbt, String str) {
             energy = nbt.getDouble(str + "energyCounter");
         }
 
         @Override
-        public void writeToNBT(NBTTagCompound nbt, String str) {
-            nbt.setDouble(str + "energyCounter", energy);
+        public void writeToNBT(CompoundTag nbt, String str) {
+            nbt.putDouble(str + "energyCounter", energy);
         }
     }
 
@@ -151,7 +153,7 @@ public class EggIncubatorElement extends TransparentNodeElement {
     }
 
     @Override
-    public boolean onBlockActivated(EntityPlayer player, Direction side, float vx, float vy, float vz) {
+    public boolean onBlockActivated(Player player, Direction side, float vx, float vy, float vz) {
         return false;
     }
 
@@ -162,7 +164,7 @@ public class EggIncubatorElement extends TransparentNodeElement {
 
     @Nullable
     @Override
-    public Container newContainer(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public AbstractContainerMenu newContainer(@NotNull Direction side, @NotNull Player player) {
         return new EggIncubatorContainer(player, inventory, node);
     }
 
@@ -180,7 +182,7 @@ public class EggIncubatorElement extends TransparentNodeElement {
         super.networkSerialize(stream);
         try {
             if (inventory.getStackInSlot(EggIncubatorContainer.EggSlotId) == null) stream.writeByte(0);
-            else stream.writeByte(inventory.getStackInSlot(EggIncubatorContainer.EggSlotId).stackSize);
+            else stream.writeByte(inventory.getStackInSlot(EggIncubatorContainer.EggSlotId).getCount());
 
             node.lrduCubeMask.getTranslate(front.down()).serialize(stream);
 

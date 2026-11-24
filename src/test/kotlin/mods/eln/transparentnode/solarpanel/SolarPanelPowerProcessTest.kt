@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.solarpanel
 
+import mods.eln.compat.*
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -15,7 +17,7 @@ import mods.eln.sim.mna.RootSystem
 import mods.eln.sim.mna.component.CurrentSource
 import mods.eln.sim.mna.component.Resistor
 import mods.eln.sim.nbt.NbtElectricalLoad
-import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.nbt.CompoundTag
 
 class SolarPanelPowerProcessTest {
     @Test
@@ -203,8 +205,8 @@ class SolarPanelPowerProcessTest {
     @Test
     fun singleTilePanelStaysFloatingAfterNbtLoad() {
         val element = SolarPanelElement(TransparentNode(), testDescriptor(groundCoordinate = null))
-        val nbt = NBTTagCompound()
-        nbt.setByte("others", (Direction.XN.int + 8).toByte())
+        val nbt = CompoundTag()
+        nbt.putByte("others", (Direction.XN.int + 8).toByte())
 
         element.readFromNBT(nbt)
 

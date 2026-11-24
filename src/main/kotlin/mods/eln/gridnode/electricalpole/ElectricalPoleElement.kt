@@ -1,5 +1,7 @@
 package mods.eln.gridnode.electricalpole
 
+import mods.eln.compat.*
+
 import mods.eln.generic.GenericItemBlockUsingDamageDescriptor
 import mods.eln.Eln
 import mods.eln.gridnode.GridDescriptor

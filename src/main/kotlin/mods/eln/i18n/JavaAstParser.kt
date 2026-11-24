@@ -1,5 +1,6 @@
 package mods.eln.i18n
 
+import com.github.javaparser.ParserConfiguration
 import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.expr.ArrayCreationExpr
 import com.github.javaparser.ast.expr.BinaryExpr
@@ -16,6 +17,7 @@ internal object JavaAstParser {
         try {
             val sourceText = file.readText(StandardCharsets.UTF_8)
             val sourceLines = sourceText.lines()
+            StaticJavaParser.getParserConfiguration().languageLevel = ParserConfiguration.LanguageLevel.JAVA_21
             val cu = StaticJavaParser.parse(sourceText)
 
             val hasI18NImport = cu.imports.any {

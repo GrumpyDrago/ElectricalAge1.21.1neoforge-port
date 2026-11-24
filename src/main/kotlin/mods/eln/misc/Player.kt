@@ -1,38 +1,34 @@
 package mods.eln.misc
 
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.ItemStack
-import net.minecraft.network.play.server.S2FPacketSetSlot
-import net.minecraft.entity.player.EntityPlayerMP
+import mods.eln.compat.*
+
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.server.level.ServerPlayer
 
 /**
  * Contains utilities for dealing with player entities.
  */
 
-fun EntityPlayer.totalItemsCarried(stack: ItemStack): Int {
-    return inventory.mainInventory
-        .filterNotNull()
+fun Player.totalItemsCarried(stack: ItemStack): Int {
+    return inventory.items
         .filter { it.isItemEqual(stack) }
-        .sumOf { it.stackSize }
+        .sumOf { it.count }
 }
 
-fun EntityPlayer.removeMultipleItems(stack: ItemStack, count: Int) {
-    if(Utils.isCreative(this as EntityPlayerMP)) return
+fun Player.removeMultipleItems(stack: ItemStack, count: Int) {
+    if (Utils.isCreative(this as ServerPlayer)) return
     assert(count <= totalItemsCarried(stack))
     var left = count
     try {
-        inventory.mainInventory.indices.reversed().forEach { i ->
-            val invStack = inventory.mainInventory[i]
-            if (invStack?.isItemEqual(stack) == true) {
-                left -= invStack.splitStack(invStack.stackSize.coerceAtMost(left)).stackSize
-                assert(invStack.stackSize >= 0)
-                // Black magic used to synchronize immediately with the client.
-                val slot = openContainer.getSlotFromInventory(inventory, i)
-                playerNetServerHandler.sendPacket(S2FPacketSetSlot(openContainer.windowId, slot.slotNumber, invStack))
+        inventory.items.reversed().forEach { invStack ->
+            if (invStack.isItemEqual(stack)) {
+                left -= invStack.split(invStack.count.coerceAtMost(left)).count
                 if (left == 0) return
             }
         }
     } finally {
-        inventory.markDirty()
+        inventory.setChanged()
+        inventoryMenu.broadcastChanges()
     }
 }

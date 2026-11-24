@@ -1,0 +1,32 @@
+{
+  "feature": "eln:cinnabar_ore",
+  "placement": [
+    {
+      "type": "eln:config",
+      "path": "runtime.worldgen.ores.cinnabar.enabled",
+      "default": false
+    },
+    {
+      "type": "minecraft:count",
+      "count": 3
+    },
+    {
+      "type": "minecraft:in_square"
+    },
+    {
+      "type": "minecraft:height_range",
+      "height": {
+        "type": "minecraft:uniform",
+        "min_inclusive": {
+          "absolute": -56
+        },
+        "max_inclusive": {
+          "absolute": 32
+        }
+      }
+    },
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "values": [
+    "eln:hot_water",
+    "eln:flowing_hot_water",
+    "eln:cold_water",
+    "eln:flowing_cold_water"
+  ]
+}

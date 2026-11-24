@@ -1,8 +1,8 @@
 package mods.eln.gui;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import org.lwjgl.opengl.GL11;
+import mods.eln.compat.client.Gui;
+import mods.eln.compat.client.GL11;
 
 import java.util.ArrayList;
 
@@ -89,7 +89,7 @@ public class GuiVerticalProgressBar extends Gui implements IGuiObject {
     @Override
     public void idraw2(int x, int y) {
         if (visible && x >= xPosition && y >= yPosition && x < xPosition + width && y < yPosition + height)
-            helper.drawHoveringText(comment, x, y, Minecraft.getMinecraft().fontRenderer);
+            helper.drawHoveringText(comment, x, y, Minecraft.getInstance().font);
     }
 
     public void setComment(int line, String comment) {

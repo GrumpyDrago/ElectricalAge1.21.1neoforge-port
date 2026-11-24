@@ -18,11 +18,11 @@ import mods.eln.sim.nbt.NbtFurnaceProcess;
 import mods.eln.sim.nbt.NbtThermalLoad;
 import mods.eln.sim.process.destruct.ThermalLoadWatchDog;
 import mods.eln.sim.process.destruct.WorldExplosion;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -125,7 +125,7 @@ public class HeatFurnaceElement extends TransparentNodeElement {
     }
 
     @Override
-    public boolean onBlockActivated(EntityPlayer player, Direction side, float vx, float vy, float vz) {
+    public boolean onBlockActivated(Player player, Direction side, float vx, float vy, float vz) {
         return false;
     }
 
@@ -153,7 +153,7 @@ public class HeatFurnaceElement extends TransparentNodeElement {
 
     @Nullable
     @Override
-    public Container newContainer(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public AbstractContainerMenu newContainer(@NotNull Direction side, @NotNull Player player) {
         return new HeatFurnaceContainer(node, player, inventory, descriptor);
     }
 
@@ -237,15 +237,15 @@ public class HeatFurnaceElement extends TransparentNodeElement {
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         super.writeToNBT(nbt);
 
-        nbt.setBoolean("takeFuel", takeFuel);
-        nbt.setBoolean("controlExternal", controlExternal);
+        nbt.putBoolean("takeFuel", takeFuel);
+        nbt.putBoolean("controlExternal", controlExternal);
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound nbt) {
+    public void readFromNBT(CompoundTag nbt) {
         super.readFromNBT(nbt);
         takeFuel = nbt.getBoolean("takeFuel");
         controlExternal = nbt.getBoolean("controlExternal");

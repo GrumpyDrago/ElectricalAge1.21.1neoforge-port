@@ -1,5 +1,7 @@
 package mods.eln.transparentnode
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.cable.CableRenderType
@@ -36,16 +38,14 @@ import mods.eln.sim.process.destruct.WorldExplosion
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
 import mods.eln.sound.LoopedSound
 import mods.eln.wiki.Data
-import net.minecraft.client.audio.ISound
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.Container
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraftforge.client.IItemRenderer
-import org.lwjgl.opengl.GL11
+import net.minecraft.client.resources.sounds.SoundInstance
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import mods.eln.compat.client.GL11
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -98,7 +98,7 @@ class DcDcDescriptor(
         Data.addWiring(newItemStack())
     }
 
-    override fun addInformation(itemStack: ItemStack, entityPlayer: EntityPlayer, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack, entityPlayer: Player, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
         Collections.addAll(list, *tr("Transforms an input voltage to\nan output voltage.")!!.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
     }
@@ -372,7 +372,7 @@ class DcDcElement(transparentNode: TransparentNode, descriptor: TransparentNodeD
         needPublish()
     }
 
-    override fun onBlockActivated(player: EntityPlayer, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
+    override fun onBlockActivated(player: Player, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
         return false
     }
 
@@ -380,7 +380,7 @@ class DcDcElement(transparentNode: TransparentNode, descriptor: TransparentNodeD
         return true
     }
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container? {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu? {
         return DcDcContainer(player, inventory)
     }
 
@@ -486,8 +486,8 @@ class DcDcElement(transparentNode: TransparentNode, descriptor: TransparentNodeD
         )
     }
 
-    override fun readConfigTool(compound: NBTTagCompound, invoker: EntityPlayer) {
-        if (compound.hasKey("isolator")) {
+    override fun readConfigTool(compound: CompoundTag, invoker: Player) {
+        if (compound.contains("isolator")) {
             disconnect()
             reconnect()
             needPublish()
@@ -500,7 +500,7 @@ class DcDcElement(transparentNode: TransparentNode, descriptor: TransparentNodeD
             inventoryChange(inventory)
     }
 
-    override fun writeConfigTool(compound: NBTTagCompound, invoker: EntityPlayer) {
+    override fun writeConfigTool(compound: CompoundTag, invoker: Player) {
         ConfigCopyToolDescriptor.writeGenDescriptor(compound, "primary", inventory.getStackInSlot(DcDcContainer.primaryCableSlotId))
         ConfigCopyToolDescriptor.writeGenDescriptor(compound, "secondary", inventory.getStackInSlot(DcDcContainer.secondaryCableSlotId))
         ConfigCopyToolDescriptor.writeGenDescriptor(compound, "core", inventory.getStackInSlot(DcDcContainer.ferromagneticSlotId))
@@ -558,7 +558,7 @@ class DcDcRender(tileEntity: TransparentNodeEntity, val descriptor: TransparentN
     private var cableRenderType: CableRenderType? = null
 
     init {
-        addLoopedSound(object : LoopedSound("eln:Transformer", coordinate(), ISound.AttenuationType.LINEAR) {
+        addLoopedSound(object : LoopedSound("eln:Transformer", coordinate(), SoundInstance.Attenuation.LINEAR) {
             override fun getVolume(): Float {
                 return if (load.position > (descriptor as DcDcDescriptor).minimalLoadToHum)
                     0.1f * (load.position - descriptor.minimalLoadToHum) / (1 - descriptor.minimalLoadToHum)
@@ -670,19 +670,19 @@ class DcDcRender(tileEntity: TransparentNodeEntity, val descriptor: TransparentN
         }
     }
 
-    override fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen {
+    override fun newGuiDraw(side: Direction, player: Player): Screen {
         return DcDcGui(player, inventory, this)
     }
 }
 
-class DcDcGui(player: EntityPlayer, inventory: IInventory, val render: DcDcRender): GuiContainerEln(DcDcContainer(player, inventory)) {
+class DcDcGui(player: Player, inventory: IInventory, val render: DcDcRender): GuiContainerEln(DcDcContainer(player, inventory)) {
     override fun newHelper(): GuiHelperContainer {
         val descriptor = render.descriptor as DcDcDescriptor
         return GuiHelperContainer(this, 176, 194 - 33 + 20, 8, 84 + 194 - 166 - 33 + 20, descriptor.guiTexture)
     }
 }
 
-class DcDcContainer(player: EntityPlayer, inventory: IInventory) : BasicContainer(player, inventory,
+class DcDcContainer(player: Player, inventory: IInventory) : BasicContainer(player, inventory,
     arrayOf(
         DcDcWindingSlot(inventory, primaryCableSlotId, 58, 30, 16,
             arrayOf(tr("Power cable or wire slot"))),

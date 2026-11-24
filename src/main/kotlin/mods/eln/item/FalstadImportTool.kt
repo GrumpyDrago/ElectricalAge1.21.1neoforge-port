@@ -1,5 +1,7 @@
 package mods.eln.item
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.falstad.FalstadImporter
 import mods.eln.generic.GenericItemUsingDamageDescriptor
@@ -7,12 +9,13 @@ import mods.eln.i18n.I18N.tr
 import mods.eln.misc.Utils.addChatMessage
 import mods.eln.misc.UtilsClient
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiButton
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.entity.player.EntityPlayerMP
-import net.minecraft.item.ItemStack
-import net.minecraft.world.World
+import mods.eln.compat.client.GuiButton
+import mods.eln.compat.client.Gui
+import mods.eln.compat.client.GuiScreen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.Level
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.nio.charset.StandardCharsets
@@ -20,20 +23,24 @@ import java.nio.charset.StandardCharsets
 private const val MAX_FALSTAD_IMPORT_BYTES = 32000
 
 class FalstadImportToolDescriptor(name: String) : GenericItemUsingDamageDescriptor(name, "configcopytool") {
-    override fun onItemRightClick(s: ItemStack, w: World, p: EntityPlayer): ItemStack {
-        if (w.isRemote) {
-            Minecraft.getMinecraft().displayGuiScreen(FalstadImportGui())
+    override fun onItemRightClick(s: ItemStack, w: Level, p: Player): ItemStack {
+        if (w.isClientSide) {
+            openFalstadGui()
         }
         return s
     }
 
-    override fun addInformation(itemStack: ItemStack?, entityPlayer: EntityPlayer?, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack?, entityPlayer: Player?, list: MutableList<String>, par4: Boolean) {
         list.add(tr("Right click to import a Falstad netlist from the clipboard."))
         list.add(tr("Places a simplified ELN build on flat ground near the player."))
     }
 }
 
+private fun openFalstadGui() = Minecraft.getInstance().setScreen(FalstadImportGui())
+
 class FalstadImportGui : GuiScreen() {
+    private val buttonList = ArrayList<GuiButton>()
+
     override fun initGui() {
         super.initGui()
         buttonList.clear()
@@ -41,11 +48,11 @@ class FalstadImportGui : GuiScreen() {
         buttonList.add(GuiButton(1, width / 2 - 70, height / 2 + 16, 140, 20, tr("Cancel")))
     }
 
-    override fun actionPerformed(button: GuiButton) {
+    private fun actionPerformed(button: GuiButton) {
         when (button.id) {
             0 -> {
-                val clipboard = getClipboardString().orEmpty().trim()
-                val player = Minecraft.getMinecraft().thePlayer
+                val clipboard = Minecraft.getInstance().keyboardHandler.clipboard.trim()
+                val player = Minecraft.getInstance().player!!
                 if (clipboard.isEmpty()) {
                     if (player != null) addChatMessage(player, tr("Falstad import: clipboard is empty."))
                     return
@@ -76,24 +83,28 @@ class FalstadImportGui : GuiScreen() {
                 stream.writeInt(bytes.size)
                 stream.write(bytes)
                 UtilsClient.sendPacketToServer(bos)
-                mc.displayGuiScreen(null)
+                Minecraft.getInstance().setScreen(null)
             }
-            else -> mc.displayGuiScreen(null)
+            else -> Minecraft.getInstance().setScreen(null)
         }
     }
 
     override fun drawScreen(mouseX: Int, mouseY: Int, partialTicks: Float) {
         drawDefaultBackground()
-        drawCenteredString(fontRendererObj, tr("Falstad Import Tool"), width / 2, height / 2 - 42, 0xFFFFFF)
-        drawCenteredString(fontRendererObj, tr("Reads Falstad text from the system clipboard."), width / 2, height / 2 - 28, 0xA0A0A0)
-        super.drawScreen(mouseX, mouseY, partialTicks)
+        Gui.drawCenteredString(fontRendererObj, tr("Falstad Import Tool"), width / 2, height / 2 - 42, 0xFFFFFF)
+        Gui.drawCenteredString(fontRendererObj, tr("Reads Falstad text from the system clipboard."), width / 2, height / 2 - 28, 0xA0A0A0)
+        buttonList.forEach { it.drawButton(Minecraft.getInstance(), mouseX, mouseY) }
+    }
+
+    override fun mouseClicked(x: Int, y: Int, button: Int) {
+        if (button == 0) buttonList.firstOrNull { it.mousePressed(Minecraft.getInstance(), x, y) }?.let(::actionPerformed)
     }
 
     override fun doesGuiPauseGame(): Boolean = false
 }
 
 object FalstadImportPacketHandler {
-    fun handle(player: EntityPlayerMP, bytes: ByteArray) {
+    fun handle(player: ServerPlayer, bytes: ByteArray) {
         FalstadImporter.importFromClipboardAsync(player, String(bytes, StandardCharsets.UTF_8))
     }
 }

@@ -1,11 +1,11 @@
 package mods.eln.node
 
-import cpw.mods.fml.common.FMLCommonHandler
-import cpw.mods.fml.common.eventhandler.SubscribeEvent
-import cpw.mods.fml.common.gameevent.TickEvent
-import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent
+import mods.eln.compat.*
+
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.neoforge.event.tick.ServerTickEvent
 import mods.eln.environment.RoomThermalManager
-import net.minecraft.entity.player.EntityPlayerMP
+import net.minecraft.server.level.ServerPlayer
 
 class NodeServer {
     fun init() {
@@ -19,8 +19,7 @@ class NodeServer {
 
     var counter = 0
     @SubscribeEvent
-    fun tick(event: ServerTickEvent) {
-        if (event.phase != TickEvent.Phase.START) return
+    fun tick(event: ServerTickEvent.Pre) {
         val server = FMLCommonHandler.instance().minecraftServerInstance
         if (server != null) {
             RoomThermalManager.tick(server)
@@ -29,12 +28,11 @@ class NodeServer {
                     node.publishToAllPlayer()
                 }
             }
-            for (obj in server.configurationManager.playerEntityList) {
-                val player = obj as EntityPlayerMP?
+            for (player in server.players) {
                 var openContainerNode: NodeBase? = null
                 var container: INodeContainer? = null
-                if (player!!.openContainer != null && player.openContainer is INodeContainer) {
-                    container = player.openContainer as INodeContainer
+                if (player.containerMenu is INodeContainer) {
+                    container = player.containerMenu as INodeContainer
                     openContainerNode = container.node
                 }
                 for (node in NodeManager.instance!!.nodeList) {

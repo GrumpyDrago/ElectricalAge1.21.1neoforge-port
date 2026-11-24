@@ -1,11 +1,13 @@
 package mods.eln.item
 
+import mods.eln.compat.*
+
 import mods.eln.generic.GenericItemUsingDamageDescriptor
 import mods.eln.i18n.I18N.tr
 import mods.eln.sixnode.electricalcable.UtilityCableDescriptor
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
 
 class WireScrapDescriptor(name: String) : GenericItemUsingDamageDescriptor(name, "Copper Cable") {
     companion object {
@@ -19,18 +21,18 @@ class WireScrapDescriptor(name: String) : GenericItemUsingDamageDescriptor(name,
 
     fun createScrapStack(cable: UtilityCableDescriptor, count: Int = 1): ItemStack {
         val stack = newItemStack(count)
-        stack.tagCompound = NBTTagCompound().apply {
-            setString(nbtSourceName, cable.name)
-            setString(nbtMaterial, cable.material.label)
-            setString(nbtSize, cable.sizeLabel)
-            setString(nbtMetricSize, cable.metricSizeLabel)
-            setInteger(nbtConductorCount, cable.conductorCount)
-            setBoolean(nbtInsulated, cable.insulated)
+        stack.tagCompound = CompoundTag().apply {
+            putString(nbtSourceName, cable.name)
+            putString(nbtMaterial, cable.material.label)
+            putString(nbtSize, cable.sizeLabel)
+            putString(nbtMetricSize, cable.metricSizeLabel)
+            putInt(nbtConductorCount, cable.conductorCount)
+            putBoolean(nbtInsulated, cable.insulated)
         }
         return stack
     }
 
-    override fun addInformation(itemStack: ItemStack?, entityPlayer: EntityPlayer?, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack?, entityPlayer: Player?, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
         val nbt = itemStack?.tagCompound ?: return
         list.add(tr("Recovered from: %1$", nbt.getString(nbtSourceName)))
@@ -40,7 +42,7 @@ class WireScrapDescriptor(name: String) : GenericItemUsingDamageDescriptor(name,
                 "Type: %1$ (%2$ mm2), %3$ conductors, %4$",
                 nbt.getString(nbtSize),
                 nbt.getString(nbtMetricSize),
-                nbt.getInteger(nbtConductorCount),
+                nbt.getInt(nbtConductorCount),
                 if (nbt.getBoolean(nbtInsulated)) tr("insulated") else tr("bare")
             )
         )

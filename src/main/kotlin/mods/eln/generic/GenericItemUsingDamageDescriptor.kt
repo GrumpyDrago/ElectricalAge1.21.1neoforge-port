@@ -1,24 +1,24 @@
 package mods.eln.generic
 
-import cpw.mods.fml.relauncher.Side
-import cpw.mods.fml.relauncher.SideOnly
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import mods.eln.compat.*
+
 import mods.eln.misc.RealisticEnum
 import mods.eln.misc.UtilsClient
 import mods.eln.misc.VoltageLevelColor
-import net.minecraft.block.Block
-import net.minecraft.client.renderer.texture.IIconRegister
-import net.minecraft.creativetab.CreativeTabs
-import net.minecraft.entity.Entity
-import net.minecraft.entity.EntityLivingBase
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.util.IIcon
-import net.minecraft.util.ResourceLocation
-import net.minecraft.world.World
-import net.minecraftforge.client.IItemRenderer.ItemRenderType
-import net.minecraftforge.client.IItemRenderer.ItemRendererHelper
+import net.minecraft.world.level.block.Block
+import mods.eln.generic.GenericCreativeTab
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.level.Level
+import mods.eln.compat.IItemRenderer.ItemRenderType
+import mods.eln.compat.IItemRenderer.ItemRendererHelper
 
 open class GenericItemUsingDamageDescriptor {
 
@@ -39,29 +39,25 @@ open class GenericItemUsingDamageDescriptor {
     var parentItem: Item? = null
     @JvmField
     var parentItemDamage = 0
-    open var creativeTab: CreativeTabs? = null
+    open var creativeTab: GenericCreativeTab? = null
     var hidden: Boolean = false
     fun setDefaultIcon(name: String) {
         IconName = "eln:" + name.replace(" ".toRegex(), "").lowercase()
+        icon = IIcon(IconName!!)
     }
 
-    open fun getDefaultNBT(): NBTTagCompound? = null
+    open fun getDefaultNBT(): CompoundTag? = null
 
-    open fun addInformation(itemStack: ItemStack?, entityPlayer: EntityPlayer?, list: MutableList<String>, par4: Boolean) {}
+    open fun addInformation(itemStack: ItemStack?, entityPlayer: Player?, list: MutableList<String>, par4: Boolean) {}
 
     open fun addRealismContext(list: List<*>?): RealisticEnum? = null
 
-    open fun onItemRightClick(s: ItemStack, w: World, p: EntityPlayer): ItemStack {
+    open fun onItemRightClick(s: ItemStack, w: Level, p: Player): ItemStack {
         return s
     }
 
     fun getSubItems(list: MutableList<ItemStack>) = list.add(newItemStack(1))
 
-
-    @SideOnly(value = Side.CLIENT)
-    fun updateIcons(iconRegister: IIconRegister) {
-        icon = iconRegister.registerIcon(IconName)
-    }
 
     open fun getName(stack: ItemStack): String? {
         return name
@@ -74,7 +70,7 @@ open class GenericItemUsingDamageDescriptor {
 
 
     open fun newItemStack(size: Int): ItemStack {
-        val stack = ItemStack(parentItem, size, parentItemDamage)
+        val stack = ItemStack(parentItem!!, size)
         stack.tagCompound = getDefaultNBT()
         return stack
     }
@@ -92,14 +88,14 @@ open class GenericItemUsingDamageDescriptor {
 
     fun checkSameItemStack(stack: ItemStack?): Boolean {
         if (stack == null) return false
-        return !(stack.item !== this.parentItem || stack.itemDamage != parentItemDamage)
+        return stack.item === this.parentItem
     }
 
     /**
      * Callback for item usage. If the item does something special on right clicking, he will have one of those. Return
      * True if something happen and false if it don't. This is for ITEMS, not BLOCKS
      */
-    open fun onItemUse(stack: ItemStack?, player: EntityPlayer?, world: World?, x: Int, y: Int, z: Int, side: Int, vx: Float, vy: Float, vz: Float): Boolean {
+    open fun onItemUse(stack: ItemStack?, player: Player?, world: Level?, x: Int, y: Int, z: Int, side: Int, vx: Float, vy: Float, vz: Float): Boolean {
         return false
     }
 
@@ -114,37 +110,34 @@ open class GenericItemUsingDamageDescriptor {
     open fun renderItem(type: ItemRenderType?, item: ItemStack?, vararg data: Any?) {
         if (icon == null) return
         voltageLevelColor.drawIconBackground(type!!)
-        // remove "eln:" to add the full path replace("eln:", "textures/blocks/") + ".png";
+        // remove "eln:" to add the full path replace("eln:", "textures/block/") + ".png";
         val icon = icon!!.iconName.substring(4)
-        UtilsClient.drawIcon(type, ResourceLocation("eln", "textures/items/$icon.png"))
+        UtilsClient.drawIcon(type, rl("eln", "textures/item/$icon.png"))
     }
 
-    open fun onUpdate(stack: ItemStack, world: World, entity: Entity, par4: Int, par5: Boolean) {}
-    protected fun getNbt(stack: ItemStack): NBTTagCompound {
-        var nbt = stack.tagCompound
-        if (nbt == null) {
-            stack.tagCompound = getDefaultNBT().also { nbt = it }
-        }
-        return nbt
+    open fun onUpdate(stack: ItemStack, world: Level, entity: Entity, par4: Int, par5: Boolean) {}
+    /** A copy of the stack's data, created if missing. Store changes with updateTag. */
+    protected fun getNbt(stack: ItemStack): CompoundTag {
+        val nbt = stack.tagCompound
+        if (nbt != null) return nbt
+        val fresh = getDefaultNBT() ?: CompoundTag()
+        stack.tagCompound = fresh
+        return fresh
     }
 
     open fun getStrVsBlock(stack: ItemStack, block: Block?): Float {
         return 0.2f
     }
 
-    open fun onBlockDestroyed(stack: ItemStack, w: World, block: Block, x: Int, y: Int, z: Int, entity: EntityLivingBase): Boolean {
+    open fun onBlockDestroyed(stack: ItemStack, w: Level, block: Block, x: Int, y: Int, z: Int, entity: LivingEntity): Boolean {
         return false
     }
 
-    open fun onDroppedByPlayer(item: ItemStack, player: EntityPlayer?): Boolean {
+    open fun onDroppedByPlayer(item: ItemStack, player: Player?): Boolean {
         return true
     }
 
-    open fun onEntitySwing(entityLiving: EntityLivingBase?, stack: ItemStack?): Boolean {
-        return false
-    }
-
-    open fun onBlockStartBreak(itemstack: ItemStack?, x: Int, y: Int, z: Int, player: EntityPlayer?): Boolean {
+    open fun onEntitySwing(entityLiving: LivingEntity?, stack: ItemStack?): Boolean {
         return false
     }
 
@@ -160,7 +153,7 @@ open class GenericItemUsingDamageDescriptor {
         @JvmStatic
         fun getDescriptor(stack: ItemStack?): GenericItemUsingDamageDescriptor? {
             if (stack == null) return null
-            return if (stack.item !is GenericItemUsingDamage<*>) null else (stack.item as GenericItemUsingDamage<*>).getDescriptor(stack)
+            return (stack.item as? SharedDescriptorItem)?.descriptor
         }
 
         @JvmStatic

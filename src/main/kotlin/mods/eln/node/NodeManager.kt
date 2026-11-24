@@ -1,15 +1,17 @@
 package mods.eln.node
 
+import mods.eln.compat.*
+
 import mods.eln.misc.Coordinate
 import mods.eln.misc.Utils.getTags
 import mods.eln.misc.Utils.println
 import mods.eln.node.transparent.TransparentNode
 import mods.eln.node.transparent.TransparentNodeElement
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.world.WorldSavedData
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.level.saveddata.SavedData
 import java.util.*
 
-class NodeManager(par1Str: String?) : WorldSavedData(par1Str) {
+class NodeManager {
     val nodeArray: HashMap<Coordinate, NodeBase>
     val nodes: ArrayList<NodeBase>
     val nodeList: Collection<NodeBase>
@@ -40,14 +42,6 @@ class NodeManager(par1Str: String?) : WorldSavedData(par1Str) {
         // println("NodeManager has " + nodeArray.size + "node")
     }
 
-    override fun isDirty(): Boolean {
-        return true
-    }
-
-    override fun readFromNBT(nbt: NBTTagCompound) {}
-
-    override fun writeToNBT(nbt: NBTTagCompound) {}
-
     fun getNodeFromCoordonate(nodeCoordinate: Coordinate?): NodeBase? {
         return nodeArray[nodeCoordinate]
     }
@@ -64,7 +58,7 @@ class NodeManager(par1Str: String?) : WorldSavedData(par1Str) {
     val randomNode: NodeBase?
         get() = if (nodes.isEmpty()) null else nodes[rand.nextInt(nodes.size)]
 
-    fun loadFromNbt(nbt: NBTTagCompound?) {
+    fun loadFromNbt(nbt: CompoundTag?) {
         val addedNode: MutableList<NodeBase> = ArrayList()
         for (o in getTags(nbt!!)) {
             val tag = o
@@ -84,7 +78,7 @@ class NodeManager(par1Str: String?) : WorldSavedData(par1Str) {
         }
     }
 
-    fun saveToNbt(nbt: NBTTagCompound, dim: Int) {
+    fun saveToNbt(nbt: CompoundTag, dim: Int) {
         var nodeCounter = 0
         val nodesCopy: MutableList<NodeBase> = ArrayList()
         nodesCopy.addAll(nodes)
@@ -92,10 +86,10 @@ class NodeManager(par1Str: String?) : WorldSavedData(par1Str) {
             try {
                 if (node.mustBeSaved() == false) continue
                 if (dim != Int.MIN_VALUE && node.coordinate.dimension != dim) continue
-                val nbtNode = NBTTagCompound()
-                nbtNode.setString("tag", node.nodeUuid)
+                val nbtNode = CompoundTag()
+                nbtNode.putString("tag", node.nodeUuid)
                 node.writeToNBT(nbtNode)
-                nbt.setTag("n" + nodeCounter++, nbtNode)
+                nbt.put("n" + nodeCounter++, nbtNode)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

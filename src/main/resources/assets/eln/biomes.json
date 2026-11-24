@@ -1,6 +1,6 @@
 [
   {
-    "Biomes": ["Ocean"],
+    "Biomes": ["Ocean", "minecraft:ocean", "minecraft:lukewarm_ocean", "minecraft:warm_ocean"],
     "DayHigh_C": 18,
     "DayHigh_F": 64.4,
     "NightLow_C": 14,
@@ -11,7 +11,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Plains"],
+    "Biomes": ["Plains", "minecraft:plains", "minecraft:meadow", "minecraft:the_void"],
     "DayHigh_C": 27,
     "DayHigh_F": 80.6,
     "NightLow_C": 15,
@@ -33,7 +33,7 @@
     "Mod": "unknown"
   },
   {
-    "Biomes": ["High Hills"],
+    "Biomes": ["High Hills", "minecraft:windswept_hills", "minecraft:stony_peaks", "minecraft:dripstone_caves", "minecraft:deep_dark"],
     "DayHigh_C": 24,
     "DayHigh_F": 75.2,
     "NightLow_C": 12,
@@ -44,7 +44,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Forest"],
+    "Biomes": ["Forest", "minecraft:forest", "minecraft:cherry_grove", "minecraft:lush_caves"],
     "DayHigh_C": 25,
     "DayHigh_F": 77,
     "NightLow_C": 14,
@@ -55,7 +55,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Taiga"],
+    "Biomes": ["Taiga", "minecraft:taiga"],
     "DayHigh_C": 18,
     "DayHigh_F": 64.4,
     "NightLow_C": 8,
@@ -66,7 +66,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Swamp"],
+    "Biomes": ["Swamp", "minecraft:swamp", "minecraft:mangrove_swamp"],
     "DayHigh_C": 30,
     "DayHigh_F": 86,
     "NightLow_C": 22,
@@ -77,7 +77,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["River"],
+    "Biomes": ["River", "minecraft:river"],
     "DayHigh_C": 26,
     "DayHigh_F": 78.8,
     "NightLow_C": 16,
@@ -88,7 +88,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Hell"],
+    "Biomes": ["Hell", "minecraft:nether_wastes", "minecraft:basalt_deltas", "minecraft:crimson_forest", "minecraft:soul_sand_valley", "minecraft:warped_forest"],
     "DayHigh_C": 45,
     "DayHigh_F": 113,
     "NightLow_C": 35,
@@ -99,7 +99,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Sky"],
+    "Biomes": ["Sky", "minecraft:the_end", "minecraft:end_barrens", "minecraft:end_highlands", "minecraft:end_midlands", "minecraft:small_end_islands"],
     "DayHigh_C": 10,
     "DayHigh_F": 50,
     "NightLow_C": 0,
@@ -110,7 +110,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["FrozenOcean"],
+    "Biomes": ["FrozenOcean", "minecraft:frozen_ocean", "minecraft:deep_frozen_ocean"],
     "DayHigh_C": -2,
     "DayHigh_F": 28.4,
     "NightLow_C": -10,
@@ -121,7 +121,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["FrozenRiver"],
+    "Biomes": ["FrozenRiver", "minecraft:frozen_river"],
     "DayHigh_C": -6,
     "DayHigh_F": 21.2,
     "NightLow_C": -16,
@@ -132,7 +132,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Ice Plains"],
+    "Biomes": ["Ice Plains", "minecraft:snowy_plains"],
     "DayHigh_C": -5,
     "DayHigh_F": 23,
     "NightLow_C": -15,
@@ -143,7 +143,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Ice Mountains"],
+    "Biomes": ["Ice Mountains", "minecraft:frozen_peaks", "minecraft:jagged_peaks", "minecraft:snowy_slopes"],
     "DayHigh_C": -8,
     "DayHigh_F": 17.6,
     "NightLow_C": -18,
@@ -154,7 +154,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["MushroomIsland"],
+    "Biomes": ["MushroomIsland", "minecraft:mushroom_fields"],
     "DayHigh_C": 20,
     "DayHigh_F": 68,
     "NightLow_C": 16,
@@ -176,7 +176,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Beach"],
+    "Biomes": ["Beach", "minecraft:beach"],
     "DayHigh_C": 24,
     "DayHigh_F": 75.2,
     "NightLow_C": 18,
@@ -231,7 +231,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Jungle"],
+    "Biomes": ["Jungle", "minecraft:jungle", "minecraft:bamboo_jungle"],
     "DayHigh_C": 26,
     "DayHigh_F": 78.8,
     "NightLow_C": 22,
@@ -253,7 +253,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["JungleEdge"],
+    "Biomes": ["JungleEdge", "minecraft:sparse_jungle"],
     "DayHigh_C": 26,
     "DayHigh_F": 78.8,
     "NightLow_C": 22,
@@ -264,7 +264,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Deep Ocean"],
+    "Biomes": ["Deep Ocean", "minecraft:deep_ocean", "minecraft:cold_ocean", "minecraft:deep_cold_ocean", "minecraft:deep_lukewarm_ocean"],
     "DayHigh_C": 18,
     "DayHigh_F": 64.4,
     "NightLow_C": 14,
@@ -275,7 +275,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Stone Beach"],
+    "Biomes": ["Stone Beach", "minecraft:stony_shore"],
     "DayHigh_C": 24,
     "DayHigh_F": 75.2,
     "NightLow_C": 18,
@@ -286,7 +286,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Cold Beach"],
+    "Biomes": ["Cold Beach", "minecraft:snowy_beach"],
     "DayHigh_C": -1,
     "DayHigh_F": 30.2,
     "NightLow_C": -7,
@@ -297,7 +297,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Birch Forest"],
+    "Biomes": ["Birch Forest", "minecraft:birch_forest"],
     "DayHigh_C": 25,
     "DayHigh_F": 77,
     "NightLow_C": 14,
@@ -319,7 +319,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Roofed Forest"],
+    "Biomes": ["Roofed Forest", "minecraft:dark_forest"],
     "DayHigh_C": 25,
     "DayHigh_F": 77,
     "NightLow_C": 14,
@@ -363,7 +363,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Mega Taiga Hills"],
+    "Biomes": ["Mega Taiga Hills", "minecraft:old_growth_pine_taiga"],
     "DayHigh_C": 18,
     "DayHigh_F": 64.4,
     "NightLow_C": 8,
@@ -374,7 +374,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Extreme Hills+"],
+    "Biomes": ["Extreme Hills+", "minecraft:windswept_forest"],
     "DayHigh_C": 15,
     "DayHigh_F": 59,
     "NightLow_C": 5,
@@ -528,7 +528,7 @@
     "Mod": "BuildCraft|Energy"
   },
   {
-    "Biomes": ["Sunflower Plains"],
+    "Biomes": ["Sunflower Plains", "minecraft:sunflower_plains"],
     "DayHigh_C": 27,
     "DayHigh_F": 80.6,
     "NightLow_C": 15,
@@ -539,7 +539,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Desert M"],
+    "Biomes": ["Desert M", "minecraft:desert"],
     "DayHigh_C": 38,
     "DayHigh_F": 100.4,
     "NightLow_C": 18,
@@ -561,7 +561,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Flower Forest"],
+    "Biomes": ["Flower Forest", "minecraft:flower_forest"],
     "DayHigh_C": 25,
     "DayHigh_F": 77,
     "NightLow_C": 14,
@@ -594,7 +594,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Ice Plains Spikes"],
+    "Biomes": ["Ice Plains Spikes", "minecraft:ice_spikes"],
     "DayHigh_C": -7,
     "DayHigh_F": 19.4,
     "NightLow_C": -18,
@@ -627,7 +627,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Birch Forest M"],
+    "Biomes": ["Birch Forest M", "minecraft:old_growth_birch_forest"],
     "DayHigh_C": 25,
     "DayHigh_F": 77,
     "NightLow_C": 14,
@@ -660,7 +660,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Cold Taiga M"],
+    "Biomes": ["Cold Taiga M", "minecraft:snowy_taiga", "minecraft:grove"],
     "DayHigh_C": 18,
     "DayHigh_F": 64.4,
     "NightLow_C": 8,
@@ -671,7 +671,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Mega Spruce Taiga"],
+    "Biomes": ["Mega Spruce Taiga", "minecraft:old_growth_spruce_taiga"],
     "DayHigh_C": 18,
     "DayHigh_F": 64.4,
     "NightLow_C": 8,
@@ -682,7 +682,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Extreme Hills+ M"],
+    "Biomes": ["Extreme Hills+ M", "minecraft:windswept_gravelly_hills"],
     "DayHigh_C": 15,
     "DayHigh_F": 59,
     "NightLow_C": 5,
@@ -693,7 +693,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Savanna M"],
+    "Biomes": ["Savanna M", "minecraft:savanna"],
     "DayHigh_C": 32,
     "DayHigh_F": 89.6,
     "NightLow_C": 20,
@@ -704,7 +704,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Savanna Plateau M"],
+    "Biomes": ["Savanna Plateau M", "minecraft:savanna_plateau", "minecraft:windswept_savanna"],
     "DayHigh_C": 32,
     "DayHigh_F": 89.6,
     "NightLow_C": 20,
@@ -715,7 +715,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Mesa (Bryce)"],
+    "Biomes": ["Mesa (Bryce)", "minecraft:badlands", "minecraft:eroded_badlands"],
     "DayHigh_C": 35,
     "DayHigh_F": 95,
     "NightLow_C": 17,
@@ -726,7 +726,7 @@
     "Mod": "minecraft"
   },
   {
-    "Biomes": ["Mesa Plateau F M"],
+    "Biomes": ["Mesa Plateau F M", "minecraft:wooded_badlands"],
     "DayHigh_C": 35,
     "DayHigh_F": 95,
     "NightLow_C": 17,

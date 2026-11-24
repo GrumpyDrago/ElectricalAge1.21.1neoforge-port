@@ -1,13 +1,14 @@
 package mods.eln.node.six
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.gui.ISlotSkin.SlotSkin
 import mods.eln.gui.SlotWithSkinAndComment
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.ItemStack
+import net.minecraft.world.item.ItemStack
 
 open class SixNodeItemSlot(
-    inventory: IInventory?, slot: Int,
+    inventory: IInventory, slot: Int,
     x: Int, y: Int,
     var stackLimit: Int,
     var descriptorClassList: Array<Class<*>>, skin: SlotSkin, comment: Array<String>
@@ -15,8 +16,8 @@ open class SixNodeItemSlot(
     /**
      * Check if the stack is a valid item for this slot. Always true beside for the armor slots.
      */
-    override fun isItemValid(itemStack: ItemStack): Boolean {
-        if (itemStack.item !== Eln.sixNodeItem) return false
+    override fun mayPlace(itemStack: ItemStack): Boolean {
+        if (!Eln.sixNodeItem.owns(itemStack.item)) return false
         val descriptor = Eln.sixNodeItem.getDescriptor(itemStack)
         for (classFilter in descriptorClassList) {
             if (descriptor!!.javaClass == classFilter) return true
@@ -24,7 +25,7 @@ open class SixNodeItemSlot(
         return false
     }
 
-    override fun getSlotStackLimit(): Int {
+    override fun getMaxStackSize(): Int {
         return stackLimit
     }
 }

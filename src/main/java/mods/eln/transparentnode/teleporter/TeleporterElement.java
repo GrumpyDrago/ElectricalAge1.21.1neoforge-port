@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.teleporter;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.i18n.I18N;
 import mods.eln.lightblock.LightBlockEntity;
 import mods.eln.misc.Coordinate;
@@ -18,13 +20,13 @@ import mods.eln.sim.nbt.NbtElectricalLoad;
 import mods.eln.sim.process.destruct.VoltageStateWatchDog;
 import mods.eln.sim.process.destruct.WorldExplosion;
 import mods.eln.sound.SoundCommand;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -158,7 +160,7 @@ public class TeleporterElement extends TransparentNodeElement implements ITelepo
     }
 
     @Override
-    public boolean onBlockActivated(EntityPlayer player, Direction side,
+    public boolean onBlockActivated(Player player, Direction side,
                                     float vx, float vy, float vz) {
 
         return false;
@@ -170,19 +172,19 @@ public class TeleporterElement extends TransparentNodeElement implements ITelepo
     double powerCharge = 2000;
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt) {
+    public void writeToNBT(CompoundTag nbt) {
 
         super.writeToNBT(nbt);
 
-        nbt.setString("name", name);
-        nbt.setString("targetName", targetName);
-        nbt.setDouble("powerCharge", powerCharge);
-        nbt.setBoolean("reset", state != StateIdle);
+        nbt.putString("name", name);
+        nbt.putString("targetName", targetName);
+        nbt.putDouble("powerCharge", powerCharge);
+        nbt.putBoolean("reset", state != StateIdle);
 
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound nbt) {
+    public void readFromNBT(CompoundTag nbt) {
 
         super.readFromNBT(nbt);
 
@@ -315,11 +317,11 @@ public class TeleporterElement extends TransparentNodeElement implements ITelepo
                 } else {
                     Coordinate c = getTeleportCoordonate();
                     double distance = getTeleportCoordonate().trueDistanceTo(target.getTeleportCoordonate());
-                    AxisAlignedBB bb = descriptor.getBB(node.coordinate, front);
-                    int playerCount = c.world().getEntitiesWithinAABB(EntityPlayer.class, bb).size();
-                    int itemCount = c.world().getEntitiesWithinAABB(EntityItem.class, bb).size();
-                    int petCount = c.world().getEntitiesWithinAABB(EntityLivingBase.class, bb).size() - playerCount;
-                    // Object o = c.world().getEntitiesWithinAABB(EntityItem.class,bb);
+                    AABB bb = descriptor.getBB(node.coordinate, front);
+                    int playerCount = Mc.getEntitiesWithinAABB(c.world(), Player.class, bb).size();
+                    int itemCount = Mc.getEntitiesWithinAABB(c.world(), ItemEntity.class, bb).size();
+                    int petCount = Mc.getEntitiesWithinAABB(c.world(), LivingEntity.class, bb).size() - playerCount;
+                    // Object o = Mc.getEntitiesWithinAABB(c.world(), ItemEntity.class,bb);
                     energyTarget = 10000 +
                         40000 * playerCount +
                         5000 * petCount +
@@ -375,7 +377,7 @@ public class TeleporterElement extends TransparentNodeElement implements ITelepo
                         sendIdToAllClient(eventTargetFind);
 
 					/*
-                     * AxisAlignedBB bb = descriptor.getBB(node.coordonate,front); List list = node.coordonate.world().getEntitiesWithinAABB(EntityItem.class, bb); for(Object o : list){ Entity e = (Entity)o; if(e instanceof EntityPlayerMP) ((EntityPlayerMP)e).setPositionAndUpdate(e.posX + dx, e.posY + dy, e.posZ + dz); else e.setPosition(e.posX + dx, e.posY + dy, e.posZ + dz); }
+                     * AABB bb = descriptor.getBB(node.coordonate,front); List list = Mc.getEntitiesWithinAABB(node.coordonate.world(), ItemEntity.class, bb); for(Object o : list){ Entity e = (Entity)o; if(e instanceof EntityPlayerMP) ((EntityPlayerMP)e).setPositionAndUpdate(e.getX() + dx, e.getY() + dy, e.getZ() + dz); else e.setPosition(e.getX() + dx, e.getY() + dy, e.getZ() + dz); }
 					 */
                         imMaster = true;
                         setState(StateStart);
@@ -384,7 +386,7 @@ public class TeleporterElement extends TransparentNodeElement implements ITelepo
                     break;
 
                 case StateStart: {
-                    int count = node.coordinate.world().getEntitiesWithinAABB(Entity.class, descriptor.getBB(node.coordinate, front)).size();
+                    int count = Mc.getEntitiesWithinAABB(node.coordinate.world(), Entity.class, descriptor.getBB(node.coordinate, front)).size();
                     if (count == 0) {
                         timeCounter = 0;
                     } else {
@@ -430,17 +432,17 @@ public class TeleporterElement extends TransparentNodeElement implements ITelepo
                     }
                     if (powerLoad.getVoltage() < descriptor.cable.electricalNominalVoltage * 0.8) {
                         sendIdToAllClient(eventInstablePowerSupply);
-                        AxisAlignedBB bb = descriptor.getBB(node.coordinate, front);
-                        List list = node.coordinate.world().getEntitiesWithinAABB(Entity.class, bb);
+                        AABB bb = descriptor.getBB(node.coordinate, front);
+                        List list = Mc.getEntitiesWithinAABB(node.coordinate.world(), Entity.class, bb);
                         for (Object o : list) {
                             Entity e = (Entity) o;
                             double failDistance = 1000;
                             while (true) {
                                 int x, y, z;
-                                x = (int) (e.posX + (Math.random() * 2 - 1) * failDistance);
-                                z = (int) (e.posZ + (Math.random() * 2 - 1) * failDistance);
+                                x = (int) (e.getX() + (Math.random() * 2 - 1) * failDistance);
+                                z = (int) (e.getZ() + (Math.random() * 2 - 1) * failDistance);
                                 y = 20;
-                                while (e.worldObj.getBlock(x, y, z) != Blocks.air && e.worldObj.getBlock(x, y + 1, z) != Blocks.air) {
+                                while (Mc.getBlock(Mc.worldObj(e), x, y, z) != Blocks.AIR && Mc.getBlock(Mc.worldObj(e), x, y + 1, z) != Blocks.AIR) {
                                     y++;
                                 }
                                 Utils.serverTeleport(e, x + 0.5, y, z + 0.5);
@@ -452,11 +454,11 @@ public class TeleporterElement extends TransparentNodeElement implements ITelepo
                         ITeleporter target = getTarget(targetNameCopy);
                         Coordinate c = getTeleportCoordonate();
                         // double distance = getTeleportCoordonate().trueDistanceTo(c);
-                        // AxisAlignedBB bb = descriptor.getBB(node.coordonate, front);
-                        // int playerCount = c.world().getEntitiesWithinAABB(EntityPlayer.class, bb).size();
-                        // int itemCount = c.world().getEntitiesWithinAABB(EntityItem.class, bb).size();
-                        // int petCount = c.world().getEntitiesWithinAABB(EntityLivingBase.class, bb).size() - playerCount;
-                        // // Object o = c.world().getEntitiesWithinAABB(EntityItem.class,bb);
+                        // AABB bb = descriptor.getBB(node.coordonate, front);
+                        // int playerCount = Mc.getEntitiesWithinAABB(c.world(), Player.class, bb).size();
+                        // int itemCount = Mc.getEntitiesWithinAABB(c.world(), ItemEntity.class, bb).size();
+                        // int petCount = Mc.getEntitiesWithinAABB(c.world(), LivingEntity.class, bb).size() - playerCount;
+                        // // Object o = Mc.getEntitiesWithinAABB(c.world(), ItemEntity.class,bb);
                         // energyTarget = 10000 +
                         // 40000 * playerCount +
                         // 5000 * petCount +
@@ -481,11 +483,11 @@ public class TeleporterElement extends TransparentNodeElement implements ITelepo
                     timeCounter += time;
                     if (timeCounter > 0) {
 
-                        AxisAlignedBB bb = descriptor.getBB(node.coordinate, front);
-                        List list = node.coordinate.world().getEntitiesWithinAABB(Entity.class, bb);
+                        AABB bb = descriptor.getBB(node.coordinate, front);
+                        List list = Mc.getEntitiesWithinAABB(node.coordinate.world(), Entity.class, bb);
                         for (Object o : list) {
                             Entity e = (Entity) o;
-                            Utils.serverTeleport(e, e.posX + dx, e.posY + dy, e.posZ + dz);
+                            Utils.serverTeleport(e, e.getX() + dx, e.getY() + dy, e.getZ() + dz);
 
                         }
                         setState(StateOpen);

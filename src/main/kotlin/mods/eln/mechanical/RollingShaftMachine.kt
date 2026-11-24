@@ -1,5 +1,7 @@
 package mods.eln.mechanical
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.gui.GuiContainerEln
 import mods.eln.gui.HelperStdContainer
@@ -10,12 +12,11 @@ import mods.eln.misc.*
 import mods.eln.misc.Direction.Companion.fromIntMinecraftSide
 import mods.eln.node.transparent.*
 import mods.eln.sim.StackMachineProcess
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.Container
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.ItemStack
-import org.lwjgl.opengl.GL11
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.item.ItemStack
+import mods.eln.compat.client.GL11
 
 class RollingShaftMachineDescriptor (name: String, override val obj: Obj3D) :
     SimpleShaftDescriptor(name, RollingShaftMachineElement::class, RollingShaftMachineRender::class, EntityMetaTag.Basic) {
@@ -53,7 +54,7 @@ class RollingShaftMachineElement(node: TransparentNode, desc: TransparentNodeDes
     val inv = RollingShaftMachineInventory(2, 64, this)
     override val inventory = inv
 
-    override fun onBlockActivated(player: EntityPlayer, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
+    override fun onBlockActivated(player: Player, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
         return false
     }
 
@@ -72,7 +73,7 @@ class RollingShaftMachineElement(node: TransparentNode, desc: TransparentNodeDes
 
     override fun hasGui() = true
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu {
         return RollingShaftMachineContainer(player, inv)
     }
 
@@ -104,14 +105,14 @@ class RollingShaftMachineRender(entity: TransparentNodeEntity, desc: Transparent
     val inv = RollingShaftMachineInventory(2, 64, this)
     override val inventory = inv
 
-    override fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen {
+    override fun newGuiDraw(side: Direction, player: Player): Screen {
         return RollingShaftMachineGui(player, inv, this)
     }
 }
 
 const val cellOffset = 20
 
-class RollingShaftMachineContainer(player: EntityPlayer, inv: IInventory) : BasicContainer(
+class RollingShaftMachineContainer(player: Player, inv: IInventory) : BasicContainer(
     player, inv, arrayOf(
         SlotWithSkinAndComment(inv, 0, 8 + cellOffset, 12, SlotSkin.medium, arrayOf("Input Slot")),
         SlotWithSkinAndComment(inv, 1, 8 + cellOffset, 12 + cellOffset * 2, SlotSkin.big, arrayOf("Output Slot"))//,
@@ -120,7 +121,7 @@ class RollingShaftMachineContainer(player: EntityPlayer, inv: IInventory) : Basi
     )
 )
 
-class RollingShaftMachineGui(player: EntityPlayer, inv: IInventory, val render: RollingShaftMachineRender) : GuiContainerEln(RollingShaftMachineContainer(player, inv)) {
+class RollingShaftMachineGui(player: Player, inv: IInventory, val render: RollingShaftMachineRender) : GuiContainerEln(RollingShaftMachineContainer(player, inv)) {
     override fun newHelper() = HelperStdContainer(this)
 }
 

@@ -10,7 +10,7 @@ import mods.eln.node.six.SixNodeDescriptor;
 import mods.eln.node.six.SixNodeElementRender;
 import mods.eln.node.six.SixNodeEntity;
 import net.minecraft.client.Minecraft;
-import org.lwjgl.opengl.GL11;
+import mods.eln.compat.client.GL11;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -34,7 +34,6 @@ public class ElectricalCableRender extends SixNodeElementRender {
 
     @Override
     public void draw() {
-        Minecraft.getMinecraft().mcProfiler.startSection("ECable");
 
         Utils.setGlColorFromDye(color, 1.0f);
 
@@ -42,7 +41,6 @@ public class ElectricalCableRender extends SixNodeElementRender {
         glListCall();
 
         GL11.glColor3f(1f, 1f, 1f);
-        Minecraft.getMinecraft().mcProfiler.endSection();
     }
 
     @Override

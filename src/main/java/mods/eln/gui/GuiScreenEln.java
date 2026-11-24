@@ -2,7 +2,7 @@ package mods.eln.gui;
 
 import mods.eln.gui.GuiTextFieldEln.GuiTextFieldElnObserver;
 import mods.eln.gui.IGuiObject.IGuiObjectObserver;
-import net.minecraft.client.gui.GuiScreen;
+import mods.eln.compat.client.GuiScreen;
 
 public abstract class GuiScreenEln extends GuiScreen implements GuiTextFieldElnObserver, IGuiObjectObserver {
 

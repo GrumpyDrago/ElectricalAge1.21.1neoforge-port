@@ -1,10 +1,12 @@
 @file:Suppress("NAME_SHADOWING")
 package mods.eln.misc
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.transparentnode.electricalfurnace.ElectricalFurnaceProcess
-import net.minecraft.item.ItemStack
-import net.minecraft.item.crafting.FurnaceRecipes
+import net.minecraft.world.item.ItemStack
+import mods.eln.craft.Smelting
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -49,27 +51,16 @@ class RecipesList {
         fun getGlobalRecipeWithOutput(output: ItemStack): ArrayList<Recipe> {
             var output = output
             output = output.copy()
-            output.stackSize = 1
+            output.count = 1
             val list = ArrayList<Recipe>()
             for (recipesList in listOfList) {
                 list.addAll(recipesList.getRecipeFromOutput(output))
             }
-            val furnaceRecipes = FurnaceRecipes.smelting()
-            run {
-                val it: Iterator<*> = furnaceRecipes.smeltingList.entries.iterator()
-                while (it.hasNext()) {
-                    try {
-                        val pairs = it.next() as Map.Entry<*, *>
-                        var recipe: Recipe // List<Integer>, ItemStack
-                        val stack = pairs.value as ItemStack
-                        val li = pairs.key as ItemStack
-                        if (Utils.areSame(output, stack)) {
-                            list.add(Recipe(li.copy(), output, ElectricalFurnaceProcess.energyNeededPerSmelt).also { recipe = it })
-                            recipe.setMachineList(Eln.instance.furnaceList)
-                        }
-                    } catch (e: Exception) {
-                        // TODO: handle exception
-                    }
+            for ((input, result) in Smelting.all()) {
+                if (Utils.areSame(output, result)) {
+                    val recipe = Recipe(input.copy(), output, ElectricalFurnaceProcess.energyNeededPerSmelt)
+                    recipe.setMachineList(Eln.instance.furnaceList)
+                    list.add(recipe)
                 }
             }
             return list
@@ -79,24 +70,17 @@ class RecipesList {
         fun getGlobalRecipeWithInput(input: ItemStack): ArrayList<Recipe> {
             var input = input
             input = input.copy()
-            input.stackSize = 64
+            input.count = 64
             val list = ArrayList<Recipe>()
             for (recipesList in listOfList) {
                 val r = recipesList.getRecipe(input)
                 if (r != null) list.add(r)
             }
-            val furnaceRecipes = FurnaceRecipes.smelting()
-            val smeltResult = furnaceRecipes.getSmeltingResult(input)
-            var smeltRecipe: Recipe
+            val smeltResult = Smelting.result(input)
             if (smeltResult != null) {
-                try {
-                    val input1 = input.copy()
-                    input1.stackSize = 1
-                    list.add(Recipe(input1, smeltResult, ElectricalFurnaceProcess.energyNeededPerSmelt).also { smeltRecipe = it })
-                    smeltRecipe.machineList.addAll(Eln.instance.furnaceList)
-                } catch (e: Exception) {
-                    // TODO: handle exception
-                }
+                val recipe = Recipe(input.copyWithCount(1), smeltResult, ElectricalFurnaceProcess.energyNeededPerSmelt)
+                recipe.machineList.addAll(Eln.instance.furnaceList)
+                list.add(recipe)
             }
             return list
         }

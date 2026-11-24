@@ -1,18 +1,20 @@
 package mods.eln.item.electricalitem
 
+import mods.eln.compat.*
+
 import mods.eln.generic.GenericItemUsingDamageDescriptor
 import mods.eln.i18n.I18N.tr
 import mods.eln.item.electricalinterface.IItemEnergyBattery
 import mods.eln.misc.Utils
 import mods.eln.misc.UtilsClient
 import mods.eln.wiki.Data
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.util.ResourceLocation
-import net.minecraftforge.client.IItemRenderer.ItemRenderType
-import net.minecraftforge.client.IItemRenderer.ItemRendererHelper
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.resources.ResourceLocation
+import mods.eln.compat.IItemRenderer.ItemRenderType
+import mods.eln.compat.IItemRenderer.ItemRendererHelper
 
 class BatteryItem(name: String, var energyStorage: Double, var chargePower: Double, var dischargePower: Double, private val priority: Int) : GenericItemUsingDamageDescriptor(name), IItemEnergyBattery {
 
@@ -21,13 +23,13 @@ class BatteryItem(name: String, var energyStorage: Double, var chargePower: Doub
         Data.addPortable(newItemStack())
     }
 
-    override fun getDefaultNBT(): NBTTagCompound? {
-        val nbt = NBTTagCompound()
-        nbt.setDouble("energy", 0.0)
+    override fun getDefaultNBT(): CompoundTag? {
+        val nbt = CompoundTag()
+        nbt.putDouble("energy", 0.0)
         return nbt
     }
 
-    override fun addInformation(itemStack: ItemStack?, entityPlayer: EntityPlayer?, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack?, entityPlayer: Player?, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
         list.add(tr("Charge power: %1\$W", Utils.plotValue(chargePower)))
         list.add(tr("Discharge power: %1\$W", Utils.plotValue(dischargePower)))
@@ -42,7 +44,7 @@ class BatteryItem(name: String, var energyStorage: Double, var chargePower: Doub
     }
 
     override fun setEnergy(stack: ItemStack, value: Double) {
-        getNbt(stack).setDouble("energy", Math.max(0.0, value))
+        stack.updateTag { it.putDouble("energy", Math.max(0.0, value)) }
     }
 
     override fun getEnergyMax(stack: ItemStack): Double {

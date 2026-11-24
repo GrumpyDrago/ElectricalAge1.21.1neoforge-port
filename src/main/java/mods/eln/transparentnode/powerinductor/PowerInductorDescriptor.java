@@ -7,8 +7,8 @@ import mods.eln.misc.Obj3D;
 import mods.eln.misc.IFunction;
 import mods.eln.node.transparent.TransparentNodeDescriptor;
 import mods.eln.sim.mna.misc.MnaConst;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.item.ItemStack;
 
 public class PowerInductorDescriptor extends TransparentNodeDescriptor {
 
@@ -41,7 +41,7 @@ public class PowerInductorDescriptor extends TransparentNodeDescriptor {
         if (core == null)
             return getlValue(0);
         else
-            return getlValue(core.stackSize);
+            return getlValue(core.getCount());
     }
 
     public double getRsValue(IInventory inventory) {
@@ -57,7 +57,7 @@ public class PowerInductorDescriptor extends TransparentNodeDescriptor {
         return Eln.instance.lowVoltageCableDescriptor.electricalRs * coreFactor;
     }
 
-    public void setParent(net.minecraft.item.Item item, int damage) {
+    public void setParent(net.minecraft.world.item.Item item, int damage) {
         super.setParent(item, damage);
         //Data.addEnergy(newItemStack());
     }

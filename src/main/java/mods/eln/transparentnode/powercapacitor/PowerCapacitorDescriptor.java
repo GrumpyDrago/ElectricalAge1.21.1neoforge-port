@@ -6,8 +6,8 @@ import mods.eln.item.DielectricItem;
 import mods.eln.misc.IFunction;
 import mods.eln.misc.Obj3D;
 import mods.eln.node.transparent.TransparentNodeDescriptor;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.item.ItemStack;
 
 public class PowerCapacitorDescriptor extends TransparentNodeDescriptor {
 
@@ -45,7 +45,7 @@ public class PowerCapacitorDescriptor extends TransparentNodeDescriptor {
         if (core == null || diel == null)
             return getCValue(0, 0);
         else {
-            return getCValue(core.stackSize, getUNominalValue(inventory));
+            return getCValue(core.getCount(), getUNominalValue(inventory));
         }
     }
 
@@ -55,11 +55,11 @@ public class PowerCapacitorDescriptor extends TransparentNodeDescriptor {
             return 10000;
         else {
             DielectricItem desc = (DielectricItem) GenericItemUsingDamageDescriptor.getDescriptor(diel, DielectricItem.class);
-            return desc == null ? 10000 : desc.uNominal * diel.stackSize;
+            return desc == null ? 10000 : desc.uNominal * diel.getCount();
         }
     }
 
-    public void setParent(net.minecraft.item.Item item, int damage) {
+    public void setParent(net.minecraft.world.item.Item item, int damage) {
         super.setParent(item, damage);
         //Data.addEnergy(newItemStack());
     }

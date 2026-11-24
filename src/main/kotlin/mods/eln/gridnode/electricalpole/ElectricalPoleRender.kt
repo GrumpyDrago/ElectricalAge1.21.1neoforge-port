@@ -1,5 +1,7 @@
 package mods.eln.gridnode.electricalpole
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderType
 import mods.eln.gridnode.GridRender
@@ -9,9 +11,9 @@ import mods.eln.misc.preserveMatrix
 import mods.eln.node.transparent.TransparentNodeDescriptor
 import mods.eln.node.transparent.TransparentNodeEntity
 import mods.eln.sound.LoopedSound
-import net.minecraft.client.audio.ISound
-import net.minecraft.util.Vec3
-import org.lwjgl.opengl.GL11
+import net.minecraft.client.resources.sounds.SoundInstance
+import net.minecraft.world.phys.Vec3
+import mods.eln.compat.client.GL11
 
 import java.io.DataInputStream
 import java.io.IOException
@@ -28,7 +30,7 @@ class ElectricalPoleRender(entity: TransparentNodeEntity, descriptor: Transparen
         this.descriptor = descriptor as ElectricalPoleDescriptor
 
         if (this.descriptor.includeTransformer) {
-            addLoopedSound(object : LoopedSound("eln:Transformer", coordinate(), ISound.AttenuationType.LINEAR) {
+            addLoopedSound(object : LoopedSound("eln:Transformer", coordinate(), SoundInstance.Attenuation.LINEAR) {
                 override fun getVolume(): Float {
                     if (load.position > this@ElectricalPoleRender.descriptor.minimalLoadToHum)
                         return 0.05f * (load.position - this@ElectricalPoleRender.descriptor.minimalLoadToHum) / (1 - this@ElectricalPoleRender.descriptor.minimalLoadToHum)

@@ -1,6 +1,6 @@
 # Electrical Age - jrddunbr's edition
 
-Electrical Age (ELN) is a large-scale electrical engineering and automation mod for **Minecraft 1.7.10**.  
+Electrical Age (ELN) is a large-scale electrical engineering and automation mod for **Minecraft 1.21.1** (NeoForge).  
 This maintained fork includes many bugfixes, ongoing updates, and additional content while preserving the core ELN experience.
 
 ## Overview
@@ -9,7 +9,7 @@ This maintained fork includes many bugfixes, ongoing updates, and additional con
 * Expanded shaft/mechanical systems for richer automation and machine design
 * Less rigid voltage-tier constraints, enabling more creative builds
 * Newer devices and gameplay updates beyond the original dormant upstream
-* Continued maintenance for long-term 1.7.10 worlds and modpacks
+* Continued maintenance for long-term worlds and modpacks
 
 ## What you can build
 
@@ -21,22 +21,17 @@ This maintained fork includes many bugfixes, ongoing updates, and additional con
 
 ## Compatibility and integrations
 
-This mod works well with major 1.7.10 tech ecosystems, including:
-
-* OpenComputers
-* ComputerCraft
-* Railcraft
-* Buildcraft
-* Immersive Engineering
-* EnderIO
-* IndustrialCraft 2
+* CC: Tweaked
+* Jade
+* Any mod using NeoForge energy (FE), through the Eln exporter
+* Materials of other mods, through the common `c:` tags
 
 It also supports broader fuel integrations through the ELN fuel registry. Most reasonable mod fuels are supported.
 
 ### Known compatibility notes:
 
 * Avoid mods that forcibly rewrite block states on ELN blocks. Notably, the portable hole in **Thaumcraft**.
-* **Optifine** and **Angelica** are known to cause issues with Electrical Age and are not recommended.
+* **Optifine** is known to cause issues with Electrical Age and is not recommended.
 
 ## Source code and project links
 

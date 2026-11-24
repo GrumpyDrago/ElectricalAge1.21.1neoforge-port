@@ -1,9 +1,12 @@
 @file:Suppress("NAME_SHADOWING")
 package mods.eln.node
 
+import net.minecraft.core.BlockPos
+import mods.eln.compat.*
+
 import mods.eln.misc.Direction
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.world.EnumSkyBlock
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.level.LightLayer
 import java.io.DataOutputStream
 import java.io.IOException
 
@@ -17,19 +20,25 @@ abstract class Node : NodeBase() {
             if (light < 0) light = 0
             if (lastLight != light) {
                 lastLight = light
-                coordinate.world().updateLightByType(EnumSkyBlock.Block, coordinate.x, coordinate.y, coordinate.z)
+                syncLight()
                 needPublish = true
             }
         }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         lastLight = nbt.getByte("lastLight").toInt()
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
-        nbt.setByte("lastLight", lastLight.toByte())
+        nbt.putByte("lastLight", lastLight.toByte())
+    }
+
+    /** Writes the emitted light into the block state. */
+    fun syncLight() {
+        if (!coordinate.blockExist) return
+        NodeBlock.setLight(coordinate.world(), BlockPos(coordinate.x, coordinate.y, coordinate.z), lastLight)
     }
 
     var oldSendedRedstone = false

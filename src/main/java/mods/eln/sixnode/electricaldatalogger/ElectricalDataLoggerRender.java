@@ -1,5 +1,7 @@
 package mods.eln.sixnode.electricaldatalogger;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.cable.CableRenderDescriptor;
 import mods.eln.misc.Direction;
@@ -8,11 +10,11 @@ import mods.eln.node.six.SixNodeDescriptor;
 import mods.eln.node.six.SixNodeElementInventory;
 import mods.eln.node.six.SixNodeElementRender;
 import mods.eln.node.six.SixNodeEntity;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.GL11;
+import mods.eln.compat.client.GL11;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -54,7 +56,7 @@ public class ElectricalDataLoggerRender extends SixNodeElementRender {
                 drawSignalPin(front.inverse(), new float[]{6.37f, 6.37f, 5.67f, 6.12f});
             }
         }
-        descriptor.draw(log, side, front, this.getTileEntity().xCoord, this.getTileEntity().zCoord, color);
+        descriptor.draw(log, side, front, Mc.xCoord(this.getTileEntity()), Mc.zCoord(this.getTileEntity()), color);
     }
 
 	/*
@@ -103,7 +105,7 @@ public class ElectricalDataLoggerRender extends SixNodeElementRender {
 
     @Nullable
     @Override
-    public GuiScreen newGuiDraw(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public Screen newGuiDraw(@NotNull Direction side, @NotNull Player player) {
         return new ElectricalDataLoggerGui(player, inventory, this);
     }
 }

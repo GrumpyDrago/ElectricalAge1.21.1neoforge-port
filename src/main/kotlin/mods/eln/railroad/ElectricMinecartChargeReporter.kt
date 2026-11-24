@@ -1,35 +1,27 @@
 package mods.eln.railroad
 
-import cpw.mods.fml.common.eventhandler.SubscribeEvent
 import mods.eln.Eln
+import mods.eln.compat.currentEquippedItem
 import mods.eln.i18n.I18N
 import mods.eln.misc.Utils
-import net.minecraftforge.event.entity.player.PlayerInteractEvent
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.entity.player.Player
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
 
 class ElectricMinecartChargeReporter {
+    @SubscribeEvent
+    fun onRightClickItem(event: PlayerInteractEvent.RightClickItem) = report(event.entity, event.hand)
 
     @SubscribeEvent
-    fun onPlayerInteract(event: PlayerInteractEvent) {
-        val player = event.entityPlayer ?: return
-        val world = player.worldObj
-        if (world == null || world.isRemote) return
+    fun onRightClickBlock(event: PlayerInteractEvent.RightClickBlock) = report(event.entity, event.hand)
 
-        when (event.action) {
-            PlayerInteractEvent.Action.RIGHT_CLICK_AIR,
-            PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK -> {
-                val minecart = player.ridingEntity as? EntityElectricMinecart ?: return
-                val heldItem = player.currentEquippedItem ?: return
-                val multiMeter = Eln.multiMeterElement
-                val allMeter = Eln.allMeterElement
-                val holdingMeter = (multiMeter != null && multiMeter.checkSameItemStack(heldItem)) ||
-                        (allMeter != null && allMeter.checkSameItemStack(heldItem))
-                if (!holdingMeter) {
-                    return
-                }
-                val message = I18N.tr("Cart Energy: ") + Utils.plotEnergy(minecart.energyBufferJoules)
-                Utils.addChatMessage(player, message)
-            }
-            else -> return
+    private fun report(player: Player, hand: InteractionHand) {
+        if (player.level().isClientSide || hand != InteractionHand.MAIN_HAND) return
+        val minecart = player.vehicle as? EntityElectricMinecart ?: return
+        val held = player.currentEquippedItem ?: return
+        if (Eln.multiMeterElement?.checkSameItemStack(held) == true || Eln.allMeterElement?.checkSameItemStack(held) == true) {
+            Utils.addChatMessage(player, I18N.tr("Cart Energy: ") + Utils.plotEnergy(minecart.energyBufferJoules))
         }
     }
 }

@@ -1,7 +1,7 @@
 package mods.eln.gui;
 
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.item.ItemStack;
 
 public class SlotFilter extends SlotWithSkinAndComment {
 
@@ -20,7 +20,7 @@ public class SlotFilter extends SlotWithSkinAndComment {
      * Check if the stack is a valid item for this slot. Always true beside for
      * the armor slots.
      */
-    public boolean isItemValid(ItemStack itemStack) {
+    public boolean mayPlace(ItemStack itemStack) {
         for (IItemStackFilter filter : itemStackFilter) {
             if (filter.tryItemStack(itemStack))
                 return true;
@@ -29,8 +29,8 @@ public class SlotFilter extends SlotWithSkinAndComment {
     }
 
     @Override
-    public int getSlotStackLimit() {
-        // return super.getSlotStackLimit();
+    public int getMaxStackSize() {
+        // return super.getMaxStackSize();
         return stackLimit;
     }
 }

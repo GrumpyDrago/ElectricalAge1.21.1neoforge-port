@@ -1,47 +1,25 @@
 package mods.eln.simplenode.energyconverter
 
-import cpw.mods.fml.relauncher.Side
-import cpw.mods.fml.relauncher.SideOnly
-import mods.eln.misc.Direction
 import mods.eln.node.simple.SimpleNode
 import mods.eln.node.simple.SimpleNodeBlock
-import mods.eln.node.simple.SimpleNodeEntity
-import net.minecraft.block.material.Material
-import net.minecraft.client.renderer.texture.IIconRegister
-import net.minecraft.tileentity.TileEntity
-import net.minecraft.util.IIcon
-import net.minecraft.world.IBlockAccess
-import net.minecraft.world.World
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.SoundType
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.entity.BlockEntityTicker
+import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.block.state.BlockState
 
-class EnergyConverterElnToOtherBlock(private val descriptor: EnergyConverterElnToOtherDescriptor) : SimpleNodeBlock(Material.packedIce) {
+class EnergyConverterElnToOtherBlock(descriptor: EnergyConverterElnToOtherDescriptor) :
+    SimpleNodeBlock(BlockBehaviour.Properties.of().strength(0.5f).sound(SoundType.METAL)) {
 
-    private var sideIcon: IIcon? = null
+    override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = EnergyConverterElnToOtherEntity(pos, state)
 
-    override fun createNewTileEntity(var1: World, var2: Int): TileEntity {
-        return EnergyConverterElnToOtherEntity()
-    }
+    override fun newNode(): SimpleNode = EnergyConverterElnToOtherNode()
 
-    override fun newNode(): SimpleNode {
-        return EnergyConverterElnToOtherNode()
-    }
-
-    @SideOnly(Side.CLIENT)
-    override fun getIcon(w: IBlockAccess, x: Int, y: Int, z: Int, side: Int): IIcon {
-        return sideIcon!!
-    }
-
-    override fun getIcon(side: Int, meta: Int): IIcon {
-        return sideIcon!!
-    }
-
-    fun getElnIcon(@Suppress("UNUSED_PARAMETER") side: Int): IIcon? {
-        return sideIcon
-    }
-
-    @SideOnly(Side.CLIENT)
-    override fun registerBlockIcons(register: IIconRegister) {
-        sideIcon = register.registerIcon("eln:elntoic2lvu_side")
-    }
+    override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
+        if (level.isClientSide) null else BlockEntityTicker { _, _, _, entity -> (entity as? EnergyConverterElnToOtherEntity)?.pushEnergy() }
 
     init {
         setDescriptor(descriptor)

@@ -1,18 +1,25 @@
 package mods.eln.node.simple
 
+import mods.eln.misc.Coordinate
 import mods.eln.misc.Direction
 import mods.eln.misc.Direction.Companion.fromIntMinecraftSide
 import mods.eln.misc.Utils.entityLivingViewDirection
-import mods.eln.misc.Utils.isRemote
-import net.minecraft.block.Block
-import net.minecraft.block.BlockContainer
-import net.minecraft.block.material.Material
-import net.minecraft.entity.EntityLivingBase
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.entity.player.EntityPlayerMP
-import net.minecraft.world.World
+import net.minecraft.core.BlockPos
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.EntityBlock
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.material.FluidState
+import net.minecraft.world.phys.BlockHitResult
 
-abstract class SimpleNodeBlock protected constructor(material: Material?) : BlockContainer(material) {
+abstract class SimpleNodeBlock protected constructor(properties: Properties) : Block(properties), EntityBlock {
     var descriptorKey: String? = null
     fun setDescriptorKey(descriptorKey: String?): SimpleNodeBlock {
         this.descriptorKey = descriptorKey
@@ -24,56 +31,59 @@ abstract class SimpleNodeBlock protected constructor(material: Material?) : Bloc
         return this
     }
 
-    fun getFrontForPlacement(e: EntityLivingBase?): Direction {
+    init {
+        registerDefaultState(defaultBlockState().setValue(BlockStateProperties.FACING, net.minecraft.core.Direction.NORTH))
+    }
+
+    override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
+        builder.add(BlockStateProperties.FACING)
+    }
+
+    open fun getFrontForPlacement(e: LivingEntity?): Direction {
         return entityLivingViewDirection(e!!).inverse
     }
 
     abstract fun newNode(): SimpleNode?
 
-    fun getNode(world: World, x: Int, y: Int, z: Int): SimpleNode? {
-        val entity = world.getTileEntity(x, y, z) as SimpleNodeEntity?
-        return entity?.node
+    fun getNode(world: Level, pos: BlockPos): SimpleNode? = getEntity(world, pos)?.node
+
+    fun getEntity(world: Level, pos: BlockPos): SimpleNodeEntity? = world.getBlockEntity(pos) as? SimpleNodeEntity
+
+    override fun setPlacedBy(level: Level, pos: BlockPos, state: BlockState, placer: LivingEntity?, stack: ItemStack) {
+        super.setPlacedBy(level, pos, state, placer, stack)
+        if (level.isClientSide || placer == null) return
+        val node = newNode()!!
+        node.descriptorKey = descriptorKey
+        val front = getFrontForPlacement(placer)
+        node.onBlockPlacedBy(Coordinate(pos.x, pos.y, pos.z, level), front, placer, stack)
+        level.setBlock(pos, state.setValue(BlockStateProperties.FACING, front.toForge()), UPDATE_CLIENTS)
     }
 
-    fun getEntity(world: World, x: Int, y: Int, z: Int): SimpleNodeEntity {
-        return world.getTileEntity(x, y, z) as SimpleNodeEntity
+    override fun onDestroyedByPlayer(state: BlockState, level: Level, pos: BlockPos, player: Player, willHarvest: Boolean, fluid: FluidState): Boolean {
+        if (!level.isClientSide) getNode(level, pos)?.removedByPlayer = player as ServerPlayer
+        return super.onDestroyedByPlayer(state, level, pos, player, willHarvest, fluid)
     }
 
-    override fun removedByPlayer(world: World, entityPlayer: EntityPlayer, x: Int, y: Int, z: Int, willHarvest: Boolean): Boolean {
-        if (!world.isRemote) {
-            val node = getNode(world, x, y, z)
-            if (node != null) {
-                node.removedByPlayer = entityPlayer as EntityPlayerMP
-            }
-        }
-        return super.removedByPlayer(world, entityPlayer, x, y, z, willHarvest)
+    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, movedByPiston: Boolean) {
+        if (!newState.`is`(this)) getEntity(level, pos)?.onBreakBlock()
+        super.onRemove(state, level, pos, newState, movedByPiston)
     }
 
-    // server
-    override fun onBlockAdded(par1World: World, x: Int, y: Int, z: Int) {
-        if (!par1World.isRemote) {
-            val entity = par1World.getTileEntity(x, y, z) as SimpleNodeEntity
-            entity.onBlockAdded()
-        }
-    }
-
-    // server
-    override fun breakBlock(par1World: World, x: Int, y: Int, z: Int, par5: Block, par6: Int) {
-        val entity = par1World.getTileEntity(x, y, z) as SimpleNodeEntity
-        entity.onBreakBlock()
-        super.breakBlock(par1World, x, y, z, par5, par6)
-    }
-
-    override fun onNeighborBlockChange(world: World, x: Int, y: Int, z: Int, b: Block) {
-        if (!isRemote(world)) {
-            val entity = world.getTileEntity(x, y, z) as SimpleNodeEntity
-            entity.onNeighborBlockChange()
-        }
+    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, neighborBlock: Block, neighborPos: BlockPos, movedByPiston: Boolean) {
+        super.neighborChanged(state, level, pos, neighborBlock, neighborPos, movedByPiston)
+        if (!level.isClientSide) getEntity(level, pos)?.onNeighborBlockChange()
     }
 
     // client server
-    override fun onBlockActivated(world: World, x: Int, y: Int, z: Int, entityPlayer: EntityPlayer, side: Int, vx: Float, vy: Float, vz: Float): Boolean {
-        val entity = world.getTileEntity(x, y, z) as SimpleNodeEntity
-        return entity.onBlockActivated(entityPlayer, fromIntMinecraftSide(side), vx, vy, vz)
+    override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {
+        val entity = getEntity(level, pos) ?: return InteractionResult.PASS
+        val done = entity.onBlockActivated(
+            player,
+            fromIntMinecraftSide(hit.direction.get3DDataValue()),
+            (hit.location.x - pos.x).toFloat(),
+            (hit.location.y - pos.y).toFloat(),
+            (hit.location.z - pos.z).toFloat()
+        )
+        return if (done) InteractionResult.sidedSuccess(level.isClientSide) else InteractionResult.PASS
     }
 }

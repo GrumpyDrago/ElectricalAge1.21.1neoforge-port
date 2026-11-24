@@ -1,10 +1,12 @@
 package mods.eln.transparentnode.solarpanel;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.misc.Coordinate;
 import mods.eln.misc.Utils;
 import mods.eln.sim.IProcess;
-import net.minecraft.util.Vec3;
-import net.minecraft.world.World;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.Level;
 
 public class SolarPannelSlowProcess implements IProcess {
     SolarPanelElement solarPannel;
@@ -46,7 +48,7 @@ public class SolarPannelSlowProcess implements IProcess {
 
         Coordinate coordinate = solarPannel.node.coordinate;
         Vec3 v = Utils.getVec05(coordinate);
-        double x = v.xCoord + solarPannel.descriptor.solarOffsetX, y = v.yCoord + solarPannel.descriptor.solarOffsetY, z = v.zCoord + solarPannel.descriptor.solarOffsetZ;
+        double x = Mc.xCoord(v) + solarPannel.descriptor.solarOffsetX, y = Mc.yCoord(v) + solarPannel.descriptor.solarOffsetY, z = Mc.zCoord(v) + solarPannel.descriptor.solarOffsetZ;
 
 
         double lightAlpha = solarPannel.panelAlpha - solarAlpha;
@@ -57,9 +59,9 @@ public class SolarPannelSlowProcess implements IProcess {
 
         if (coordinate.getWorldExist() == false) return light;
 
-        World world = coordinate.world();
-        if (world.getWorldInfo().isRaining()) light *= 0.5;
-        if (world.getWorldInfo().isThundering()) light *= 0.5;
+        Level world = coordinate.world();
+        if (world.isRaining()) light *= 0.5;
+        if (world.isThundering()) light *= 0.5;
 
 
         double xD = Math.cos(solarAlpha), yD = Math.sin(solarAlpha);
@@ -73,9 +75,9 @@ public class SolarPannelSlowProcess implements IProcess {
         }
         int count = 0;
         ///world.getChunkProvider().chunkExists(var1, var2)
-        while (world.getChunkProvider().chunkExists(((int) x) >> 4, ((int) z) >> 4)) {
-            double opacity = world.getBlockLightOpacity((int) x, (int) y, (int) z);
-            light *= (255 - opacity) / 255;
+        while (Mc.blockExists(world, (int) x, (int) y, (int) z)) {
+            double opacity = Mc.getState(world, (int) x, (int) y, (int) z).getLightBlock(world, Mc.pos((int) x, (int) y, (int) z));
+            light *= (15 - opacity) / 15;
             if (light == 0.0) {
                 break;
             }
@@ -83,20 +85,20 @@ public class SolarPannelSlowProcess implements IProcess {
             x += xD;
             y += yD;
             count++;
-            if (y > 256.0) break;
+            if (y > world.getMaxBuildHeight()) break;
         }
 //		Utils.print("count : " + count + "   ");
         return light;
     }
 
-    public static double getSolarAlpha(World world) {
-        double alpha = world.getCelestialAngleRadians(0f);
+    public static double getSolarAlpha(Level world) {
+        double alpha = world.getSunAngle(0f);
         if (alpha < Math.PI / 2 * 3) {
             alpha += Math.PI / 2;
         } else {
             alpha -= Math.PI / 2 * 3;
         }
-        //return ((((world.getWorldTime()%24000)*12.0/13.0 +500 ) / 24000.0) )% 1.0 * Math.PI*2;
+        //return ((((Mc.getWorldTime(world)%24000)*12.0/13.0 +500 ) / 24000.0) )% 1.0 * Math.PI*2;
         return alpha;
     }
 

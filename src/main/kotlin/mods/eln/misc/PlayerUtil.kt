@@ -1,9 +1,11 @@
 package mods.eln.misc
 
-import mods.eln.Eln
-import net.minecraft.entity.player.EntityPlayer
+import mods.eln.compat.*
 
-fun EntityPlayer?.isHoldingMeter(): Boolean {
+import mods.eln.Eln
+import net.minecraft.world.entity.player.Player
+
+fun Player?.isHoldingMeter(): Boolean {
     if (this == null) return false
     val equippedItem = currentEquippedItem
     return (Eln.multiMeterElement.checkSameItemStack(equippedItem)

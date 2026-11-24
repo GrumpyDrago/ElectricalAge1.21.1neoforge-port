@@ -15,7 +15,7 @@ class BiomesJsonTemperatureConsistencyTest {
     fun celsiusValuesAlignWithFahrenheitValues() {
         disableLog4jJmx()
 
-        val jsonPath = Paths.get("src/main/resources/assets/eln/biomes.json")
+        val jsonPath = Paths.get(System.getProperty("eln.projectDir", "."), "src/main/resources/assets/eln/biomes.json")
         assertTrue(Files.exists(jsonPath), "Missing biome JSON: $jsonPath")
 
         val root = Files.newBufferedReader(jsonPath, StandardCharsets.UTF_8).use { reader ->

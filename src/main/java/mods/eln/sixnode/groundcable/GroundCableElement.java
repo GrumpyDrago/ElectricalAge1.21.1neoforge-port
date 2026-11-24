@@ -1,5 +1,7 @@
 package mods.eln.sixnode.groundcable;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.generic.GenericItemUsingDamageDescriptor;
 import mods.eln.i18n.I18N;
@@ -17,12 +19,12 @@ import mods.eln.sim.ThermalLoad;
 import mods.eln.sim.mna.component.VoltageSource;
 import mods.eln.sim.nbt.NbtElectricalLoad;
 import mods.eln.sixnode.electricalcable.UtilityCableElement;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,7 +54,7 @@ public class GroundCableElement extends SixNodeElement {
     }
 
     @Override
-    public void readFromNBT(@NotNull NBTTagCompound nbt) {
+    public void readFromNBT(@NotNull CompoundTag nbt) {
         super.readFromNBT(nbt);
         byte b = nbt.getByte("color");
         color = b & 0xF;
@@ -64,9 +66,9 @@ public class GroundCableElement extends SixNodeElement {
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         super.writeToNBT(nbt);
-        nbt.setByte("color", (byte) (color + (colorCare << 4)));
+        nbt.putByte("color", (byte) (color + (colorCare << 4)));
     }
 
     @Override
@@ -147,8 +149,8 @@ public class GroundCableElement extends SixNodeElement {
     }
 
     @Override
-    public boolean onBlockActivated(EntityPlayer entityPlayer, Direction side, float vx, float vy, float vz) {
-        ItemStack currentItemStack = entityPlayer.getCurrentEquippedItem();
+    public boolean onBlockActivated(Player entityPlayer, Direction side, float vx, float vy, float vz) {
+        ItemStack currentItemStack = Mc.getCurrentEquippedItem(entityPlayer);
         if (Utils.isPlayerUsingWrench(entityPlayer)) {
             colorCare = colorCare ^ 1;
             Utils.addChatMessage(entityPlayer, "Wire color care " + colorCare);
@@ -182,7 +184,7 @@ public class GroundCableElement extends SixNodeElement {
 
     @Nullable
     @Override
-    public Container newContainer(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public AbstractContainerMenu newContainer(@NotNull Direction side, @NotNull Player player) {
         return new GroundCableContainer(player, inventory);
     }
 }

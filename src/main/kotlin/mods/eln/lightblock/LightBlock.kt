@@ -1,72 +1,66 @@
 package mods.eln.lightblock
 
 import mods.eln.misc.Coordinate
-import net.minecraft.block.Block
-import net.minecraft.block.BlockContainer
-import net.minecraft.block.material.Material
-import net.minecraft.item.Item
-import net.minecraft.tileentity.TileEntity
-import net.minecraft.util.AxisAlignedBB
-import net.minecraft.util.MovingObjectPosition
-import net.minecraft.util.Vec3
-import net.minecraft.world.IBlockAccess
-import net.minecraft.world.World
-import java.util.*
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.EntityBlock
+import net.minecraft.world.level.block.RenderShape
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.entity.BlockEntityTicker
+import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.block.state.properties.IntegerProperty
+import net.minecraft.world.phys.shapes.CollisionContext
+import net.minecraft.world.phys.shapes.Shapes
+import net.minecraft.world.phys.shapes.VoxelShape
 
-class LightBlock : BlockContainer(Material.air) {
+/**
+ * Invisible block that emits light for a while, see [LightBlockEntity].
+ */
+class LightBlock : Block(
+    BlockBehaviour.Properties.of().replaceable().noCollission().noOcclusion().noLootTable().air()
+        .strength(0f)
+        .lightLevel { it.getValue(LIGHT) }
+), EntityBlock {
 
-    override fun collisionRayTrace(world: World, x: Int, y: Int, z: Int, start: Vec3, end: Vec3): MovingObjectPosition? {
-        return null
+    init {
+        registerDefaultState(defaultBlockState().setValue(LIGHT, 0))
     }
 
-    override fun getCollisionBoundingBoxFromPool(par1World: World, par2: Int, par3: Int, par4: Int): AxisAlignedBB? {
-        return null
+    override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
+        builder.add(LIGHT)
     }
 
-    override fun isOpaqueCube(): Boolean {
-        return false
-    }
+    fun stateFor(light: Int): BlockState = defaultBlockState().setValue(LIGHT, light.coerceIn(0, 15))
 
-    override fun renderAsNormalBlock(): Boolean {
-        return false
-    }
+    override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape = Shapes.empty()
 
-    override fun getRenderType(): Int {
-        return -1
-    }
+    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.INVISIBLE
 
-    override fun getItemDropped(par1: Int, par2: Random, par3: Int): Item? {
-        return null
-    }
+    override fun propagatesSkylightDown(state: BlockState, level: BlockGetter, pos: BlockPos): Boolean = true
 
-    override fun quantityDropped(par1Random: Random): Int {
-        return 0
-    }
+    override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = LightBlockEntity(pos, state)
 
-    override fun isReplaceable(access: IBlockAccess, x: Int, y: Int, z: Int): Boolean {
-        return true
-    }
+    override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
+        if (level.isClientSide) null else BlockEntityTicker { _, _, _, entity -> (entity as? LightBlockEntity)?.updateEntity() }
 
-    override fun getLightValue(world: IBlockAccess, x: Int, y: Int, z: Int): Int {
-        return world.getBlockMetadata(x, y, z)
-    }
-
-    override fun createNewTileEntity(arg0: World, arg1: Int): TileEntity {
-        return LightBlockEntity()
-    }
-
-    override fun breakBlock(world: World, x: Int, y: Int, z: Int, arg4: Block, arg5: Int) {
-        val coord = Coordinate(x, y, z, world)
-
-        for (o in LightBlockEntity.observers) {
-            o.lightBlockDestructor(coord)
+    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, movedByPiston: Boolean) {
+        if (!newState.`is`(this)) {
+            val coord = Coordinate(pos.x, pos.y, pos.z, level)
+            for (o in LightBlockEntity.observers) {
+                o.lightBlockDestructor(coord)
+            }
         }
-
-        super.breakBlock(world, x, y, z, arg4, arg5)
+        super.onRemove(state, level, pos, newState, movedByPiston)
     }
 
-    override fun getLightOpacity(): Int {
-        return 0
+    companion object {
+        @JvmField
+        val LIGHT: IntegerProperty = BlockStateProperties.LEVEL
     }
-
 }

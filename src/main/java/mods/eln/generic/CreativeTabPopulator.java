@@ -1,45 +1,34 @@
 package mods.eln.generic;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import mods.eln.Eln;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.item.ItemStack;
+import mods.eln.compat.Mc;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 /**
- * Keeps track of metadata driven items so we can render their descriptors inside secondary creative tabs.
+ * Keeps track of the descriptor families so they can be listed in the creative tabs.
  */
 public final class CreativeTabPopulator {
 
-    private static final List<GenericItemBlockUsingDamage<?>> BLOCK_ITEMS = new ArrayList<GenericItemBlockUsingDamage<?>>();
-    private static final List<GenericItemUsingDamage<?>> GENERIC_ITEMS = new ArrayList<GenericItemUsingDamage<?>>();
+    private static final List<DescriptorCollection<?>> COLLECTIONS = new ArrayList<>();
 
     private CreativeTabPopulator() {
     }
 
-    public static void register(GenericItemBlockUsingDamage<?> item) {
-        if (!BLOCK_ITEMS.contains(item)) {
-            BLOCK_ITEMS.add(item);
-        }
+    public static void register(DescriptorCollection<?> collection) {
+        if (!COLLECTIONS.contains(collection)) COLLECTIONS.add(collection);
     }
 
-    public static void register(GenericItemUsingDamage<?> item) {
-        if (!GENERIC_ITEMS.contains(item)) {
-            GENERIC_ITEMS.add(item);
-        }
+    public static List<DescriptorCollection<?>> getCollections() {
+        return COLLECTIONS;
     }
 
-    @SideOnly(Side.CLIENT)
-    public static void addEntries(CreativeTabs tab, List<ItemStack> list) {
-        for (GenericItemBlockUsingDamage<?> item : BLOCK_ITEMS) {
-            item.getSubItems(item, tab, list);
-        }
-        for (GenericItemUsingDamage<?> item : GENERIC_ITEMS) {
-            item.getSubItems(item, tab, list);
+    public static void addEntries(GenericCreativeTab tab, List<ItemStack> list) {
+        for (DescriptorCollection<?> collection : COLLECTIONS) {
+            collection.addToTab(tab, list);
         }
         if (tab == Eln.creativeTabPowerElectronics) {
             moveRegulatorChipsAfterDcDcConverters(list);
@@ -47,7 +36,7 @@ public final class CreativeTabPopulator {
     }
 
     private static void moveRegulatorChipsAfterDcDcConverters(List<ItemStack> list) {
-        List<ItemStack> regulators = new ArrayList<ItemStack>();
+        List<ItemStack> regulators = new ArrayList<>();
 
         for (Iterator<ItemStack> iterator = list.iterator(); iterator.hasNext(); ) {
             ItemStack stack = iterator.next();
@@ -71,12 +60,12 @@ public final class CreativeTabPopulator {
     }
 
     private static boolean isRegulatorChip(ItemStack stack) {
-        return stack.getItem() == Eln.sixNodeItem && (stack.getItemDamage() >> 6) == 5;
+        return Eln.sixNodeItem.owns(stack.getItem()) && (Mc.getItemDamage(stack) >> 6) == 5;
     }
 
     private static boolean isDcDcConverter(ItemStack stack) {
-        if (stack.getItem() != Eln.transparentNodeItem) return false;
-        int damage = stack.getItemDamage();
+        if (!Eln.transparentNodeItem.owns(stack.getItem())) return false;
+        int damage = Mc.getItemDamage(stack);
         int group = damage >> 6;
         int subId = damage & 63;
         return group == 2 && subId >= 1 && subId <= 7;

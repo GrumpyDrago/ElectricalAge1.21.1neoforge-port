@@ -1,15 +1,17 @@
 package mods.eln.gui;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.gui.GuiTextFieldEln.GuiTextFieldElnObserver;
 import mods.eln.gui.IGuiObject.IGuiObjectObserver;
 import mods.eln.gui.ISlotSkin.SlotSkin;
 import mods.eln.misc.UtilsClient;
-import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.Slot;
-import net.minecraft.util.ResourceLocation;
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.opengl.GL11;
+import mods.eln.compat.client.GuiContainer;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.resources.ResourceLocation;
+import mods.eln.compat.client.Keyboard;
+import mods.eln.compat.client.GL11;
 
 import java.util.ArrayList;
 
@@ -19,9 +21,9 @@ public abstract class GuiContainerEln extends GuiContainer implements IGuiObject
 
     protected abstract GuiHelperContainer newHelper();
 
-    static final ResourceLocation slotSkin = new ResourceLocation("textures/gui/container/furnace.png");
+    static final ResourceLocation slotSkin = Mc.rl("textures/gui/container/furnace.png");
 
-    public GuiContainerEln(Container par1Container) {
+    public GuiContainerEln(AbstractContainerMenu par1Container) {
         super(par1Container);
     }
 
@@ -42,16 +44,16 @@ public abstract class GuiContainerEln extends GuiContainer implements IGuiObject
     }
 
     void apply(GuiHelperContainer helper) {
-        for (int idx = inventorySlots.inventorySlots.size() - 36; idx < inventorySlots.inventorySlots.size(); idx++) {
-            Slot s = (Slot) inventorySlots.inventorySlots.get(idx);
-            s.xDisplayPosition = (idx - (inventorySlots.inventorySlots.size() - 36)) % 9 * 18;
-            s.yDisplayPosition = (idx - (inventorySlots.inventorySlots.size() - 36)) / 9 * 18;
-            if (idx >= inventorySlots.inventorySlots.size() - 9) {
-                s.yDisplayPosition = 58;
-                s.xDisplayPosition = (idx - (inventorySlots.inventorySlots.size() - 9)) * 18;
+        for (int idx = inventorySlots.slots.size() - 36; idx < inventorySlots.slots.size(); idx++) {
+            Slot s = (Slot) inventorySlots.slots.get(idx);
+            s.x = (idx - (inventorySlots.slots.size() - 36)) % 9 * 18;
+            s.y = (idx - (inventorySlots.slots.size() - 36)) / 9 * 18;
+            if (idx >= inventorySlots.slots.size() - 9) {
+                s.y = 58;
+                s.x = (idx - (inventorySlots.slots.size() - 9)) * 18;
             }
-            s.xDisplayPosition += helper.xInv;
-            s.yDisplayPosition += helper.yInv;
+            s.x += helper.xInv;
+            s.y += helper.yInv;
         }
     }
 
@@ -120,15 +122,6 @@ public abstract class GuiContainerEln extends GuiContainer implements IGuiObject
         super.mouseMovedOrUp(x, y, witch);
     }
 
-    public boolean doesGuiPauseGame() {
-        return false;
-    }
-
-    @Override
-    public void drawScreen(int x, int y, float f) {
-        super.drawScreen(x, y, f);
-    }
-
     @Override
     public void textFieldNewValue(GuiTextFieldEln textField, String value) {
         guiObjectEvent(textField);
@@ -148,7 +141,7 @@ public abstract class GuiContainerEln extends GuiContainer implements IGuiObject
         UtilsClient.bindTexture(slotSkin);
         GL11.glColor4f(1f, 1f, 1f, 1f);
 
-        for (Object o : inventorySlots.inventorySlots) {
+        for (Object o : inventorySlots.slots) {
             Slot slot = (Slot) o;
             SlotSkin skin = SlotSkin.none;
 
@@ -156,10 +149,10 @@ public abstract class GuiContainerEln extends GuiContainer implements IGuiObject
 
             switch (skin) {
                 case medium:
-                    drawTexturedModalRectEln(slot.xDisplayPosition - 1, slot.yDisplayPosition - 1, 55, 16, 73 - 55, 34 - 16);
+                    drawTexturedModalRectEln(slot.x - 1, slot.y - 1, 55, 16, 73 - 55, 34 - 16);
                     break;
                 case big:
-                    drawTexturedModalRectEln(slot.xDisplayPosition - 5, slot.yDisplayPosition - 5, 111, 30, 137 - 111, 56 - 30);
+                    drawTexturedModalRectEln(slot.x - 5, slot.y - 5, 111, 30, 137 - 111, 56 - 30);
                     break;
             }
         }
@@ -173,11 +166,11 @@ public abstract class GuiContainerEln extends GuiContainer implements IGuiObject
         ArrayList<String> list = new ArrayList<String>();
         GL11.glColor4f(1f, 1f, 1f, 1f);
 
-        for (Object o : inventorySlots.inventorySlots) {
+        for (Object o : inventorySlots.slots) {
             Slot slot = (Slot) o;
-            if (slot.getHasStack() == false
-                && mx - guiLeft >= slot.xDisplayPosition && my - guiTop >= slot.yDisplayPosition
-                && mx - guiLeft < slot.xDisplayPosition + 17 && my - guiTop < slot.yDisplayPosition + 17) {
+            if (!slot.hasItem()
+                && mx - leftPos >= slot.x && my - topPos >= slot.y
+                && mx - leftPos < slot.x + 17 && my - topPos < slot.y + 17) {
                 list.clear();
 
                 SlotSkin comment = SlotSkin.none;
@@ -186,19 +179,19 @@ public abstract class GuiContainerEln extends GuiContainer implements IGuiObject
                     int x, y;
                     int strWidth = 0;
                     for (String str : list) {
-                        int size = fontRendererObj.getStringWidth(str);
+                        int size = fontRendererObj.width(str);
                         if (size > strWidth) strWidth = size;
                     }
 
-                    x = slot.xDisplayPosition;
-                    y = slot.yDisplayPosition;
+                    x = slot.x;
+                    y = slot.y;
 
                     int xOffset = 0;
-                    if (guiLeft + x + strWidth + 30 > this.width) {
+                    if (leftPos + x + strWidth + 30 > this.width) {
                         xOffset -= strWidth + 20;
                     }
                     if (!list.isEmpty())
-                        drawHoveringText((java.util.List) list, mx - guiLeft + xOffset, my - guiTop, fontRendererObj);
+                        helper.drawTooltip(list, mx - leftPos + xOffset, my - topPos);
                 }
             }
         }

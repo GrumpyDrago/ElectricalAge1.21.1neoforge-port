@@ -1,5 +1,7 @@
 package mods.eln.sixnode.mqttmeter
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.misc.Direction
 import mods.eln.misc.LRDU
@@ -30,11 +32,10 @@ import mods.eln.sixnode.energymeter.EnergyMeterDescriptor
 import mods.eln.sixnode.genericcable.GenericCableDescriptor
 import mods.eln.sound.SoundCommand
 import mods.eln.i18n.I18N.tr
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.entity.player.EntityPlayerMP
-import net.minecraft.inventory.Container
-import net.minecraft.inventory.IInventory
-import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.world.entity.player.Player
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.nbt.CompoundTag
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -95,9 +96,9 @@ class MqttEnergyMeterElement(sixNode: SixNode, side: Direction, descriptor: SixN
     override val inventory: IInventory?
         get() = inventoryProxy.inventory
 
-    override fun onBlockActivated(entityPlayer: EntityPlayer, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
+    override fun onBlockActivated(entityPlayer: Player, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
         if (onBlockActivatedRotate(entityPlayer)) return true
-        AutoAcceptInventoryProxy.creativeFreeInsert = Eln.config.getBooleanOrElse("gameplay.qol.creativeNoConsumeInsertedItems", false) && entityPlayer is EntityPlayerMP && Utils.isCreative(entityPlayer)
+        AutoAcceptInventoryProxy.creativeFreeInsert = Eln.config.getBooleanOrElse("gameplay.qol.creativeNoConsumeInsertedItems", false) && entityPlayer is ServerPlayer && Utils.isCreative(entityPlayer)
         if (inventoryProxy.take(entityPlayer.currentEquippedItem, this, false, true)) {
             AutoAcceptInventoryProxy.creativeFreeInsert = false
             return true
@@ -108,7 +109,7 @@ class MqttEnergyMeterElement(sixNode: SixNode, side: Direction, descriptor: SixN
 
     override fun hasGui(): Boolean = true
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu {
         return MqttEnergyMeterContainer(player, elementInventory)
     }
 
@@ -174,13 +175,13 @@ class MqttEnergyMeterElement(sixNode: SixNode, side: Direction, descriptor: SixN
         return info
     }
 
-    override fun destroy(entityPlayer: EntityPlayerMP?) {
+    override fun destroy(entityPlayer: ServerPlayer?) {
         super.destroy(entityPlayer)
         mqttDisconnect()
         MqttMeterRegistry.release(coordinate)
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         energyStack = nbt.getDouble("mqttEnergy")
         lastPublishEnergy = energyStack
@@ -195,16 +196,16 @@ class MqttEnergyMeterElement(sixNode: SixNode, side: Direction, descriptor: SixN
         ensureMeterId()
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
-        nbt.setDouble("mqttEnergy", energyStack)
-        nbt.setDouble("mqttTime", timeCounter)
-        nbt.setByte("mqttEnergyUnit", energyUnit.toByte())
-        nbt.setByte("mqttTimeUnit", timeUnit.toByte())
-        nbt.setString("mqttMeterName", meterInfo.meterName)
-        nbt.setString("mqttServerName", meterInfo.serverName)
-        nbt.setString("mqttMeterId", meterInfo.meterId)
-        nbt.setBoolean("mqttEnabled", meterInfo.enabled)
+        nbt.putDouble("mqttEnergy", energyStack)
+        nbt.putDouble("mqttTime", timeCounter)
+        nbt.putByte("mqttEnergyUnit", energyUnit.toByte())
+        nbt.putByte("mqttTimeUnit", timeUnit.toByte())
+        nbt.putString("mqttMeterName", meterInfo.meterName)
+        nbt.putString("mqttServerName", meterInfo.serverName)
+        nbt.putString("mqttMeterId", meterInfo.meterId)
+        nbt.putBoolean("mqttEnabled", meterInfo.enabled)
     }
 
     override fun networkSerialize(stream: DataOutputStream) {
@@ -225,7 +226,7 @@ class MqttEnergyMeterElement(sixNode: SixNode, side: Direction, descriptor: SixN
         }
     }
 
-    override fun networkUnserialize(stream: DataInputStream, player: EntityPlayerMP?) {
+    override fun networkUnserialize(stream: DataInputStream, player: ServerPlayer?) {
         super.networkUnserialize(stream, player)
         try {
             when (stream.readByte().toInt()) {
@@ -265,7 +266,7 @@ class MqttEnergyMeterElement(sixNode: SixNode, side: Direction, descriptor: SixN
     private fun toggleState() {
         val newState = !meterInfo.enabled
         setEnabledState(newState)
-        play(SoundCommand("random.click").mulVolume(0.3f, 0.6f).smallRange())
+        play(SoundCommand("minecraft:block.lever.click").mulVolume(0.3f, 0.6f).smallRange())
     }
 
     private fun ensureMeterId() {
@@ -369,7 +370,7 @@ class MqttEnergyMeterElement(sixNode: SixNode, side: Direction, descriptor: SixN
         if (!serverMatched) return
         val server = MqttManager.getServerByName(meterInfo.serverName) ?: return
         MqttMeterManager.ensureSubscription(meterInfo.meterId, coord, server, this::handleCommand)
-        val dimensionName = coord.world().provider.dimensionName
+        val dimensionName = coord.world().dimension().location().toString()
         val timeSeconds = timeCounter / 72.0
         val snapshot = MqttMeterSnapshot(
             meterInfo,

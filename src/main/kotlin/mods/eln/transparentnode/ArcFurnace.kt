@@ -1,5 +1,7 @@
 package mods.eln.transparentnode
 
+import mods.eln.compat.*
+
 import mods.eln.generic.GenericItemUsingDamageSlot
 import mods.eln.ghost.GhostGroup
 import mods.eln.gui.GuiContainerEln
@@ -15,14 +17,12 @@ import mods.eln.sim.mna.component.Resistor
 import mods.eln.sim.nbt.NbtElectricalLoad
 import mods.eln.sim.process.destruct.VoltageStateWatchDog
 import mods.eln.sim.process.destruct.WorldExplosion
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.Container
-import net.minecraft.inventory.IInventory
-import net.minecraft.inventory.Slot
-import net.minecraft.item.ItemStack
-import net.minecraftforge.client.IItemRenderer
-import org.lwjgl.opengl.GL11
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.inventory.Slot
+import net.minecraft.world.item.ItemStack
+import mods.eln.compat.client.GL11
 
 class ArcFurnaceDescriptor(val name: String, val obj: Obj3D): TransparentNodeDescriptor(name, ArcFurnaceElement::class.java, ArcFurnaceRender::class.java) {
     private var main: Obj3DPart? = null
@@ -109,7 +109,7 @@ class ArcFurnaceElement(node: TransparentNode, descriptor: TransparentNodeDescri
         return true
     }
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu {
         return ArcFurnaceContainer(node, player, inventory)
     }
 }
@@ -128,12 +128,12 @@ class ArcFurnaceRender(tileEntity: TransparentNodeEntity, descriptor: Transparen
         adesc?.draw(front!!)
     }
 
-    override fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen {
+    override fun newGuiDraw(side: Direction, player: Player): Screen {
         return ArcFurnaceGui(player, inventory, this)
     }
 }
 
-class ArcFurnaceContainer(val node: NodeBase?, player: EntityPlayer, inventory: IInventory): BasicContainer(
+class ArcFurnaceContainer(val node: NodeBase?, player: Player, inventory: IInventory): BasicContainer(
     player, inventory, arrayOf<Slot>(
         GenericItemUsingDamageSlot(
             inventory, 0, 0, 0, 1,
@@ -162,7 +162,7 @@ class ArcFurnaceContainer(val node: NodeBase?, player: EntityPlayer, inventory: 
         )
     ))
 
-class ArcFurnaceGui(player: EntityPlayer, inventory: IInventory, @Suppress("UNUSED_PARAMETER") render: ArcFurnaceRender): GuiContainerEln(ArcFurnaceContainer(null, player, inventory)) {
+class ArcFurnaceGui(player: Player, inventory: IInventory, @Suppress("UNUSED_PARAMETER") render: ArcFurnaceRender): GuiContainerEln(ArcFurnaceContainer(null, player, inventory)) {
     override fun newHelper(): GuiHelperContainer {
             return GuiHelperContainer(this, 176, 166, 50, 84)
     }

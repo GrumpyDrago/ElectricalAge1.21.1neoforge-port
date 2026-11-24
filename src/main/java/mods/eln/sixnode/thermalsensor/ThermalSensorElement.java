@@ -1,5 +1,7 @@
 package mods.eln.sixnode.thermalsensor;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.i18n.I18N;
 import mods.eln.item.ConfigCopyToolDescriptor;
@@ -22,11 +24,11 @@ import mods.eln.sixnode.currentcable.CurrentCableDescriptor;
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor;
 import mods.eln.sixnode.electricaldatalogger.DataLogs;
 import mods.eln.sixnode.thermalcable.ThermalCableDescriptor;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -90,7 +92,7 @@ public class ThermalSensorElement extends SixNodeElement implements IConfigurabl
     }
 
     @Override
-    public void readFromNBT(@NotNull NBTTagCompound nbt) {
+    public void readFromNBT(@NotNull CompoundTag nbt) {
         super.readFromNBT(nbt);
         byte value = nbt.getByte("front");
         front = LRDU.fromInt((value >> 0) & 0x3);
@@ -100,12 +102,12 @@ public class ThermalSensorElement extends SixNodeElement implements IConfigurabl
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         super.writeToNBT(nbt);
-        nbt.setByte("front", (byte) ((front.toInt() << 0)));
-        nbt.setByte("typeOfSensor", (byte) typeOfSensor);
-        nbt.setFloat("lowValue", lowValue);
-        nbt.setFloat("highValue", highValue);
+        nbt.putByte("front", (byte) ((front.toInt() << 0)));
+        nbt.putByte("typeOfSensor", (byte) typeOfSensor);
+        nbt.putFloat("lowValue", lowValue);
+        nbt.putFloat("highValue", highValue);
     }
 
     @Override
@@ -239,9 +241,9 @@ public class ThermalSensorElement extends SixNodeElement implements IConfigurabl
     }
 
     @Override
-    public boolean onBlockActivated(EntityPlayer entityPlayer, Direction side, float vx, float vy, float vz) {
+    public boolean onBlockActivated(Player entityPlayer, Direction side, float vx, float vy, float vz) {
         if (onBlockActivatedRotate(entityPlayer)) return true;
-        ItemStack currentItemStack = entityPlayer.getCurrentEquippedItem();
+        ItemStack currentItemStack = Mc.getCurrentEquippedItem(entityPlayer);
 
         if (Eln.multiMeterElement.checkSameItemStack(currentItemStack)) {
             return false;
@@ -283,17 +285,17 @@ public class ThermalSensorElement extends SixNodeElement implements IConfigurabl
 
     @Nullable
     @Override
-    public Container newContainer(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public AbstractContainerMenu newContainer(@NotNull Direction side, @NotNull Player player) {
         return new ThermalSensorContainer(player, inventory.getInventory(), descriptor.temperatureOnly);
     }
 
     @Override
-    public void readConfigTool(NBTTagCompound compound, EntityPlayer invoker) {
-        if(compound.hasKey("min"))
+    public void readConfigTool(CompoundTag compound, Player invoker) {
+        if(compound.contains("min"))
             lowValue = compound.getFloat("min");
-        if(compound.hasKey("max"))
+        if(compound.contains("max"))
             highValue = compound.getFloat("max");
-        if(compound.hasKey("unit")) {
+        if(compound.contains("unit")) {
             switch(compound.getByte("unit")) {
                 case DataLogs.powerType:
                     typeOfSensor = powerType;
@@ -308,15 +310,15 @@ public class ThermalSensorElement extends SixNodeElement implements IConfigurabl
     }
 
     @Override
-    public void writeConfigTool(NBTTagCompound compound, EntityPlayer invoker) {
-        compound.setFloat("min", lowValue);
-        compound.setFloat("max", highValue);
+    public void writeConfigTool(CompoundTag compound, Player invoker) {
+        compound.putFloat("min", lowValue);
+        compound.putFloat("max", highValue);
         switch(typeOfSensor) {
             case powerType:
-                compound.setByte("unit", DataLogs.powerType);
+                compound.putByte("unit", DataLogs.powerType);
                 break;
             case temperatureType:
-                compound.setByte("unit", DataLogs.celsiusType);
+                compound.putByte("unit", DataLogs.celsiusType);
                 break;
         }
         ConfigCopyToolDescriptor.writeCableType(compound, getInventory().getStackInSlot(0));

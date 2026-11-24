@@ -1,5 +1,7 @@
 package mods.eln.sixnode
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.i18n.I18N.tr
@@ -21,14 +23,13 @@ import mods.eln.sim.IProcess
 import mods.eln.sim.ThermalLoad
 import mods.eln.sim.nbt.NbtElectricalGateInput
 import mods.eln.wiki.Data
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.tileentity.TileEntity
-import net.minecraftforge.client.IItemRenderer
-import org.lwjgl.opengl.GL11
-import org.lwjgl.util.Color
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.level.block.entity.BlockEntity
+import mods.eln.compat.client.GL11
+import java.awt.Color
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -56,7 +57,7 @@ class ElectricalVuMeterDescriptor(name: String, objName: String, var onOffOnly: 
         Data.addSignal(newItemStack())
     }
 
-    fun draw(factorArg: Float, entity: TileEntity?) {
+    fun draw(factorArg: Float, entity: BlockEntity?) {
         var factor = factorArg
         if (factor < 0.0) factor = 0.0f
         if (factor > 1.0) factor = 1.0f
@@ -64,8 +65,7 @@ class ElectricalVuMeterDescriptor(name: String, objName: String, var onOffOnly: 
             ObjType.LedOnOff -> {
                 main!!.draw()
                 if (isRGB) {
-                    val ledColor = Color()
-                    ledColor.fromHSB(factor, 1f, 1f)
+                    val ledColor = Color(Color.HSBtoRGB(factor, 1f, 1f))
                     if (factor > 0.005f) {
                         GL11.glColor3f(ledColor.red / 255f, ledColor.green / 255f, ledColor.blue / 255f)
                     } else {
@@ -100,7 +100,7 @@ class ElectricalVuMeterDescriptor(name: String, objName: String, var onOffOnly: 
         }
     }
 
-    override fun addInformation(itemStack: ItemStack, entityPlayer: EntityPlayer, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack, entityPlayer: Player, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
         if (isRGB)
             list.add(tr("Displays a color based on the value of a signal"))
@@ -122,7 +122,7 @@ class ElectricalVuMeterDescriptor(name: String, objName: String, var onOffOnly: 
         }
     }
 
-    override fun getFrontFromPlace(side: Direction, player: EntityPlayer): LRDU {
+    override fun getFrontFromPlace(side: Direction, player: Player): LRDU {
         return super.getFrontFromPlace(side, player)!!.inverse()
     }
 
@@ -148,7 +148,7 @@ class ElectricalVuMeterDescriptor(name: String, objName: String, var onOffOnly: 
         voltageLevelColor = VoltageLevelColor.SignalVoltage
     }
 
-    override fun canBePlacedOnSide(player: EntityPlayer?, side: Direction) = true
+    override fun canBePlacedOnSide(player: Player?, side: Direction) = true
 }
 
 
@@ -158,15 +158,15 @@ class ElectricalVuMeterElement(sixNode: SixNode, side: Direction, descriptor: Si
     var slowProcess = ElectricalVuMeterSlowProcess(this)
     @JvmField
     var descriptor: ElectricalVuMeterDescriptor = descriptor as ElectricalVuMeterDescriptor
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         val value = nbt.getByte("front")
         front = LRDU.fromInt(value.toInt() shr 0 and 0x3)
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
-        nbt.setByte("front", (front.toInt() shl 0).toByte())
+        nbt.putByte("front", (front.toInt() shl 0).toByte())
     }
 
     override fun getElectricalLoad(lrdu: LRDU, mask: Int): ElectricalLoad? {

@@ -1,34 +1,36 @@
 package mods.eln.item.electricalitem
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.generic.GenericItemUsingDamageDescriptor
 import mods.eln.i18n.I18N.tr
 import mods.eln.item.electricalinterface.IItemEnergyBattery
 import mods.eln.misc.Utils
 import mods.eln.misc.UtilsClient
-import net.minecraft.block.Block
-import net.minecraft.entity.EntityLivingBase
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.init.Blocks
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.util.ResourceLocation
-import net.minecraft.world.World
-import net.minecraftforge.client.IItemRenderer.ItemRenderType
-import net.minecraftforge.client.IItemRenderer.ItemRendererHelper
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.level.Level
+import mods.eln.compat.IItemRenderer.ItemRenderType
+import mods.eln.compat.IItemRenderer.ItemRendererHelper
 
 open class ElectricalTool(name: String, var strengthOn: Float, var strengthOff: Float,
                           var energyStorage: Double, var energyPerBlock: Double, var chargePower: Double) : GenericItemUsingDamageDescriptor(name), IItemEnergyBattery {
     var light = 0
     var range = 0
     var rIcon: ResourceLocation
-    override fun onEntitySwing(entityLiving: EntityLivingBase?, stack: ItemStack?): Boolean {
-        if (entityLiving!!.worldObj.isRemote) return false
+    override fun onEntitySwing(entityLiving: LivingEntity?, stack: ItemStack?): Boolean {
+        if (entityLiving!!.worldObj.isClientSide) return false
         Eln.itemEnergyInventoryProcess.addExclusion(this, 2.0)
         return super.onEntitySwing(entityLiving, stack)
     }
 
-    override fun onBlockDestroyed(stack: ItemStack, w: World, block: Block, x: Int, y: Int, z: Int, entity: EntityLivingBase): Boolean {
+    override fun onBlockDestroyed(stack: ItemStack, w: Level, block: Block, x: Int, y: Int, z: Int, entity: LivingEntity): Boolean {
         subtractEnergyForBlockBreak(stack, block)
         Utils.println("destroy")
         return true
@@ -46,11 +48,11 @@ open class ElectricalTool(name: String, var strengthOn: Float, var strengthOff: 
         return if (getEnergy(stack) >= energyPerBlock) strengthOn else strengthOff
     }
 
-    override fun getDefaultNBT(): NBTTagCompound? {
-        val nbt = NBTTagCompound()
-        nbt.setDouble("energy", 0.0)
-        nbt.setBoolean("powerOn", false)
-        nbt.setInteger("rand", (Math.random() * 0xFFFFFFF).toInt())
+    override fun getDefaultNBT(): CompoundTag? {
+        val nbt = CompoundTag()
+        nbt.putDouble("energy", 0.0)
+        nbt.putBoolean("powerOn", false)
+        nbt.putInt("rand", (Math.random() * 0xFFFFFFF).toInt())
         return nbt
     }
 
@@ -59,10 +61,10 @@ open class ElectricalTool(name: String, var strengthOn: Float, var strengthOff: 
     }
 
     fun setPowerOn(stack: ItemStack?, value: Boolean) {
-        getNbt(stack!!).setBoolean("powerOn", value)
+        stack!!.updateTag { it.putBoolean("powerOn", value) }
     }
 
-    override fun addInformation(itemStack: ItemStack?, entityPlayer: EntityPlayer?, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack?, entityPlayer: Player?, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
         if (itemStack != null) list.add(tr("Stored energy: %1\$J (%2$%)", Utils.plotValue(getEnergy(itemStack)),
             (getEnergy(itemStack) / energyStorage * 100).toInt()))
@@ -73,7 +75,7 @@ open class ElectricalTool(name: String, var strengthOn: Float, var strengthOff: 
     }
 
     override fun setEnergy(stack: ItemStack, value: Double) {
-        getNbt(stack).setDouble("energy", value)
+        stack.updateTag { it.putDouble("energy", value) }
     }
 
     override fun getEnergyMax(stack: ItemStack): Double {
@@ -110,10 +112,10 @@ open class ElectricalTool(name: String, var strengthOn: Float, var strengthOff: 
     override fun electricalItemUpdate(stack: ItemStack, time: Double) {}
 
     companion object {
-        val blocksEffectiveAgainst = arrayOf(Blocks.grass, Blocks.dirt, Blocks.sand, Blocks.gravel, Blocks.snow, Blocks.snow, Blocks.clay, Blocks.farmland, Blocks.soul_sand, Blocks.mycelium)
+        val blocksEffectiveAgainst = arrayOf(Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.SAND, Blocks.GRAVEL, Blocks.SNOW, Blocks.SNOW, Blocks.CLAY, Blocks.FARMLAND, Blocks.SOUL_SAND, Blocks.MYCELIUM)
     }
 
     init {
-        rIcon = ResourceLocation("eln", "textures/items/" + name.replace(" ", "").lowercase() + ".png")
+        rIcon = rl("eln", "textures/item/" + name.replace(" ", "").lowercase() + ".png")
     }
 }

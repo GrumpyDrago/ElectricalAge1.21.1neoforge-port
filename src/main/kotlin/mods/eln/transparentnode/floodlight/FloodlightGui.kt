@@ -1,10 +1,12 @@
 package mods.eln.transparentnode.floodlight
 
+import mods.eln.compat.*
+
 import mods.eln.gui.*
 import mods.eln.i18n.I18N
-import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.world.entity.player.Player
 
-class FloodlightGui(player: EntityPlayer, val render: FloodlightRender) :
+class FloodlightGui(player: Player, val render: FloodlightRender) :
     GuiContainerEln(FloodlightContainer(player, render.inventory, render.descriptor)) {
 
     companion object {

@@ -1,5 +1,14 @@
 package mods.eln.transparentnode.autominer;
 
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.Items;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
+
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.generic.GenericItemUsingDamageDescriptor;
 import mods.eln.item.ElectricalDrillDescriptor;
@@ -11,14 +20,11 @@ import mods.eln.misc.Utils;
 import mods.eln.ore.OreBlock;
 import mods.eln.ore.OreColorMapping;
 import mods.eln.sim.IProcess;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockChest;
-import net.minecraft.block.BlockOre;
-import net.minecraft.block.BlockRedstoneOre;
-import net.minecraft.init.Blocks;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 
 import java.util.ArrayList;
 
@@ -61,10 +67,10 @@ public class AutoMinerSlowProcess implements IProcess, INBTTReady {
     }
 
     private boolean isStorageReady() {
-        IInventory i = getDropInventory();
+        IItemHandler i = getDropInventory();
         if (i == null) return false;
-        for (int idx = 0; idx < i.getSizeInventory(); idx++) {
-            if (i.getStackInSlot(idx) == null)
+        for (int idx = 0; idx < i.getSlots(); idx++) {
+            if (i.getStackInSlot(idx).isEmpty())
                 return true;
         }
         return false;
@@ -98,21 +104,23 @@ public class AutoMinerSlowProcess implements IProcess, INBTTReady {
                     case ore:
                         drillCount++;
 
-                        Block block = jobCoord.world().getBlock(jobCoord.x, jobCoord.y, jobCoord.z);
-                        int meta = jobCoord.world().getBlockMetadata(jobCoord.x, jobCoord.y, jobCoord.z);
+                        Block block = Mc.getBlock(jobCoord.world(), jobCoord.x, jobCoord.y, jobCoord.z);
                         if (silkTouch) {
-                            itemsToDrop.add(new ItemStack(block, 1, meta));
+                            itemsToDrop.add(new ItemStack(block));
                         } else {
-                            itemsToDrop.addAll(block.getDrops(jobCoord.world(), jobCoord.x, jobCoord.y, jobCoord.z, meta, 0));
+                            if (jobCoord.world() instanceof ServerLevel serverLevel) {
+                                itemsToDrop.addAll(Block.getDrops(jobCoord.getState(), serverLevel, jobCoord.getBlockPos(),
+                                    serverLevel.getBlockEntity(jobCoord.getBlockPos()), null, new ItemStack(Items.IRON_PICKAXE)));
+                            }
                         }
 
                         // Use cobblestone instead of air, everywhere except the mining shaft.
                         // This is so mobs won't spawn excessively.
                         int xDist = jobCoord.x - miner.node.coordinate.x, zDist = jobCoord.z - miner.node.coordinate.z;
                         if (xDist * xDist + zDist * zDist > 25) {
-                            jobCoord.world().setBlock(jobCoord.x, jobCoord.y, jobCoord.z, Blocks.cobblestone);
+                            Mc.setBlock(jobCoord.world(), jobCoord.x, jobCoord.y, jobCoord.z, Blocks.COBBLESTONE);
                         } else {
-                            jobCoord.world().setBlockToAir(jobCoord.x, jobCoord.y, jobCoord.z);
+                            Mc.setBlockToAir(jobCoord.world(), jobCoord.x, jobCoord.y, jobCoord.z);
                         }
 
                         energyCounter -= energyTarget;
@@ -208,32 +216,27 @@ public class AutoMinerSlowProcess implements IProcess, INBTTReady {
         oneJobDone = false;
         oldJob = job;
     }
-    private IInventory getDropInventory() {
-        IInventory inventoryEntity = null;
+    private IItemHandler getDropInventory() {
         Coordinate outputLocation = new Coordinate(1, -1, 0, miner.world());
         outputLocation.applyTransformation(miner.front, miner.coordinate());
-        if (outputLocation.getTileEntity() instanceof IInventory) {
-            inventoryEntity = (IInventory) outputLocation.getTileEntity();
-            Block inventoryBlock = miner.world().getBlock(outputLocation.x, outputLocation.y, outputLocation.z);
-            if(inventoryBlock instanceof BlockChest) {
-                IInventory possibleDoubleInventoryEntity = ((BlockChest)inventoryBlock).func_149951_m(miner.world(),outputLocation.x, outputLocation.y, outputLocation.z);
-                if (possibleDoubleInventoryEntity != null) {
-                    inventoryEntity = possibleDoubleInventoryEntity;
-                }
-            }
-        }
-        return inventoryEntity;
+        if (!outputLocation.getBlockExist()) return null;
+        return miner.world().getCapability(Capabilities.ItemHandler.BLOCK, outputLocation.getBlockPos(), null);
     }
 
+    /** Stores all of the stack, or nothing. */
     private boolean drop(ItemStack stack) {
-        return Utils.tryPutStackInInventory(stack, getDropInventory());
+        IItemHandler handler = getDropInventory();
+        if (handler == null) return false;
+        if (!ItemHandlerHelper.insertItemStacked(handler, stack, true).isEmpty()) return false;
+        ItemHandlerHelper.insertItemStacked(handler, stack, false);
+        return true;
     }
 
     private boolean isMinable(Block block) {
-        return block != Blocks.air
-            && (block) != Blocks.flowing_water && (block) != Blocks.water
-            && (block) != Blocks.flowing_lava && (block) != Blocks.lava
-            && (block) != Blocks.obsidian && (block) != Blocks.bedrock;
+        return block != Blocks.AIR
+            && (block) != Blocks.WATER
+            && (block) != Blocks.LAVA
+            && (block) != Blocks.OBSIDIAN && (block) != Blocks.BEDROCK;
     }
 
     private void setupJob() {
@@ -267,7 +270,7 @@ public class AutoMinerSlowProcess implements IProcess, INBTTReady {
         } else if (drill == null) {
             if (jobCoord.y != miner.node.coordinate.y) {
                 ItemStack pipeStack = miner.getInventory().getStackInSlot(AutoMinerContainer.MiningPipeSlotId);
-                if (pipeStack == null || (pipeStack.stackSize != pipeStack.getMaxStackSize() && pipeStack.stackSize != miner.getInventory().getInventoryStackLimit())) {
+                if (pipeStack == null || (pipeStack.getCount() != pipeStack.getMaxStackSize() && pipeStack.getCount() != miner.getInventory().getInventoryStackLimit())) {
                     jobFind = true;
                     setJob(jobType.pipeRemove);
                 } else {
@@ -291,7 +294,7 @@ public class AutoMinerSlowProcess implements IProcess, INBTTReady {
                         double dy = 0;
                         double dz = jobCoord.z - miner.node.coordinate.z;
                         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                        Block block = jobCoord.world().getBlock(jobCoord.x, jobCoord.y, jobCoord.z);
+                        Block block = Mc.getBlock(jobCoord.world(), jobCoord.x, jobCoord.y, jobCoord.z);
                         if (checkIsOre(jobCoord) || (distance > 0.1 && distance < miningRay && isMinable(block))) {
                             jobFind = true;
                             setJob(jobType.ore);
@@ -311,11 +314,11 @@ public class AutoMinerSlowProcess implements IProcess, INBTTReady {
                     jobCoord.y--;
                     jobCoord.z = miner.node.coordinate.z;
 
-                    Block block = jobCoord.world().getBlock(jobCoord.x, jobCoord.y, jobCoord.z);
-                    if (block != Blocks.air
-                        && block != Blocks.flowing_water && block != Blocks.water
-                        && block != Blocks.flowing_lava && block != Blocks.lava) {
-                        if (block != Blocks.obsidian && block != Blocks.bedrock) {
+                    Block block = Mc.getBlock(jobCoord.world(), jobCoord.x, jobCoord.y, jobCoord.z);
+                    if (block != Blocks.AIR
+                        && block != Blocks.WATER
+                        && block != Blocks.LAVA) {
+                        if (block != Blocks.OBSIDIAN && block != Blocks.BEDROCK) {
                             jobFind = true;
                             setJob(jobType.ore);
                         } else {
@@ -358,11 +361,12 @@ public class AutoMinerSlowProcess implements IProcess, INBTTReady {
     }
 
     private boolean checkIsOre(Coordinate coordinate) {
-        Block block = coordinate.world().getBlock(coordinate.x, coordinate.y, coordinate.z);
-        if (block instanceof BlockOre) return true;
+        Block block = Mc.getBlock(coordinate.world(), coordinate.x, coordinate.y, coordinate.z);
+        if (block.defaultBlockState().is(Tags.Blocks.ORES)) return true;
         if (block instanceof OreBlock) return true;
-        if (block instanceof BlockRedstoneOre) return true;
-        return OreColorMapping.getMap()[Block.getIdFromBlock(block) + (coordinate.world().getBlockMetadata(coordinate.x, coordinate.y, coordinate.z) << 12)] != 0;
+        float[] map = OreColorMapping.getMap();
+        int id = Mc.blockId(block);
+        return id < map.length && map[id] != 0;
     }
 
     public void onBreakElement() {
@@ -388,15 +392,15 @@ public class AutoMinerSlowProcess implements IProcess, INBTTReady {
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound nbt, String str) {
-        pipeLength = nbt.getInteger(str + "AMSP" + "pipeLength");
-        drillCount = nbt.getInteger(str + "AMSP" + "drillCount");
+    public void readFromNBT(CompoundTag nbt, String str) {
+        pipeLength = nbt.getInt(str + "AMSP" + "pipeLength");
+        drillCount = nbt.getInt(str + "AMSP" + "drillCount");
         if (drillCount == 0) drillCount++;
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt, String str) {
-        nbt.setInteger(str + "AMSP" + "pipeLength", pipeLength);
-        nbt.setInteger(str + "AMSP" + "drillCount", drillCount);
+    public void writeToNBT(CompoundTag nbt, String str) {
+        nbt.putInt(str + "AMSP" + "pipeLength", pipeLength);
+        nbt.putInt(str + "AMSP" + "drillCount", drillCount);
     }
 }

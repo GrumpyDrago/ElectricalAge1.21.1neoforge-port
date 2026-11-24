@@ -1,5 +1,7 @@
 package mods.eln.mqtt
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.misc.Coordinate
 

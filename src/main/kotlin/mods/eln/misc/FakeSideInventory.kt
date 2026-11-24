@@ -1,8 +1,9 @@
 package mods.eln.misc
 
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.ISidedInventory
-import net.minecraft.item.ItemStack
+import mods.eln.compat.*
+
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
 
 class FakeSideInventory : ISidedInventory {
     override fun getSizeInventory(): Int {
@@ -21,7 +22,7 @@ class FakeSideInventory : ISidedInventory {
         return null
     }
 
-    override fun setInventorySlotContents(var1: Int, var2: ItemStack) {}
+    override fun setInventorySlotContents(var1: Int, var2: ItemStack?) {}
     override fun getInventoryName(): String {
         return "FakeSideInventory"
     }
@@ -35,7 +36,7 @@ class FakeSideInventory : ISidedInventory {
     }
 
     override fun markDirty() {}
-    override fun isUseableByPlayer(var1: EntityPlayer): Boolean {
+    override fun isUseableByPlayer(var1: Player): Boolean {
         return false
     }
 

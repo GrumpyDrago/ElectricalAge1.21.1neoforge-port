@@ -3,7 +3,7 @@ package mods.eln.transparentnode.eggincubator;
 import mods.eln.node.transparent.TransparentNodeElement;
 import mods.eln.node.transparent.TransparentNodeElementInventory;
 import mods.eln.node.transparent.TransparentNodeElementRender;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 public class EggIncubatorInventory extends TransparentNodeElementInventory {
 

@@ -4,8 +4,8 @@ import mods.eln.misc.*;
 import mods.eln.misc.Obj3D.Obj3DPart;
 import mods.eln.sim.ThermalLoadInitializer;
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor;
-import net.minecraft.entity.item.EntityItem;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.world.entity.item.ItemEntity;
+import mods.eln.compat.client.GL11;
 
 public class CompressorDescriptor extends ElectricalMachineDescriptor {
     private float tyOn;
@@ -49,7 +49,7 @@ public class CompressorDescriptor extends ElectricalMachineDescriptor {
     }
 
     @Override
-    void draw(ElectricalMachineRender render, Object handleO, EntityItem inEntity, EntityItem outEntity,
+    void draw(ElectricalMachineRender render, Object handleO, ItemEntity inEntity, ItemEntity outEntity,
               float powerFactor, float processState) {
         CompressorDescriptorHandle handle = (CompressorDescriptorHandle) handleO;
 
@@ -62,7 +62,7 @@ public class CompressorDescriptor extends ElectricalMachineDescriptor {
     }
 
     @Override
-    void refresh(float deltaT, ElectricalMachineRender render, Object handleO, EntityItem inEntity, EntityItem outEntity, float powerFactor, float processState) {
+    void refresh(float deltaT, ElectricalMachineRender render, Object handleO, ItemEntity inEntity, ItemEntity outEntity, float powerFactor, float processState) {
         CompressorDescriptorHandle handle = (CompressorDescriptorHandle) handleO;
         handle.interpolator.setTarget(processState);
         handle.interpolator.step(deltaT);

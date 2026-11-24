@@ -1,11 +1,13 @@
 package mods.eln.sixnode.electricaldatalogger;
 
+import mods.eln.compat.client.Gui;
+
 import mods.eln.misc.INBTTReady;
 import mods.eln.misc.Utils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.nbt.NBTTagCompound;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.client.gui.Font;
+import net.minecraft.nbt.CompoundTag;
+import mods.eln.compat.client.GL11;
 
 public class DataLogs implements INBTTReady {
 
@@ -54,7 +56,7 @@ public class DataLogs implements INBTTReady {
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound nbt, String str) {
+    public void readFromNBT(CompoundTag nbt, String str) {
         byte[] cpy = nbt.getByteArray(str + "log");
         Utils.println("Datalog readnbt " + cpy.length);
         for (int idx = 0; idx < cpy.length; idx++) {
@@ -65,18 +67,18 @@ public class DataLogs implements INBTTReady {
         maxValue = nbt.getFloat(str + "maxValue");
         minValue = nbt.getFloat(str + "minValue");
         unitType = nbt.getByte(str + "unitType");
-        showZeroLine = !nbt.hasKey(str + "showZeroLine") || nbt.getBoolean(str + "showZeroLine");
+        showZeroLine = !nbt.contains(str + "showZeroLine") || nbt.getBoolean(str + "showZeroLine");
         Utils.println("Datalog readnbt done");
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt, String str) {
-        nbt.setByteArray(str + "log", copyLog());
-        nbt.setFloat(str + "samplingPeriod", samplingPeriod);
-        nbt.setFloat(str + "maxValue", maxValue);
-        nbt.setFloat(str + "minValue", minValue);
-        nbt.setByte(str + "unitType", unitType);
-        nbt.setBoolean(str + "showZeroLine", showZeroLine);
+    public void writeToNBT(CompoundTag nbt, String str) {
+        nbt.putByteArray(str + "log", copyLog());
+        nbt.putFloat(str + "samplingPeriod", samplingPeriod);
+        nbt.putFloat(str + "maxValue", maxValue);
+        nbt.putFloat(str + "minValue", minValue);
+        nbt.putByte(str + "unitType", unitType);
+        nbt.putBoolean(str + "showZeroLine", showZeroLine);
     }
 
     public byte[] copyLog() {
@@ -103,7 +105,7 @@ public class DataLogs implements INBTTReady {
     static void draw(byte[] value, int size, float samplingPeriod, float maxValue, float minValue, byte unitType, boolean showZeroLine, float margeX, float margeY, String textHeader) {
         if (value == null) return;
         if (size < 2) return;
-        final FontRenderer fontrenderer = Minecraft.getMinecraft().fontRenderer;
+        final Font fontrenderer = Minecraft.getInstance().font;
         final float scale = 0.01f;
 
         final String yTop = textHeader + " " + getYstring(1f, maxValue, minValue, unitType);
@@ -185,13 +187,13 @@ public class DataLogs implements INBTTReady {
         GL11.glScalef(scale, scale, 1f);
         //fontrenderer.drawString("Time", (int)( 0.5f / scale), (int)(0.8f / scale), 0);
         int yLabelX = (int) (rightEdge / scale) + 2;
-        fontrenderer.drawString(yTop, yLabelX, (int) (0f / scale), 0);
-        fontrenderer.drawString(yMid, yLabelX, (int) ((margeY / 2 - 0.05f) / scale), 0);
-        fontrenderer.drawString(yBottom, yLabelX, (int) ((margeY - 0.08f) / scale), 0);
+        Gui.drawText(fontrenderer, yTop, yLabelX, (int) (0f / scale), 0);
+        Gui.drawText(fontrenderer, yMid, yLabelX, (int) ((margeY / 2 - 0.05f) / scale), 0);
+        Gui.drawText(fontrenderer, yBottom, yLabelX, (int) ((margeY - 0.08f) / scale), 0);
 
-        fontrenderer.drawString(tStart, (int) (0f / scale), (int) ((margeY + 0.03) / scale), 0);
-        int rightTimeX = (int) (margeX / scale) - fontrenderer.getStringWidth(tEnd) - 2;
-        fontrenderer.drawString(tEnd, rightTimeX, (int) ((margeY + 0.03) / scale), 0);
+        Gui.drawText(fontrenderer, tStart, (int) (0f / scale), (int) ((margeY + 0.03) / scale), 0);
+        int rightTimeX = (int) (margeX / scale) - fontrenderer.width(tEnd) - 2;
+        Gui.drawText(fontrenderer, tEnd, rightTimeX, (int) ((margeY + 0.03) / scale), 0);
         //fontrenderer.drawString("Time", (int)(0.5f / scale), (int)(0.8f / scale), 0);
         GL11.glPopMatrix();
         //startT = System.nanoTime() - startT;
@@ -238,11 +240,11 @@ public class DataLogs implements INBTTReady {
         return getYstring(factor, maxValue, minValue, unitType);
     }
 
-    public static void draw(NBTTagCompound nbt, float margeX, float margeY, String textHeader) {
+    public static void draw(CompoundTag nbt, float margeX, float margeY, String textHeader) {
         if (nbt == null) return;
         byte[] data = nbt.getByteArray("log");
         if (data == null) return;
-        boolean showZeroLine = !nbt.hasKey("showZeroLine") || nbt.getBoolean("showZeroLine");
+        boolean showZeroLine = !nbt.contains("showZeroLine") || nbt.getBoolean("showZeroLine");
         draw(data, data.length, nbt.getFloat("samplingPeriod"), nbt.getFloat("maxValue"), nbt.getFloat("minValue"), nbt.getByte("unitType"), showZeroLine, margeX, margeY, textHeader);
     }
 }

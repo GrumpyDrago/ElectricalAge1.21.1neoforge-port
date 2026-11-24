@@ -1,11 +1,13 @@
 package mods.eln.node
 
-import cpw.mods.fml.relauncher.Side
-import cpw.mods.fml.relauncher.SideOnly
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import mods.eln.compat.*
+
 import mods.eln.misc.Direction
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.Container
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.inventory.AbstractContainerMenu
 import java.io.DataInputStream
 
 interface INodeEntity {
@@ -13,7 +15,7 @@ interface INodeEntity {
     fun serverPublishUnserialize(stream: DataInputStream)
     fun serverPacketUnserialize(stream: DataInputStream)
 
-    @SideOnly(Side.CLIENT)
-    fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen?
-    fun newContainer(side: Direction, player: EntityPlayer): Container?
+    @OnlyIn(Dist.CLIENT)
+    fun newGuiDraw(side: Direction, player: Player): Screen?
+    fun newContainer(side: Direction, player: Player): AbstractContainerMenu?
 }

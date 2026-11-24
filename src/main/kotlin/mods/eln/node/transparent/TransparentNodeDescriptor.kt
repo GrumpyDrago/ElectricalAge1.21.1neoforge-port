@@ -1,5 +1,8 @@
 package mods.eln.node.transparent
 
+import net.minecraft.core.BlockPos
+import mods.eln.compat.*
+
 import mods.eln.generic.GenericItemBlockUsingDamageDescriptor
 import mods.eln.ghost.GhostGroup
 import mods.eln.i18n.I18N.tr
@@ -11,18 +14,17 @@ import mods.eln.misc.Utils.entityLivingViewDirection
 import mods.eln.misc.UtilsClient.drawIcon
 import mods.eln.misc.VoltageLevelColor
 import mods.eln.node.transparent.TransparentNode.FrontType
-import net.minecraft.block.Block
-import net.minecraft.block.BlockHopper
-import net.minecraft.entity.EntityLivingBase
-import net.minecraft.init.Blocks
-import net.minecraft.item.ItemStack
-import net.minecraft.util.AxisAlignedBB
-import net.minecraft.util.ResourceLocation
-import net.minecraft.world.World
-import net.minecraftforge.client.IItemRenderer
-import net.minecraftforge.client.IItemRenderer.ItemRenderType
-import net.minecraftforge.client.IItemRenderer.ItemRendererHelper
-import org.lwjgl.opengl.GL11
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.HopperBlock
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.phys.AABB
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.level.Level
+import mods.eln.compat.IItemRenderer.ItemRenderType
+import mods.eln.compat.IItemRenderer.ItemRendererHelper
+import mods.eln.compat.client.GL11
 
 open class TransparentNodeDescriptor @JvmOverloads constructor(
     name: String?,
@@ -50,9 +52,9 @@ open class TransparentNodeDescriptor @JvmOverloads constructor(
         if (icon == null) return
         voltageLevelColor.drawIconBackground(type)
 
-        // remove "eln:" to add the full path replace("eln:", "textures/blocks/") + ".png";
+        // remove "eln:" to add the full path replace("eln:", "textures/block/") + ".png";
         val icon = icon.iconName.substring(4)
-        drawIcon(type, ResourceLocation("eln", "textures/blocks/$icon.png"))
+        drawIcon(type, rl("eln", "textures/block/$icon.png"))
     }
 
     fun objItemScale(obj: Obj3D?) {
@@ -89,7 +91,7 @@ open class TransparentNodeDescriptor @JvmOverloads constructor(
             val temp = Coordinate(coord!!)
             temp.move(Direction.YN)
             block = temp.block
-            if (!block.isOpaqueCube && block !is BlockHopper) return tr("You can't place this block at this side")
+            if (!block.isOpaqueCube && block !is HopperBlock) return tr("You can't place this block at this side")
         }
         if (mustHaveCeiling()) {
             val temp = Coordinate(coord!!)
@@ -127,7 +129,7 @@ open class TransparentNodeDescriptor @JvmOverloads constructor(
         return if (ghostGroup != null && !ghostGroup.canBePloted(coord!!)) tr("Not enough space for this block") else null
     }
 
-    open fun getFrontFromPlace(side: Direction, entityLiving: EntityLivingBase?): Direction? {
+    open fun getFrontFromPlace(side: Direction, entityLiving: LivingEntity?): Direction? {
         var front = Direction.XN
         when (frontType) {
             FrontType.BlockSide -> front = side
@@ -152,8 +154,8 @@ open class TransparentNodeDescriptor @JvmOverloads constructor(
     open val spawnDeltaZ: Int
         get() = 0
 
-    open fun addCollisionBoxesToList(par5AxisAlignedBB: AxisAlignedBB, list: MutableList<AxisAlignedBB?>, world: World?, x: Int, y: Int, z: Int) {
-        val bb = Blocks.stone.getCollisionBoundingBoxFromPool(world, x, y, z)
-        if (par5AxisAlignedBB.intersectsWith(bb)) list.add(bb)
+    open fun addCollisionBoxesToList(par5AxisAlignedBB: AABB, list: MutableList<AABB?>, world: Level?, x: Int, y: Int, z: Int) {
+        val bb = AABB(BlockPos(x, y, z))
+        if (par5AxisAlignedBB.intersects(bb)) list.add(bb)
     }
 }

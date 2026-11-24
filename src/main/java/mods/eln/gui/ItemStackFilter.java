@@ -1,58 +1,34 @@
 package mods.eln.gui;
 
-import mods.eln.misc.Utils;
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.oredict.OreDictionary;
+import mods.eln.compat.OreDict;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 
-import java.util.List;
+import java.util.function.Predicate;
 
 public class ItemStackFilter implements IItemStackFilter {
 
-    int itemId;
-    int damageMask;
-    int damageValue;
+    private final Predicate<ItemStack> predicate;
 
-    public ItemStackFilter(Item item, int damageMask, int damageValue) {
-        this.itemId = Item.getIdFromItem(item);
-        this.damageMask = damageMask;
-        this.damageValue = damageValue;
-    }
-
-    public ItemStackFilter(Block block, int damageMask, int damageValue) {
-        this.itemId = Utils.getItemId(block);
-        this.damageMask = damageMask;
-        this.damageValue = damageValue;
+    private ItemStackFilter(Predicate<ItemStack> predicate) {
+        this.predicate = predicate;
     }
 
     public ItemStackFilter(Item item) {
-        this.itemId = Item.getIdFromItem(item);
-        this.damageMask = 0;
-        this.damageValue = 0;
+        this(stack -> stack.getItem() == item);
     }
 
     public ItemStackFilter(Block block) {
-        this.itemId = Utils.getItemId(block);
-        this.damageMask = 0;
-        this.damageValue = 0;
+        this(block.asItem());
     }
 
     public static ItemStackFilter[] OreDict(String name) {
-        final List<ItemStack> ores = OreDictionary.getOres(name);
-        ItemStackFilter[] filters = new ItemStackFilter[ores.size()];
-        for (int i = 0; i < ores.size(); i++) {
-            filters[i] = new ItemStackFilter(ores.get(i).getItem(), 0xff, ores.get(i).getItemDamage());
-        }
-        return filters;
+        return new ItemStackFilter[]{new ItemStackFilter(stack -> OreDict.matches(stack, name))};
     }
 
     @Override
-    public boolean tryItemStack(ItemStack itemStack) {// caca1.5.1
-        if (Utils.getItemId(itemStack) != itemId)
-            return false;
-        if ((itemStack.getItemDamage() & damageMask) != damageValue)
-            return false;
-        return true;
+    public boolean tryItemStack(ItemStack itemStack) {
+        return itemStack != null && predicate.test(itemStack);
     }
 }

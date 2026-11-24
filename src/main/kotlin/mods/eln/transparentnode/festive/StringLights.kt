@@ -1,15 +1,17 @@
 package mods.eln.transparentnode.festive
 
+import mods.eln.compat.*
+
 import mods.eln.misc.Direction
 import mods.eln.misc.Obj3D
 import mods.eln.misc.UtilsClient
 import mods.eln.node.transparent.TransparentNodeDescriptor
 import mods.eln.node.transparent.TransparentNodeElementRender
 import mods.eln.node.transparent.TransparentNodeEntity
-import net.minecraft.init.Blocks
-import net.minecraft.util.AxisAlignedBB
-import net.minecraft.world.World
-import org.lwjgl.opengl.GL11
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.level.Level
+import mods.eln.compat.client.GL11
 import java.io.DataInputStream
 import java.io.IOException
 
@@ -40,8 +42,8 @@ class StringLightsDescriptor(val name: String, val obj: Obj3D): TransparentNodeD
 
     TODO: Fix Hitbox
 
-    override fun addCollisionBoxesToList(par5AxisAlignedBB: AxisAlignedBB, list: MutableList<AxisAlignedBB>, world: World?, x: Int, y: Int, z: Int) {
-        val bb = Blocks.stone.getCollisionBoundingBoxFromPool(world, x, y, z)
+    override fun addCollisionBoxesToList(par5AxisAlignedBB: AABB, list: MutableList<AABB>, world: Level?, x: Int, y: Int, z: Int) {
+        val bb = Blocks.STONE.getCollisionBoundingBoxFromPool(world, x, y, z)
         bb.maxZ -= 0.5
         if (par5AxisAlignedBB.intersectsWith(bb)) list.add(bb)
     }

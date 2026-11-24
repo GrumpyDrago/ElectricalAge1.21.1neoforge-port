@@ -1,22 +1,33 @@
 package mods.eln.sound
 
+import mods.eln.compat.*
+
 import mods.eln.client.ClientProxy
 import mods.eln.client.SoundLoader
 import mods.eln.misc.Utils.TraceRayWeightOpaque
 import mods.eln.misc.Utils.println
 import mods.eln.misc.Utils.traceRay
 import net.minecraft.client.Minecraft
-import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.client.resources.sounds.SimpleSoundInstance
+import net.minecraft.sounds.SoundSource
+import net.minecraft.util.RandomSource
+import net.minecraft.world.entity.player.Player
 import kotlin.math.pow
 import kotlin.math.sqrt
 
 object SoundClient {
-    fun play(p: SoundCommand) {
-        ClientProxy.soundClientEventListener.currentUuid = p.uuid
+    private fun playAt(p: SoundCommand, x: Double, y: Double, z: Double, track: String, volume: Float, pitch: Float) {
+        val manager = Minecraft.getInstance().soundManager
+        val sound = SimpleSoundInstance(soundEvent(track), SoundSource.BLOCKS, volume, pitch, RandomSource.create(), x, y, z)
+        manager.play(sound)
+        if (p.uuid.isNotEmpty()) ClientProxy.uuidManager.add(p.uuid, SoundClientEntity(manager, sound))
+    }
 
-        val player: EntityPlayer = Minecraft.getMinecraft().thePlayer
-        if (p.world!!.provider.dimensionId != player.dimension) return
-        val distance = sqrt((p.x - player.posX).pow(2.0) + (p.y - player.posY).pow(2.0) + (p.z - player.posZ).pow(2.0))
+    fun play(p: SoundCommand) {
+
+        val player: Player = Minecraft.getInstance().player!!
+        if (p.world!!.dimensionId != player.dimension) return
+        val distance = 0.01 + sqrt((p.x - player.x).pow(2.0) + (p.y - player.y).pow(2.0) + (p.z - player.z).pow(2.0))
         if (distance >= p.rangeMax) return
         var distanceFactor = 1f
         if (distance > p.rangeNominal) {
@@ -25,9 +36,9 @@ object SoundClient {
 
         val blockFactor = traceRay(
             p.world!!,
-            player.posX,
-            player.posY,
-            player.posZ,
+            player.x,
+            player.y,
+            player.z,
             p.x,
             p.y,
             p.z,
@@ -42,14 +53,13 @@ object SoundClient {
             p.volume *= distanceFactor
             if (p.volume <= 0) return
 
-            p.world!!.playSound(
-                player.posX + 2 * (p.x - player.posX) / distance,
-                player.posY + 2 * (p.y - player.posY) / distance,
-                player.posZ + 2 * (p.z - player.posZ) / distance,
-                p.track,
+            playAt(p,
+                player.x + 2 * (p.x - player.x) / distance,
+                player.y + 2 * (p.y - player.y) / distance,
+                player.z + 2 * (p.z - player.z) / distance,
+                p.track!!,
                 p.volume,
-                p.pitch,
-                false
+                p.pitch
             )
         } else {
             for (idx in 0 until trackCount) {
@@ -58,18 +68,16 @@ object SoundClient {
 
                 bandVolume -= (((trackCount - 1 - idx) / (trackCount - 1f) + 0.2) * blockFactor).toFloat()
                 println(bandVolume)
-                p.world!!.playSound(
-                    player.posX + 2 * (p.x - player.posX) / distance,
-                    player.posY + 2 * (p.y - player.posY) / distance,
-                    player.posZ + 2 * (p.z - player.posZ) / distance,
+                playAt(p,
+                    player.x + 2 * (p.x - player.x) / distance,
+                    player.y + 2 * (p.y - player.y) / distance,
+                    player.z + 2 * (p.z - player.z) / distance,
                     p.track + "_" + idx + "x",
                     bandVolume,
-                    p.pitch,
-                    false
+                    p.pitch
                 )
             }
         }
 
-        ClientProxy.soundClientEventListener.currentUuid = null
     }
 }

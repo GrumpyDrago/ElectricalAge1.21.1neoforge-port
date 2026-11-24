@@ -1,5 +1,12 @@
 package mods.eln.transparentnode
 
+import net.minecraft.world.level.material.Fluid
+import net.minecraft.world.level.material.Fluids
+import net.neoforged.neoforge.fluids.FluidType
+import net.neoforged.neoforge.fluids.FluidUtil
+import net.neoforged.neoforge.fluids.capability.IFluidHandler
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderType
 import mods.eln.fluid.FuelRegistry
@@ -18,14 +25,11 @@ import mods.eln.sim.nbt.NbtElectricalLoad
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
 import mods.eln.sound.LoopedSound
 import mods.eln.wiki.Data
-import net.minecraft.client.audio.ISound
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraftforge.client.IItemRenderer
-import net.minecraftforge.fluids.FluidContainerRegistry
-import net.minecraftforge.fluids.FluidRegistry
-import org.lwjgl.opengl.GL11
+import net.minecraft.client.resources.sounds.SoundInstance
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import mods.eln.compat.client.GL11
 import java.io.DataInputStream
 import java.io.DataOutputStream
 
@@ -66,7 +70,7 @@ class FuelGeneratorDescriptor(name: String, internal val obj: Obj3D?, internal v
         voltageLevelColor = VoltageLevelColor.fromCable(cable)
     }
 
-    override fun setParent(item: net.minecraft.item.Item, damage: Int) {
+    override fun setParent(item: net.minecraft.world.item.Item, damage: Int) {
         super.setParent(item, damage)
         Data.addEnergy(newItemStack())
     }
@@ -99,7 +103,7 @@ class FuelGeneratorDescriptor(name: String, internal val obj: Obj3D?, internal v
         }
     }
 
-    override fun addInformation(itemStack: ItemStack, entityPlayer: EntityPlayer,
+    override fun addInformation(itemStack: ItemStack, entityPlayer: Player,
                                 list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
 
@@ -115,9 +119,9 @@ class FuelGeneratorElement(transparentNode: TransparentNode, descriptor_: Transp
     internal var powerSource = PowerSource("powerSource", positiveLoad)
     internal var slowProcess = FuelGeneratorSlowProcess(this)
     override var descriptor = descriptor_ as FuelGeneratorDescriptor
-    internal val fuels = FuelRegistry.fluidListToFluids(descriptor.fuels).map { it.id }
+    internal val fuels = FuelRegistry.fluidListToFluids(descriptor.fuels).toList()
     internal var tankLevel = 0.0
-    internal var tankFluid = FluidRegistry.getFluid("lava").id
+    internal var tankFluid: Fluid = Fluids.LAVA
     internal var on by published(false)
     internal var voltageGracePeriod = 0.0
 
@@ -167,24 +171,27 @@ class FuelGeneratorElement(transparentNode: TransparentNode, descriptor_: Transp
         stream.writeFloat((positiveLoad.voltage / descriptor.maxVoltage).toFloat())
     }
 
-    override fun onBlockActivated(player: EntityPlayer, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
-        if (player.worldObj?.isRemote == false) {
+    override fun onBlockActivated(player: Player, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
+        if (player.worldObj.isClientSide == false) {
             val bucket = player.currentEquippedItem
-            if (FluidContainerRegistry.isBucket(bucket) && FluidContainerRegistry.isFilledContainer(bucket)) {
-                val deltaLevel = 1.0 / FuelGeneratorDescriptor.TankCapacityInBuckets;
-                if (tankLevel <= 1.0 - deltaLevel) {
-                    val fluidStack = FluidContainerRegistry.getFluidForFilledItem(bucket)
-                    if (fluidStack != null && (fluidStack.fluidID == tankFluid || tankLevel <= 0.0) &&
-                        fluidStack.fluidID in fuels) {
-                        tankFluid = fluidStack.fluidID
+            val held = if (bucket == null) null else FluidUtil.getFluidContained(bucket).orElse(null)
+            if (held != null && !held.isEmpty) {
+                val deltaLevel = 1.0 / FuelGeneratorDescriptor.TankCapacityInBuckets
+                if (tankLevel <= 1.0 - deltaLevel && held.amount >= FluidType.BUCKET_VOLUME) {
+                    if ((held.fluid === tankFluid || tankLevel <= 0.0) && held.fluid in fuels) {
+                        tankFluid = held.fluid
                         tankLevel += deltaLevel
-                        if (!player.capabilities.isCreativeMode) {
-                            val emptyBucket = FluidContainerRegistry.drainFluidContainer(bucket);
-                            val slot = player.inventory.currentItem
-                            player.inventory.setInventorySlotContents(slot, emptyBucket)
+                        if (!player.isCreativeMode) {
+                            val handler = FluidUtil.getFluidHandler(bucket!!.copyWithCount(1)).orElse(null)
+                            if (handler != null) {
+                                handler.drain(FluidType.BUCKET_VOLUME, IFluidHandler.FluidAction.EXECUTE)
+                                val empty = handler.container
+                                bucket.shrink(1)
+                                if (!player.inventory.add(empty)) player.drop(empty, false)
+                            }
                         }
 
-                        return true;
+                        return true
                     }
                 }
             } else {
@@ -209,16 +216,16 @@ class FuelGeneratorElement(transparentNode: TransparentNode, descriptor_: Transp
         return false
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         tankLevel = nbt.getDouble("tankLevel")
         on = nbt.getBoolean("on")
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
-        nbt.setDouble("tankLevel", tankLevel)
-        nbt.setBoolean("on", on)
+        nbt.putDouble("tankLevel", tankLevel)
+        nbt.putBoolean("on", on)
     }
 
     override fun getWaila(): Map<String, String> = mutableMapOf(
@@ -236,7 +243,7 @@ class FuelGeneratorRender(tileEntity: TransparentNodeEntity, descriptor: Transpa
     private val eConn = LRDUMask()
     private var on = false
     private var voltageRatio = SlewLimiter(1f)
-    private val sound = object : LoopedSound("eln:FuelGenerator", coordinate(), ISound.AttenuationType.LINEAR) {
+    private val sound = object : LoopedSound("eln:FuelGenerator", coordinate(), SoundInstance.Attenuation.LINEAR) {
         override fun getVolume() = if (on) 0.2f else 0f
         override fun getPitch() = 0.75f + 1f * voltageRatio.position
     }

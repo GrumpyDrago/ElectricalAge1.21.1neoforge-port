@@ -17,11 +17,10 @@ If you would like to test changes locally, you can build and run the mod with Gr
 ```bash
 git clone https://github.com/age-series/ElectricalAge.git
 cd ElectricalAge
-./gradlew setupDecompWorkspace
 ./gradlew runClient
 ```
 
-`setupDecompWorkspace` only needs to be executed the first time (or after updating Forge/Minecraft dependencies). After that you can iterate using `./gradlew runClient` or other Gradle tasks as needed.
+You need JDK 21. The first build downloads and decompiles Minecraft, which takes a few minutes. The other useful Gradle tasks, and an overview of the code, are in [docs/neoforge-port.md](docs/neoforge-port.md).
 
 ## Translations
 

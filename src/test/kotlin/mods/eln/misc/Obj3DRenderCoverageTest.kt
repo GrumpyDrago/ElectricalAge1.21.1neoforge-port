@@ -1,7 +1,9 @@
 package mods.eln.misc
 
+import mods.eln.compat.*
+
 import mods.eln.disableLog4jJmx
-import net.minecraft.util.ResourceLocation
+import net.minecraft.resources.ResourceLocation
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -9,25 +11,21 @@ import kotlin.test.assertTrue
 
 class Obj3DRenderCoverageTest {
     @Test
-    fun bindTextureAndDrawPathsUseShims() {
+    fun drawingOutsideAFrameDoesNothing() {
         disableLog4jJmx()
-        UtilsClient.reset()
 
         val obj = Obj3D()
         assertTrue(obj.loadFile("TestObj3D/TestObj3D.obj"))
 
         obj.bindTexture("Panel.png")
-        assertNotNull(UtilsClient.lastResource)
-        assertTrue(UtilsClient.lastResource.toString().contains("eln:model/TestObj3D/Panel.png"))
 
         val panel = obj.getPart("panel")
         assertNotNull(panel)
         val fg = panel.faceGroup.first()
         assertNotNull(fg.textureResource)
 
-        val bindsBefore = UtilsClient.bindCount
+        assertEquals("eln:model/testobj3d/panel.png", fg.textureResource.toString())
         fg.draw()
-        assertTrue(UtilsClient.bindCount > bindsBefore)
 
         fg.textureResource = null
         fg.draw()
@@ -81,9 +79,8 @@ class Obj3DRenderCoverageTest {
     }
 
     @Test
-    fun drawWithBoundResourceUsesShims() {
+    fun drawingWithABoundResourceOutsideAFrameDoesNothing() {
         disableLog4jJmx()
-        UtilsClient.reset()
 
         val obj = Obj3D()
         assertTrue(obj.loadFile("StreetLight/StreetLight.obj"))
@@ -91,7 +88,7 @@ class Obj3DRenderCoverageTest {
         val part = obj.getPart("socket")
         assertNotNull(part)
         val fg = part.faceGroup.first()
-        fg.textureResource = ResourceLocation("eln", "model/StreetLight/StreetLight_on.png")
+        fg.textureResource = rl("eln", "model/StreetLight/StreetLight_on.png")
         fg.draw()
     }
 }

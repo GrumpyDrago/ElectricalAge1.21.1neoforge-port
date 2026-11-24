@@ -1,8 +1,8 @@
 package mods.eln.sixnode.lampsupply;
 
 import mods.eln.gui.*;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
+import net.minecraft.world.entity.player.Player;
+import mods.eln.compat.IInventory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -19,7 +19,7 @@ public class LampSupplyGui extends GuiContainerEln {
     private HashMap<Object, Integer> powerMap = new HashMap<Object, Integer>();
     private HashMap<Object, Integer> wirelessMap = new HashMap<Object, Integer>();
 
-    public LampSupplyGui(LampSupplyRender render, EntityPlayer player, IInventory inventory) {
+    public LampSupplyGui(LampSupplyRender render, Player player, IInventory inventory) {
         super(new LampSupplyContainer(player, inventory));
         this.render = render;
     }
@@ -72,13 +72,13 @@ public class LampSupplyGui extends GuiContainerEln {
 
             LampSupplyElement.Entry e = render.entries.get(id);
             GuiTextFieldEln powerChannel = newGuiTextField(x, y, 101);
-            x += powerChannel.getWidth() + 12;
+            x += powerChannel.width + 12;
             powerChannel.setText(e.powerChannel);
             powerChannel.setComment(0, tr("Power channel name"));
             powerMap.put(powerChannel, id);
 
             GuiTextFieldEln wirelessChannel = newGuiTextField(x, y, 101);
-            x += wirelessChannel.getWidth() + 12;
+            x += wirelessChannel.width + 12;
             wirelessChannel.setText(e.wirelessChannel);
             wirelessChannel.setComment(0, tr("Wireless channel name"));
             wirelessMap.put(wirelessChannel, id);

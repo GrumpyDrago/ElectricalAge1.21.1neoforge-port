@@ -4,9 +4,9 @@ import mods.eln.gui.GuiHelper;
 import mods.eln.gui.IGuiObject;
 import mods.eln.gui.IGuiObject.IGuiObjectObserver;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.item.ItemStack;
-import org.lwjgl.opengl.GL11;
+import mods.eln.compat.client.Gui;
+import net.minecraft.world.item.ItemStack;
+import mods.eln.compat.client.GL11;
 
 import java.util.ArrayList;
 
@@ -68,14 +68,7 @@ public class GuiGroup extends Gui implements IGuiObject, IGuiObjectObserver {
         x -= getxOffset();
         y -= getYOffset();
         GL11.glPushMatrix();
-        int displayWidth = Minecraft.getMinecraft().displayWidth;
-        int displayHeight = Minecraft.getMinecraft().displayHeight;
-        float ratioY = ((float) displayHeight) / this.helper.screen.height;
-        float ratioX = ((float) displayWidth) / this.helper.screen.width;
-        float ratio = Math.max(ratioY, ratioX);
-
-        GL11.glScissor(displayWidth - (int) ((posX + w) * ratio), displayHeight - (int) ((posY + h) * ratio), (int) (w * ratio), (int) (h * ratio));
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        Gui.enableScissor(posX, posY, posX + w, posY + h);
         //	GL11.glEnable(GL11.GL_SCISSOR_BOX);
 
         GL11.glTranslatef(getxOffset(), getYOffset(), 0f);
@@ -83,7 +76,7 @@ public class GuiGroup extends Gui implements IGuiObject, IGuiObjectObserver {
         for (IGuiObject o : objectList) {
             o.idraw(x, y, f);
         }
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        Gui.disableScissor();
         //GL11.glDisable(GL11.GL_SCISSOR_BOX);
         GL11.glPopMatrix();
     }
@@ -94,12 +87,6 @@ public class GuiGroup extends Gui implements IGuiObject, IGuiObjectObserver {
         x -= getxOffset();
         y -= getYOffset();
         GL11.glPushMatrix();
-        int displayWidth = Minecraft.getMinecraft().displayWidth;
-        int displayHeight = Minecraft.getMinecraft().displayHeight;
-        float ratioY = ((float) displayHeight) / this.helper.screen.height;
-        float ratioX = ((float) displayWidth) / this.helper.screen.width;
-        float ratio = Math.max(ratioY, ratioX);
-
         //	GL11.glScissor(displayWidth-(int)((posX+w)*ratio),displayHeight-(int)((posY+h)*ratio),(int)(w*ratio),(int)(h*ratio));
         //	GL11.glEnable(GL11.GL_SCISSOR_TEST);
         //	GL11.glEnable(GL11.GL_SCISSOR_BOX);

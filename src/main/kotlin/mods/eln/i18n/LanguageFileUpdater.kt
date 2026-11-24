@@ -2,11 +2,9 @@
 
 package mods.eln.i18n
 
-import java.io.BufferedReader
+import com.google.gson.JsonParser
 import java.io.File
-import java.io.FileInputStream
 import java.io.IOException
-import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 
 fun main(args: Array<String>) {
@@ -30,7 +28,7 @@ fun main(args: Array<String>) {
         } else if (languageFileOrFolder.isDirectory) {
             val files = languageFileOrFolder.listFiles() ?: return
             for (file in files) {
-                if (file.name.endsWith(".lang") && !file.name.startsWith("_")) {
+                if (file.name.endsWith(".json") && !file.name.startsWith("_")) {
                     updateLanguageFile(file, stringsToTranslate)
                 }
             }
@@ -49,57 +47,9 @@ private fun updateLanguageFile(languageFile: File, stringsToTranslate: Map<Strin
     LanguageFileGenerator.updateFile(languageFile, stringsToTranslate, existingTranslations)
 }
 
-/**
- * Parses a .lang file into a key-value map.
- *
- * Unlike `Properties.load()` which decodes `\n` → newline, `\=` → `=`, `\:` → `:`,
- * this parser preserves keys exactly as written in the file. This ensures keys
- * match the format produced by `I18N.encodeLangKey()`, so existing translations
- * are correctly found during regeneration.
- *
- * Unicode escape sequences (`\uXXXX`) in both keys and values are resolved via
- * `I18N.resolveUnicodeEscapes()` so they are handled consistently with the
- * source code extraction pipeline.
- */
+/** Reads a language file into a key-value map. */
 @Throws(IOException::class)
 private fun parseLangFile(file: File): Map<String, String> {
-    val result = LinkedHashMap<String, String>()
-    val reader = BufferedReader(InputStreamReader(FileInputStream(file), StandardCharsets.UTF_8))
-
-    reader.use {
-        var line: String? = it.readLine()
-        while (line != null) {
-            val trimmed = line.trim()
-            if (trimmed.isNotEmpty() && !trimmed.startsWith("#")) {
-                val separatorIndex = findUnescapedEquals(line)
-                if (separatorIndex > 0) {
-                    val key = I18N.resolveUnicodeEscapes(line.substring(0, separatorIndex))
-                    val value = I18N.resolveUnicodeEscapes(line.substring(separatorIndex + 1))
-                    result[key] = value
-                }
-            }
-            line = it.readLine()
-        }
-    }
-
-    return result
-}
-
-/**
- * Finds the index of the first '=' that is not preceded by '\' in the given string.
- * Returns -1 if not found.
- */
-private fun findUnescapedEquals(line: String): Int {
-    var i = 0
-    while (i < line.length) {
-        val c = line[i]
-        if (c == '\\' && i + 1 < line.length) {
-            i += 2
-        } else if (c == '=') {
-            return i
-        } else {
-            i++
-        }
-    }
-    return -1
+    val json = JsonParser.parseString(file.readText(StandardCharsets.UTF_8)).asJsonObject
+    return json.entrySet().associate { it.key to it.value.asString }
 }

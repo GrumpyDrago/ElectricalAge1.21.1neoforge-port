@@ -1,5 +1,7 @@
 package mods.eln.gridnode
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.generic.GenericItemBlockUsingDamageDescriptor
 import mods.eln.i18n.I18N.tr
@@ -10,11 +12,11 @@ import mods.eln.node.transparent.TransparentNodeElement
 import mods.eln.sim.ElectricalLoad
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
 import mods.eln.sixnode.electricalcable.UtilityCableDescriptor
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.entity.player.EntityPlayerMP
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.util.Vec3
+import net.minecraft.world.entity.player.Player
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.phys.Vec3
 import org.apache.commons.lang3.tuple.Pair
 
 import java.io.DataOutputStream
@@ -33,26 +35,26 @@ abstract class GridElement(transparentNode: TransparentNode, descriptor: Transpa
         this.desc = descriptor as GridDescriptor
     }
 
-    private fun shouldConsumeUtilityCableLength(player: EntityPlayer): Boolean {
+    private fun shouldConsumeUtilityCableLength(player: Player): Boolean {
         val creativeFreeLength = Eln.config.getBooleanOrElse("gameplay.cables.creativeFreeLength", true)
-        return !(creativeFreeLength && player is EntityPlayerMP && Utils.isCreative(player))
+        return !(creativeFreeLength && player is ServerPlayer && Utils.isCreative(player))
     }
 
     /* Connect one GridNode to another. */
-    override fun onBlockActivated(player: EntityPlayer, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
+    override fun onBlockActivated(player: Player, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
         // Check if user is holding an appropriate tool.
         val stack = player.currentEquippedItem
         val itemDesc = GenericItemBlockUsingDamageDescriptor.getDescriptor(stack)
-        if (itemDesc is ElectricalCableDescriptor) {
+        if (stack != null && itemDesc is ElectricalCableDescriptor) {
             return onTryGridConnect(player, stack, itemDesc, side)
         }
         // TODO: Scissors. Break the connection without breaking the pole.
         return false
     }
 
-    private fun onTryGridConnect(entityPlayer: EntityPlayer, stack: ItemStack, cable: ElectricalCableDescriptor, side: Direction): Boolean {
+    private fun onTryGridConnect(entityPlayer: Player, stack: ItemStack, cable: ElectricalCableDescriptor, side: Direction): Boolean {
         // First node, or second node?
-        val uuid = entityPlayer.persistentID
+        val uuid = entityPlayer.uuid
         val p = pending[uuid]
         var other: GridElement? = null
         if (p != null) {
@@ -79,7 +81,7 @@ abstract class GridElement(transparentNode: TransparentNode, descriptor: Transpa
             val consumeLength = shouldConsumeUtilityCableLength(entityPlayer)
             val availableLength = if (cable is UtilityCableDescriptor && consumeLength) cable.getRemainingLengthMeters(stack).toInt() else stackSize
 
-            if (availableLength < cableLength && !Utils.isCreative(entityPlayer as EntityPlayerMP)) {
+            if (availableLength < cableLength && !Utils.isCreative(entityPlayer as ServerPlayer)) {
                 Utils.addChatMessage(entityPlayer, tr("You need %1$ m of cable", cableLength))
             } else if (distance > range) {
                 Utils.addChatMessage(entityPlayer, tr("Cannot connect, range %1$ and limit %2$ blocks", Math.ceil(distance).toInt(), range))
@@ -99,11 +101,11 @@ abstract class GridElement(transparentNode: TransparentNode, descriptor: Transpa
                     if (cable is UtilityCableDescriptor && consumeLength) {
                         cable.setRemainingLengthMeters(stack, cable.getRemainingLengthMeters(stack) - cableLength)
                         if (cable.getRemainingLengthMeters(stack) <= 0.0) {
-                            stack.stackSize -= 1
+                            stack.count -= 1
                         }
-                        entityPlayer.inventory.markDirty()
+                        entityPlayer.inventory.setChanged()
                     } else if (cable !is UtilityCableDescriptor) {
-                        if (!(Eln.config.getBooleanOrElse("gameplay.qol.creativeNoConsumeInsertedItems", false) && entityPlayer is EntityPlayerMP && Utils.isCreative(entityPlayer))) entityPlayer.removeMultipleItems(stack, cableLength)
+                        if (!(Eln.config.getBooleanOrElse("gameplay.qol.creativeNoConsumeInsertedItems", false) && entityPlayer is ServerPlayer && Utils.isCreative(entityPlayer))) entityPlayer.removeMultipleItems(stack, cableLength)
                     }
                 } catch (e: UserError) {
                     Utils.addChatMessage(entityPlayer, e.message)
@@ -153,7 +155,7 @@ abstract class GridElement(transparentNode: TransparentNode, descriptor: Transpa
         }
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
 
         val gridLinks = Utils.newNbtTagCompund(nbt, "gridLinks")
@@ -162,15 +164,15 @@ abstract class GridElement(transparentNode: TransparentNode, descriptor: Transpa
         }
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
 
         assert(gridLinkList.isEmpty())
-        val gridLinks = nbt.getCompoundTag("gridLinks")
+        val gridLinks = nbt.getCompound("gridLinks")
         var i: Int? = 0
         while (true) {
-            val linkTag = gridLinks.getCompoundTag(i!!.toString())
-            if (linkTag.hasNoTags())
+            val linkTag = gridLinks.getCompound(i!!.toString())
+            if (linkTag.isEmpty)
                 break
             gridLinksBooting.add(GridLink(linkTag, ""))
             i++
@@ -258,11 +260,9 @@ abstract class GridElement(transparentNode: TransparentNode, descriptor: Transpa
                 // It's always the "a" side doing this.
                 val offset = link.b.subtract(link.a)
                 for (i in 0..1) {
-                    val start = getRenderCablePoint(ourSide, i)
-                    start.rotateAroundY(Math.toRadians(idealRenderingAngle.toDouble()).toFloat())
-                    var end = target.getRenderCablePoint(theirSide, i)
-                    end.rotateAroundY(Math.toRadians(target.idealRenderingAngle.toDouble()).toFloat())
-                    end = end.addVector(offset.x.toDouble(), offset.y.toDouble(), offset.z.toDouble())
+                    val start = getRenderCablePoint(ourSide, i).yRot(Math.toRadians(idealRenderingAngle.toDouble()).toFloat())
+                    var end = target.getRenderCablePoint(theirSide, i).yRot(Math.toRadians(target.idealRenderingAngle.toDouble()).toFloat())
+                    end = end.add(offset.x.toDouble(), offset.y.toDouble(), offset.z.toDouble())
                     writeVec(stream, start)
                     writeVec(stream, end)
                 }
@@ -281,7 +281,7 @@ abstract class GridElement(transparentNode: TransparentNode, descriptor: Transpa
     }
 
     protected open fun getRenderCablePoint(side: Direction, i: Int): Vec3 =
-        getCablePoint(side, i).addVector(
+        getCablePoint(side, i).add(
             desc.renderOffset.xCoord, desc.renderOffset.yCoord, desc.renderOffset.zCoord
         )
 

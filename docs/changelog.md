@@ -1,3 +1,9 @@
+## 2.0.0-alpha.1
+
+- Ported to Minecraft 1.21.1 and NeoForge, see [neoforge-port.md](neoforge-port.md)
+- Every component is an item of its own
+- IC2 and OpenComputers support removed, Waila replaced by Jade, RF replaced by FE
+
 ## 1.16.14
 
 - Fixes the steam generation taking place when the temperature is not high enough for steam

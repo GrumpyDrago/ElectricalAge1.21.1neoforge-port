@@ -1,11 +1,9 @@
 package mods.eln.client;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent.ClientTickEvent;
-import cpw.mods.fml.common.gameevent.TickEvent.Type;
-import cpw.mods.fml.common.network.FMLNetworkEvent.ClientConnectedToServerEvent;
-import cpw.mods.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent;
+import mods.eln.compat.FMLCommonHandler;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import mods.eln.Eln;
 import mods.eln.misc.Utils;
 import mods.eln.ore.OreScannerManager;
@@ -26,7 +24,7 @@ public class ConnectionListener {
     static int timer = 0;
 
     @SubscribeEvent
-    public void onConnectedToServerEvent(ClientConnectedToServerEvent event) {
+    public void onConnectedToServerEvent(ClientPlayerNetworkEvent.LoggingIn event) {
         Utils.println("Connected to server " + FMLCommonHandler.instance().getEffectiveSide());
         OreScannerManager.regenOreScannerFactors();
 
@@ -35,16 +33,16 @@ public class ConnectionListener {
     }
 
     @SubscribeEvent
-    public void onDisconnectedFromServerEvent(ClientDisconnectionFromServerEvent event) {
+    public void onDisconnectedFromServerEvent(ClientPlayerNetworkEvent.LoggingOut event) {
+        newConnection = false;
         Utils.println("Disconnected from server " + FMLCommonHandler.instance().getEffectiveSide());
-        Minecraft.getMinecraft().func_152344_a(UtilsClient::glDeleteListsAllSafe);
+        Minecraft.getInstance().execute(UtilsClient::glDeleteListsAllSafe);
     }
 
     @SubscribeEvent
-    public void tick(ClientTickEvent event) {
-        if (event.type != Type.CLIENT) return;
+    public void tick(ClientTickEvent.Post event) {
 
-        if (newConnection) {
+        if (newConnection && Minecraft.getInstance().getConnection() != null) {
             if (timer-- != 0) return;
 
             newConnection = false;

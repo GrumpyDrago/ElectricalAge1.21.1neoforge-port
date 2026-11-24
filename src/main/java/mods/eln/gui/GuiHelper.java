@@ -1,38 +1,39 @@
 package mods.eln.gui;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.misc.UtilsClient;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.util.ResourceLocation;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.screens.Screen;
+import mods.eln.compat.client.Gui;
+import mods.eln.compat.client.GuiContainer;
+import mods.eln.compat.client.GuiScreen;
+import net.minecraft.resources.ResourceLocation;
+import mods.eln.compat.client.GL11;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 public class GuiHelper {
-    public GuiScreen screen;
+    public Screen screen;
     public int xSize, ySize;
     ResourceLocation background;
-    static final ResourceLocation helperTexture = new ResourceLocation("eln", "sprites/gui/helpertexture.png");
+    static final ResourceLocation helperTexture = Mc.rl("eln", "sprites/gui/helpertexture.png");
 
-    static final ResourceLocation slotSkin = new ResourceLocation("textures/gui/container/furnace.png");
+    static final ResourceLocation slotSkin = Mc.rl("textures/gui/container/furnace.png");
 
-    public static final Tessellator tessellator = new Tessellator();
-
-    public GuiHelper(GuiScreen screen, int xSize, int ySize, String backgroundName) {
+    public GuiHelper(Screen screen, int xSize, int ySize, String backgroundName) {
         this.screen = screen;
         this.xSize = xSize;
         this.ySize = ySize;
-        background = new ResourceLocation("eln", "sprites/gui/" + backgroundName);
+        background = Mc.rl("eln", "sprites/gui/" + backgroundName);
     }
 
-    public GuiHelper(GuiScreen screen, int xSize, int ySize) {
+    public GuiHelper(Screen screen, int xSize, int ySize) {
         this.screen = screen;
         this.xSize = xSize;
         this.ySize = ySize;
@@ -44,7 +45,7 @@ public class GuiHelper {
 
     GuiTextFieldEln newGuiTextField(int x, int y, int width, int maxLength) {
         GuiTextFieldEln o;
-        o = new GuiTextFieldEln(Minecraft.getMinecraft().fontRenderer,
+        o = new GuiTextFieldEln(Minecraft.getInstance().font,
             screen.width / 2 - xSize / 2 + x, screen.height / 2 - ySize / 2 + y, width, 12, this, maxLength);
         objectList.add(o);
         return o;
@@ -93,8 +94,8 @@ public class GuiHelper {
         return o;
     }
 
-	/*public void drawHoveringText(List list, int x, int y, FontRenderer fontRenderer, GuiContainerEln cont) {
-        drawHoveringText(list, screen.width / 2 - xSize / 2 + x, screen.height / 2 - ySize / 2 + y, Minecraft.getMinecraft().fontRenderer);
+	/*public void drawHoveringText(List list, int x, int y, Font fontRenderer, GuiContainerEln cont) {
+        drawHoveringText(list, screen.width / 2 - xSize / 2 + x, screen.height / 2 - ySize / 2 + y, Minecraft.getInstance().font);
 	}*/
 
     public void add(IGuiObject o) {
@@ -120,7 +121,7 @@ public class GuiHelper {
     ArrayList<IGuiObject> objectList = new ArrayList<IGuiObject>();
 
     void draw(int x, int y, float f) {
-        screen.drawDefaultBackground();
+        if (screen instanceof GuiScreen) GuiScreen.drawDefaultBackground();
         if (background != null)
             UtilsClient.drawGuiBackground(background, screen, xSize, ySize);
         else {
@@ -129,24 +130,24 @@ public class GuiHelper {
             px += (screen.width - xSize) / 2;
             py += (screen.height - ySize) / 2;
 
-            screen.drawRect(px + 2, py + 2, px + xSize - 2, py + ySize - 2, 0xFFC6C6C6);
+            Gui.drawRect(px + 2, py + 2, px + xSize - 2, py + ySize - 2, 0xFFC6C6C6);
 
-            screen.drawRect(px + 4, py, px + xSize - 4, py + 1, 0xFF000000);
-            screen.drawRect(px + 4, py + 1, px + xSize - 4, py + 3, 0xFFFFFFFF);
-            screen.drawRect(px + 4, py + ySize - 1, px + xSize - 4, py + ySize - 0, 0xFF000000);
-            screen.drawRect(px + 4, py + ySize - 3, px + xSize - 4, py + ySize - 1, 0xFF555555);
+            Gui.drawRect(px + 4, py, px + xSize - 4, py + 1, 0xFF000000);
+            Gui.drawRect(px + 4, py + 1, px + xSize - 4, py + 3, 0xFFFFFFFF);
+            Gui.drawRect(px + 4, py + ySize - 1, px + xSize - 4, py + ySize - 0, 0xFF000000);
+            Gui.drawRect(px + 4, py + ySize - 3, px + xSize - 4, py + ySize - 1, 0xFF555555);
 
-            screen.drawRect(px, py + 4, px + 1, py + ySize - 4, 0xFF000000);
-            screen.drawRect(px + 1, py + 4, px + 3, py + ySize - 4, 0xFFFFFFFF);
-            screen.drawRect(px + xSize - 1, py + 4, px + xSize - 0, py + ySize - 4, 0xFF000000);
-            screen.drawRect(px + xSize - 3, py + 4, px + xSize - 1, py + ySize - 4, 0xFF555555);
+            Gui.drawRect(px, py + 4, px + 1, py + ySize - 4, 0xFF000000);
+            Gui.drawRect(px + 1, py + 4, px + 3, py + ySize - 4, 0xFFFFFFFF);
+            Gui.drawRect(px + xSize - 1, py + 4, px + xSize - 0, py + ySize - 4, 0xFF000000);
+            Gui.drawRect(px + xSize - 3, py + 4, px + xSize - 1, py + ySize - 4, 0xFF555555);
 
             GL11.glColor3f(1f, 1f, 1f);
 
-            screen.drawTexturedModalRect(px, py, 0, 0, 4, 4);
-            screen.drawTexturedModalRect(px + xSize - 4, py, 4, 0, 4, 4);
-            screen.drawTexturedModalRect(px, py + ySize - 4, 0, 4, 4, 4);
-            screen.drawTexturedModalRect(px + xSize - 4, py + ySize - 4, 4, 4, 4, 4);
+            Gui.drawTexturedModalRect(px, py, 0, 0, 4, 4);
+            Gui.drawTexturedModalRect(px + xSize - 4, py, 4, 0, 4, 4);
+            Gui.drawTexturedModalRect(px, py + ySize - 4, 0, 4, 4, 4);
+            Gui.drawTexturedModalRect(px + xSize - 4, py + ySize - 4, 4, 4, 4, 4);
         }
 
         for (IGuiObject o : objectList) {
@@ -157,13 +158,13 @@ public class GuiHelper {
     public void drawTexturedModalRect(int x, int y, int u, int v, int width, int height) {
         x += (screen.width - xSize) / 2;
         y += (screen.height - ySize) / 2;
-        screen.drawTexturedModalRect(x, y, u, v, width, height);
+        Gui.drawTexturedModalRect(x, y, u, v, width, height);
     }
 
     public void drawRect(int x0, int y0, int x1, int y1, int color) {
         int dx = (screen.width - xSize) / 2;
         int dy = (screen.height - ySize) / 2;
-        screen.drawRect(x0 + dx, y0 + dy, x1 + dx, y1 + dy, color);
+        Gui.drawRect(x0 + dx, y0 + dy, x1 + dx, y1 + dy, color);
     }
 
     IGuiObject[] objectListCopy() {
@@ -199,7 +200,7 @@ public class GuiHelper {
     }
 
     public void drawString(int x, int y, int color, String str) {
-        Minecraft.getMinecraft().fontRenderer.drawString(str, screen.width / 2 - xSize / 2 + x, screen.height / 2 - ySize / 2 + y, color);
+        Gui.drawText(Minecraft.getInstance().font, str, screen.width / 2 - xSize / 2 + x, screen.height / 2 - ySize / 2 + y, color);
     }
 
     public void draw2(int x, int y) {
@@ -208,15 +209,15 @@ public class GuiHelper {
         }
     }
 
-    public void drawHoveringText(List par1List, int x, int y, FontRenderer font) {
+    public void drawHoveringText(List par1List, int x, int y, Font font) {
         if (!par1List.isEmpty()) {
             if (screen instanceof GuiContainer) {
                 x -= (screen.width - xSize) / 2;
                 y -= (screen.height - ySize) / 2;
             }
 
-            GL11.glDisable(GL12.GL_RESCALE_NORMAL);
-            RenderHelper.disableStandardItemLighting();
+            GL11.glPushMatrix();
+            GL11.glTranslatef(0f, 0f, 400f);
             GL11.glDisable(GL11.GL_LIGHTING);
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             int textWidth = 0;
@@ -224,7 +225,7 @@ public class GuiHelper {
 
             while (iterator.hasNext()) {
                 String s = (String) iterator.next();
-                int l = font.getStringWidth(s);
+                int l = font.width(s);
 
                 if (l > textWidth) {
                     textWidth = l;
@@ -273,7 +274,7 @@ public class GuiHelper {
 
             for (int k2 = 0; k2 < par1List.size(); ++k2) {
                 String s1 = (String) par1List.get(k2);
-                font.drawStringWithShadow(s1, i1, j1, -1);
+                Gui.drawTextShadow(font, s1, i1, j1, -1);
 
                 if (k2 == 0) {
                     j1 += 2;
@@ -284,50 +285,33 @@ public class GuiHelper {
 
             GL11.glEnable(GL11.GL_LIGHTING);
             GL11.glEnable(GL11.GL_DEPTH_TEST);
-            RenderHelper.enableStandardItemLighting();
-            GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+            GL11.glPopMatrix();
         }
     }
 
-    public void drawGradientRect(int par1, int par2, int par3, int par4, int par5, int par6) {
-        float f = (float) (par5 >> 24 & 255) / 255.0F;
-        float f1 = (float) (par5 >> 16 & 255) / 255.0F;
-        float f2 = (float) (par5 >> 8 & 255) / 255.0F;
-        float f3 = (float) (par5 & 255) / 255.0F;
-        float f4 = (float) (par6 >> 24 & 255) / 255.0F;
-        float f5 = (float) (par6 >> 16 & 255) / 255.0F;
-        float f6 = (float) (par6 >> 8 & 255) / 255.0F;
-        float f7 = (float) (par6 & 255) / 255.0F;
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glDisable(GL11.GL_ALPHA_TEST);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glShadeModel(GL11.GL_SMOOTH);
-        //  Tessellator tessellator = Tessellator.instance;
-        tessellator.startDrawingQuads();
-        tessellator.setColorRGBA_F(f1, f2, f3, f);
-        tessellator.addVertex((double) par3, (double) par2, 0);
-        tessellator.addVertex((double) par1, (double) par2, 0);
-        tessellator.setColorRGBA_F(f5, f6, f7, f4);
-        tessellator.addVertex((double) par1, (double) par4, 0);
-        tessellator.addVertex((double) par3, (double) par4, 0);
-        tessellator.draw();
-        GL11.glShadeModel(GL11.GL_FLAT);
-        GL11.glDisable(GL11.GL_BLEND);
-        GL11.glEnable(GL11.GL_ALPHA_TEST);
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
+    /** Tooltip at coordinates relative to the current matrix. */
+    public void drawTooltip(List<String> lines, int x, int y) {
+        GuiGraphics g = GL11.getGuiGraphics();
+        if (g == null || lines.isEmpty()) return;
+        List<Component> components = new ArrayList<>();
+        for (String line : lines) components.add(Component.literal(line));
+        g.renderComponentTooltip(Minecraft.getInstance().font, components, x, y);
     }
 
-    public int getHoveringTextWidth(List<String> comment, FontRenderer fontRenderer) {
+    public void drawGradientRect(int par1, int par2, int par3, int par4, int par5, int par6) {
+        Gui.drawGradientRect(par1, par2, par3, par4, par5, par6);
+    }
+
+    public int getHoveringTextWidth(List<String> comment, Font fontRenderer) {
         int strWidth = 0;
         for (String str : comment) {
-            int size = fontRenderer.getStringWidth(str);
+            int size = fontRenderer.width(str);
             if (size > strWidth) strWidth = size;
         }
         return strWidth + 5;
     }
 
-    public int getHoveringTextHeight(List<String> comment, FontRenderer fontRenderer) {
+    public int getHoveringTextHeight(List<String> comment, Font fontRenderer) {
         return comment.size() * 9 - 4;
     }
 

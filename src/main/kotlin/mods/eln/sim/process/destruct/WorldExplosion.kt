@@ -1,13 +1,15 @@
 package mods.eln.sim.process.destruct
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.mechanical.ShaftElement
 import mods.eln.misc.Coordinate
 import mods.eln.node.six.SixNodeElement
 import mods.eln.node.transparent.TransparentNodeElement
 import mods.eln.simplenode.energyconverter.EnergyConverterElnToOtherNode
-import net.minecraft.entity.Entity
-import net.minecraft.init.Blocks
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.level.block.Blocks
 import java.lang.RuntimeException
 
 class WorldExplosion : IDestructible {
@@ -59,7 +61,7 @@ class WorldExplosion : IDestructible {
             strength,
             true
         ) else coordinate.world().setBlock(
-            coordinate.x, coordinate.y, coordinate.z, Blocks.air
+            coordinate.x, coordinate.y, coordinate.z, Blocks.AIR
         )
     }
 

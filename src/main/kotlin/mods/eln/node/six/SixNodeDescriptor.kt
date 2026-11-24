@@ -1,5 +1,7 @@
 package mods.eln.node.six
 
+import mods.eln.compat.*
+
 import mods.eln.generic.GenericItemBlockUsingDamageDescriptor
 import mods.eln.ghost.GhostGroup
 import mods.eln.i18n.I18N.tr
@@ -10,12 +12,11 @@ import mods.eln.misc.Utils.addChatMessage
 import mods.eln.misc.Utils.entityLivingHorizontalViewDirection
 import mods.eln.misc.UtilsClient.drawIcon
 import mods.eln.misc.VoltageLevelColor
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.ItemStack
-import net.minecraft.util.ResourceLocation
-import net.minecraftforge.client.IItemRenderer
-import net.minecraftforge.client.IItemRenderer.ItemRenderType
-import net.minecraftforge.client.IItemRenderer.ItemRendererHelper
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.resources.ResourceLocation
+import mods.eln.compat.IItemRenderer.ItemRenderType
+import mods.eln.compat.IItemRenderer.ItemRendererHelper
 
 open class SixNodeDescriptor : GenericItemBlockUsingDamageDescriptor, IItemRenderer {
     @JvmField
@@ -51,20 +52,20 @@ open class SixNodeDescriptor : GenericItemBlockUsingDamageDescriptor, IItemRende
         if (icon == null) return
         voltageLevelColor.drawIconBackground(type)
 
-        // remove "eln:" to add the full path replace("eln:", "textures/blocks/") + ".png";
+        // remove "eln:" to add the full path replace("eln:", "textures/block/") + ".png";
         val icon = icon.iconName.substring(4)
-        drawIcon(type, ResourceLocation("eln", "textures/blocks/$icon.png"))
+        drawIcon(type, rl("eln", "textures/block/$icon.png"))
     }
 
     open fun hasVolume(): Boolean {
         return false
     }
 
-    open fun canBePlacedOnSide(player: EntityPlayer?, c: Coordinate?, side: Direction): Boolean {
+    open fun canBePlacedOnSide(player: Player?, c: Coordinate?, side: Direction): Boolean {
         return canBePlacedOnSide(player, side)
     }
 
-    open fun canBePlacedOnSide(player: EntityPlayer?, side: Direction): Boolean {
+    open fun canBePlacedOnSide(player: Player?, side: Direction): Boolean {
         if (placeDirection != null) {
             for (d in placeDirection!!) {
                 if (d === side) return true
@@ -113,7 +114,7 @@ open class SixNodeDescriptor : GenericItemBlockUsingDamageDescriptor, IItemRende
         return if (ghostGroup != null && !ghostGroup.canBePloted(coord!!)) tr("Not enough space for this block") else null
     }
 
-    open fun getFrontFromPlace(side: Direction, player: EntityPlayer): LRDU? {
+    open fun getFrontFromPlace(side: Direction, player: Player): LRDU? {
         return when (side) {
             Direction.YN, Direction.YP -> {
                 val viewDirection = entityLivingHorizontalViewDirection(player)

@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.electricalantennatx;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.misc.Coordinate;
 import mods.eln.node.NodeBase;
@@ -7,10 +9,10 @@ import mods.eln.node.NodeManager;
 import mods.eln.node.transparent.TransparentNode;
 import mods.eln.sim.IProcess;
 import mods.eln.transparentnode.electricalantennarx.ElectricalAntennaRxElement;
-import net.minecraft.block.Block;
-import net.minecraft.entity.Entity;
-import net.minecraft.init.Blocks;
-import net.minecraft.world.World;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.Level;
 
 import java.util.List;
 
@@ -28,7 +30,7 @@ public class ElectricalAntennaTxSlowProcess implements IProcess {
     @Override
     public void process(double time) {
         //if(element.rxCoord == null)
-        World world = element.node.coordinate.world();
+        Level world = element.node.coordinate.world();
 
         if (timeCounter <= 0.0) {
             timeCounter = periode;
@@ -43,9 +45,9 @@ public class ElectricalAntennaTxSlowProcess implements IProcess {
                 coord.move(element.front);
                 distance++;
                 Block block;
-                if (element.placeBoot || element.rxCoord == null || coord.world().blockExists(coord.x, coord.y, coord.z)) {
+                if (element.placeBoot || element.rxCoord == null || Mc.blockExists(coord.world(), coord.x, coord.y, coord.z)) {
                     //	a++;
-                    if ((block = coord.getBlock()) != Blocks.air && block != Blocks.fire) {
+                    if ((block = coord.getBlock()) != Blocks.AIR && block != Blocks.FIRE) {
                         if (block == Eln.transparentNodeBlock
                             && (node = (TransparentNode) NodeManager.instance.getNodeFromCoordonate(coord)) != null
                             && (node.element instanceof ElectricalAntennaRxElement)) {
@@ -77,26 +79,23 @@ public class ElectricalAntennaTxSlowProcess implements IProcess {
                 Coordinate coordCpy = new Coordinate(coord);
                 coordCpy.move(element.front.getInverse());
                 if (element.powerResistor.getPower() > 50) {
-                    if (coordCpy.world().blockExists(coordCpy.x, coordCpy.y, coordCpy.z)) {
-                        if (coordCpy.getBlock() == Blocks.air) {
-                            coordCpy.world().setBlock(coordCpy.x, coordCpy.y, coordCpy.z, Blocks.fire);
+                    if (Mc.blockExists(coordCpy.world(), coordCpy.x, coordCpy.y, coordCpy.z)) {
+                        if (coordCpy.getBlock() == Blocks.AIR) {
+                            Mc.setBlock(coordCpy.world(), coordCpy.x, coordCpy.y, coordCpy.z, Blocks.FIRE);
                         }
                     }
                 }
             } else {
                 element.powerEfficency = 1 - (element.descriptor.electricalPowerRatioLostOffset + element.descriptor.electricalPowerRatioLostPerBlock * distance);
 
-                if (world.getWorldInfo().isRaining()) element.powerEfficency *= 0.707;
-                if (world.getWorldInfo().isThundering()) element.powerEfficency *= 0.707;
+                if (world.isRaining()) element.powerEfficency *= 0.707;
+                if (world.isThundering()) element.powerEfficency *= 0.707;
 
                 element.rxCoord = node.coordinate;
                 element.rxElement = (ElectricalAntennaRxElement) node.element;
             }
-            List list = world.getEntitiesWithinAABBExcludingEntity((Entity) null, Coordinate.getAxisAlignedBB(element.node.coordinate, coord));
-
-            for (Object o : list) {
-                Entity e = (Entity) o;
-                e.setFire((int) (Math.pow(element.powerResistor.getPower() / 100.0, 2) + 0.5));
+            for (Entity e : world.getEntities((Entity) null, Coordinate.getAxisAlignedBB(element.node.coordinate, coord))) {
+                e.igniteForSeconds((int) (Math.pow(element.powerResistor.getPower() / 100.0, 2) + 0.5));
             }
         }
 

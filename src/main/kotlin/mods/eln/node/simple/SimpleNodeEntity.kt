@@ -1,7 +1,9 @@
 package mods.eln.node.simple
 
-import cpw.mods.fml.relauncher.Side
-import cpw.mods.fml.relauncher.SideOnly
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.misc.Coordinate
 import mods.eln.misc.Direction
@@ -13,23 +15,30 @@ import mods.eln.node.NodeEntityClientSender
 import mods.eln.node.NodeManager
 import mods.eln.node.simple.DescriptorManager.get
 import mods.eln.server.DelayedBlockRemove.Companion.add
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.Container
-import net.minecraft.network.Packet
-import net.minecraft.network.play.server.S3FPacketCustomPayload
-import net.minecraft.tileentity.TileEntity
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.inventory.AbstractContainerMenu
+import mods.eln.node.NodeSync
+import net.minecraft.core.BlockPos
+import net.minecraft.core.HolderLookup
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.network.Connection
+import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.game.ClientGamePacketListener
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket
+import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.entity.BlockEntity
 import java.io.DataInputStream
 import java.io.IOException
 
-abstract class SimpleNodeEntity(override val nodeUuid: String) : TileEntity(), INodeEntity {
+abstract class SimpleNodeEntity(type: BlockEntityType<*>, pos: BlockPos, state: BlockState, override val nodeUuid: String) : BlockEntity(type, pos, state), INodeEntity {
     open var node: SimpleNode? = null
         get() {
-            if (worldObj.isRemote) {
+            if (worldObj.isClientSide) {
                 fatal()
                 return null
             }
-            if (worldObj == null) return null
             if (field == null) {
                 field = NodeManager.instance!!.getNodeFromCoordonate(Coordinate(xCoord, yCoord, zCoord, worldObj)) as SimpleNode?
                 if (field == null) {
@@ -47,7 +56,7 @@ abstract class SimpleNodeEntity(override val nodeUuid: String) : TileEntity(), I
 	}
 */
     fun onBlockAdded() {
-        /*if (!worldObj.isRemote){
+        /*if (!worldObj.isClientSide){
 			if (getNode() == null) {
 				worldObj.setBlockToAir(xCoord, yCoord, zCoord);
 			}
@@ -55,30 +64,30 @@ abstract class SimpleNodeEntity(override val nodeUuid: String) : TileEntity(), I
     }
 
     fun onBreakBlock() {
-        if (!worldObj.isRemote) {
+        if (!worldObj.isClientSide) {
             if (node == null) return
             node!!.onBreakBlock()
         }
     }
 
-    override fun onChunkUnload() {
-        super.onChunkUnload()
-        if (worldObj.isRemote) {
+    override fun onChunkUnloaded() {
+        super.onChunkUnloaded()
+        if (worldObj.isClientSide) {
             destructor()
         }
     }
 
     // client only
     fun destructor() {}
-    override fun invalidate() {
-        if (worldObj.isRemote) {
+    override fun setRemoved() {
+        if (level?.isClientSide == true) {
             destructor()
         }
-        super.invalidate()
+        super.setRemoved()
     }
 
-    fun onBlockActivated(entityPlayer: EntityPlayer?, side: Direction?, vx: Float, vy: Float, vz: Float): Boolean {
-        if (!worldObj.isRemote) {
+    fun onBlockActivated(entityPlayer: Player?, side: Direction?, vx: Float, vy: Float, vz: Float): Boolean {
+        if (!worldObj.isClientSide) {
             if (node == null) return false
             node!!.onBlockActivated(entityPlayer!!, side!!, vx, vy, vz)
             return true
@@ -87,7 +96,7 @@ abstract class SimpleNodeEntity(override val nodeUuid: String) : TileEntity(), I
     }
 
     fun onNeighborBlockChange() {
-        if (!worldObj.isRemote) {
+        if (!worldObj.isClientSide) {
             if (node == null) return
             node!!.onNeighborBlockChange()
         }
@@ -96,7 +105,7 @@ abstract class SimpleNodeEntity(override val nodeUuid: String) : TileEntity(), I
     //***************** Descriptor **************************
     val descriptor: Any?
         get() {
-            val b = getBlockType() as SimpleNodeBlock
+            val b = blockState.block as SimpleNodeBlock
             return get<Any>(b.descriptorKey)
         }
 
@@ -113,13 +122,21 @@ abstract class SimpleNodeEntity(override val nodeUuid: String) : TileEntity(), I
     }
 
     override fun serverPacketUnserialize(stream: DataInputStream) {}
-    override fun getDescriptionPacket(): Packet? {
-        val node = node
-        if (node == null) {
-            println("ASSERT NULL NODE public Packet getDescriptionPacket() nodeblock entity")
-            return null
-        }
-        return S3FPacketCustomPayload(Eln.channelName, node.publishPacket!!.toByteArray())
+    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag {
+        val tag = super.getUpdateTag(registries)
+        NodeSync.write(tag, node)
+        return tag
+    }
+
+    override fun handleUpdateTag(tag: CompoundTag, registries: HolderLookup.Provider) {
+        super.handleUpdateTag(tag, registries)
+        NodeSync.read(tag, this)
+    }
+
+    override fun getUpdatePacket(): Packet<ClientGamePacketListener>? = ClientboundBlockEntityDataPacket.create(this)
+
+    override fun onDataPacket(net: Connection, packet: ClientboundBlockEntityDataPacket, registries: HolderLookup.Provider) {
+        NodeSync.read(packet.tag, this)
     }
 
     open lateinit var sender: NodeEntityClientSender
@@ -130,12 +147,12 @@ abstract class SimpleNodeEntity(override val nodeUuid: String) : TileEntity(), I
     }
 
     //*********************** GUI ***************************
-    override fun newContainer(side: Direction, player: EntityPlayer): Container? {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu? {
         return null
     }
 
-    @SideOnly(Side.CLIENT)
-    override fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen? {
+    @OnlyIn(Dist.CLIENT)
+    override fun newGuiDraw(side: Direction, player: Player): Screen? {
         return null
     }
 }

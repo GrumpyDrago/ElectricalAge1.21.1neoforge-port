@@ -1,5 +1,7 @@
 package mods.eln.item.electricalitem
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.generic.GenericItemUsingDamageDescriptor
 import mods.eln.ore.OreColorMapping
@@ -10,19 +12,20 @@ import mods.eln.misc.Obj3D.Obj3DPart
 import mods.eln.misc.Utils
 import mods.eln.misc.UtilsClient
 import mods.eln.wiki.Data
-import net.minecraft.block.Block
-import net.minecraft.entity.Entity
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.entity.player.EntityPlayerMP
-import net.minecraft.init.Blocks
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.util.MathHelper
-import net.minecraft.world.World
-import net.minecraftforge.client.IItemRenderer.ItemRenderType
-import net.minecraftforge.client.IItemRenderer.ItemRendererHelper
-import org.lwjgl.opengl.GL11
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.util.Mth
+import net.minecraft.world.level.Level
+import mods.eln.compat.IItemRenderer.ItemRenderType
+import mods.eln.compat.IItemRenderer.ItemRendererHelper
+import mods.eln.compat.client.GL11
 
 @ExperimentalUnsignedTypes
 class PortableOreScannerItem(name: String?, private val obj: Obj3D,
@@ -40,9 +43,9 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
     var screenLuma: Obj3DPart = obj.getPart("ScreenLuma")
     private val damagePerBreakLevel: Byte = 3
 
-    override fun onUpdate(stack: ItemStack, world: World, entity: Entity, par4: Int, par5: Boolean) {
-        if (world.isRemote) return
-        if (entity !is EntityPlayerMP) return
+    override fun onUpdate(stack: ItemStack, world: Level, entity: Entity, par4: Int, par5: Boolean) {
+        if (world.isClientSide) return
+        if (entity !is ServerPlayer) return
         val state = getState(stack)
         var counter = getCounter(stack)
 
@@ -67,8 +70,8 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
         }
     }
 
-    override fun onItemRightClick(s: ItemStack, w: World, p: EntityPlayer): ItemStack {
-        if (w.isRemote) return s
+    override fun onItemRightClick(s: ItemStack, w: Level, p: Player): ItemStack {
+        if (w.isClientSide) return s
         val energy = getEnergy(s)
         val state = getState(s)
 
@@ -91,16 +94,16 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
         Data.addPortable(newItemStack())
     }
 
-    override fun getDefaultNBT(): NBTTagCompound? {
-        val nbt = NBTTagCompound()
-        nbt.setDouble("e", energyStorage * 0.2)
-        nbt.setByte("s", State.Boot.serialized)
-        nbt.setShort("c", bootTime)
-        nbt.setByte("d", 0.toByte())
+    override fun getDefaultNBT(): CompoundTag? {
+        val nbt = CompoundTag()
+        nbt.putDouble("e", energyStorage * 0.2)
+        nbt.putByte("s", State.Boot.serialized)
+        nbt.putShort("c", bootTime)
+        nbt.putByte("d", 0.toByte())
         return nbt
     }
 
-    override fun addInformation(itemStack: ItemStack?, entityPlayer: EntityPlayer?, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack?, entityPlayer: Player?, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
         list.add(tr("Discharge power: %1\$W", Utils.plotValue(dischargePower)))
         if (itemStack != null) {
@@ -114,7 +117,7 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
     }
 
     override fun setEnergy(stack: ItemStack, value: Double) {
-        getNbt(stack).setDouble("e", value)
+        stack.updateTag { it.putDouble("e", value) }
     }
 
     private fun getState(stack: ItemStack): State {
@@ -122,7 +125,7 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
     }
 
     private fun setState(stack: ItemStack, value: State) {
-        getNbt(stack).setByte("s", value.serialized)
+        stack.updateTag { it.putByte("s", value.serialized) }
     }
 
     fun getCounter(stack: ItemStack?): Short {
@@ -130,7 +133,7 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
     }
 
     fun setCounter(stack: ItemStack?, value: Short) {
-        getNbt(stack!!).setShort("c", value)
+        stack!!.updateTag { it.putShort("c", value) }
     }
 
     fun getDamage(stack: ItemStack?): Byte {
@@ -138,10 +141,10 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
     }
 
     fun setDamage(stack: ItemStack?, value: Byte) {
-        getNbt(stack!!).setByte("d", value)
+        stack!!.updateTag { it.putByte("d", value) }
     }
 
-    override fun onDroppedByPlayer(item: ItemStack, player: EntityPlayer?): Boolean {
+    override fun onDroppedByPlayer(item: ItemStack, player: Player?): Boolean {
         setState(item, State.Idle)
         return super.onDroppedByPlayer(item, player)
     }
@@ -170,12 +173,9 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
         return type != ItemRenderType.INVENTORY
     }
 
-    override fun onBlockStartBreak(itemstack: ItemStack?, x: Int, y: Int, z: Int, player: EntityPlayer?): Boolean {
-        if (!player!!.worldObj.isRemote) {
-            setDamage(itemstack, (getDamage(itemstack) + 1).toByte())
-            //Utils.println("Break");
-        }
-        return super.onBlockStartBreak(itemstack, x, y, z, player)
+    override fun onBlockDestroyed(stack: ItemStack, w: Level, block: Block, x: Int, y: Int, z: Int, entity: LivingEntity): Boolean {
+        if (!w.isClientSide) setDamage(stack, (getDamage(stack) + 1).toByte())
+        return super.onBlockDestroyed(stack, w, block, x, y, z, entity)
     }
 
     override fun renderItem(type: ItemRenderType?, item: ItemStack?, vararg data: Any?) {
@@ -195,7 +195,7 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
                 GL11.glRotatef(90f, 0f, 0f, 1f)
             }
             ItemRenderType.EQUIPPED -> {
-                e = data[1] as Entity
+                e = data.getOrNull(1) as? Entity
                 GL11.glRotatef(130f, 0f, 0f, 1f)
                 GL11.glRotatef(140f, 1f, 0f, 0f)
                 GL11.glRotatef(-20f, 0f, 1f, 0f)
@@ -203,7 +203,7 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
                 GL11.glTranslatef(-0.2f, 0.7f, -0.0f)
             }
             ItemRenderType.EQUIPPED_FIRST_PERSON -> {
-                e = data[1] as Entity
+                e = data.getOrNull(1) as? Entity
                 GL11.glTranslatef(0f, 1f, 0f)
                 GL11.glRotatef(90f, 0f, 0f, 1f)
                 GL11.glRotatef(35f, 1f, 0f, 0f)
@@ -224,7 +224,7 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
             var oRender = Eln.clientLiveDataManager.getData(item, 1)
             if (oRender == null) oRender = Eln.clientLiveDataManager.newData(item, RenderStorage(viewRange, viewYAlpha, resWidth, resHeight), 1)
             val render = oRender as RenderStorage
-            render.generate(e!!.worldObj, e.posX, Utils.getHeadPosY(e), e.posZ, e.rotationYaw * Math.PI.toFloat() / 180.0f, e.rotationPitch * Math.PI.toFloat() / 180.0f)
+            render.generate(e!!.worldObj, e.x, Utils.getHeadPosY(e), e.z, e.yRot * Math.PI.toFloat() / 180.0f, e.xRot * Math.PI.toFloat() / 180.0f)
             val scale = 1f / resWidth * 0.50f
             GL11.glTranslatef(0.90668f, 0.163f, -0.25078f)
             GL11.glRotatef(270f, 1f, 0f, 0f)
@@ -329,7 +329,7 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
         var worldBlocksDim: Int
         var worldBlocksDim2: Int
 
-        fun generate(w: World, posX: Double, posY: Double, posZ: Double, alphaY: Float, alphaX: Float) {
+        fun generate(w: Level, posX: Double, posY: Double, posZ: Double, alphaY: Float, alphaX: Float) {
             val blockKeyFactor = OreColorMapping.map
 
             val posXint = Math.round(posX).toInt()
@@ -351,15 +351,15 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
                     var vy = -(screenY - resHeight / 2).toFloat()
                     var vz = camDist
                     run {
-                        val sin = MathHelper.sin(alphaX)
-                        val cos = MathHelper.cos(alphaX)
+                        val sin = Mth.sin(alphaX)
+                        val cos = Mth.cos(alphaX)
                         val temp = vy
                         vy = vy * cos - vz * sin
                         vz = vz * cos + temp * sin
                     }
                     run {
-                        val sin = MathHelper.sin(alphaY)
-                        val cos = MathHelper.cos(alphaY)
+                        val sin = Mth.sin(alphaY)
+                        val cos = Mth.cos(alphaY)
                         val temp = vx
                         vx = vx * cos - vz * sin
                         vz = vz * cos + temp * sin
@@ -379,9 +379,9 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
                     var stackGreen = 0f
                     var d = 0f
                     while (d < viewRange) {
-                        val xFloor = MathHelper.floor_float(x).toFloat()
-                        val yFloor = MathHelper.floor_float(y).toFloat()
-                        val zFloor = MathHelper.floor_float(z).toFloat()
+                        val xFloor = Mth.floor(x).toFloat()
+                        val yFloor = Mth.floor(y).toFloat()
+                        val zFloor = Mth.floor(z).toFloat()
                         var dx = x - xFloor
                         var dy = y - yFloor
                         var dz = z - zFloor
@@ -398,29 +398,9 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
                             val yBlock = posYint + yFloor.toInt()
                             val zBlock = posZint + zFloor.toInt()
                             blockKey = 0U
-                            if (yBlock in 0..255) {
-                                val chunk = w.getChunkFromBlockCoords(xBlock, zBlock)
-                                if (chunk != null) {
-                                    val storage = chunk.blockStorageArray[yBlock shr 4]
-                                    if (storage != null) {
-                                        val xLocal = xBlock and 0xF
-                                        val yLocal = yBlock and 0xF
-                                        val zLocal = zBlock and 0xF
-                                        // Read block ID: LSB (8 bits) + optional MSB (4 bits)
-                                        // Must use Int arithmetic to avoid UByte truncation when combining MSB<<8
-                                        val blockLsb = storage.blockLSBArray[yLocal shl 8 or (zLocal shl 4) or xLocal].toInt() and 0xFF
-                                        val blockId = if (storage.blockMSBArray != null) {
-                                            blockLsb or (storage.blockMSBArray[xLocal, yLocal, zLocal] shl 8)
-                                        } else {
-                                            blockLsb
-                                        }
-                                        val rawMeta = storage.getExtBlockMetadata(xLocal, yLocal, zLocal)
-                                        blockKey = (blockId.toUInt() + (rawMeta.toUInt() shl 12)).toUShort()
-                                    }
-                                }
-                            }
-                            if (blockKey >= 1024U * 64U) {
-                                blockKey = 0U
+                            if (w.blockExists(xBlock, yBlock, zBlock)) {
+                                val id = blockId(w.getBlock(xBlock, yBlock, zBlock))
+                                if (id < blockKeyFactor.size) blockKey = id.toUShort()
                             }
                             worldBlocks[xInt][yInt][zInt] = blockKey
                         }
@@ -430,8 +410,8 @@ class PortableOreScannerItem(name: String?, private val obj: Obj3D,
                         }
                         stackGreen += blockKeyFactor[blockKey.toInt()] * dToStack
 
-                        val b = Block.getBlockById((blockKey and 0xFFFU).toInt())
-                        if (b !== Blocks.air && b !== Eln.lightBlock) {
+                        val b = blockById(blockKey.toInt())
+                        if (b !== Blocks.AIR && b !== Eln.lightBlock) {
                             stackRed += if (b.isOpaqueCube) 0.2f * dToStack else 0.1f * dToStack
                         } else stackBlue += 0.06f * dToStack
                         x += vx * dBest

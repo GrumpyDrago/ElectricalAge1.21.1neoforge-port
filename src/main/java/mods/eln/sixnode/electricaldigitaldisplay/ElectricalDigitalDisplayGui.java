@@ -6,7 +6,7 @@ import mods.eln.gui.GuiTextFieldEln;
 import mods.eln.gui.IGuiObject;
 import mods.eln.i18n.I18N;
 import mods.eln.misc.Utils;
-import net.minecraft.client.gui.GuiButton;
+import mods.eln.compat.client.GuiButton;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;

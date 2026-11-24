@@ -1,38 +1,57 @@
 @file:Suppress("NAME_SHADOWING")
 package mods.eln.node.six
 
+import mods.eln.registration.ElnBlockEntities
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.block.state.BlockState
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.misc.Direction
 import mods.eln.misc.Direction.Companion.fromInt
 import mods.eln.misc.LRDU
 import mods.eln.misc.Utils.println
-import mods.eln.misc.Utils.updateAllLightTypes
-import mods.eln.misc.Utils.updateSkylight
 import mods.eln.node.NodeBlockEntity
-import net.minecraft.block.Block
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.init.Blocks
-import net.minecraft.inventory.Container
-import net.minecraft.util.AxisAlignedBB
-import net.minecraft.world.World
+import net.minecraft.world.level.block.Block
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.level.Level
 import java.io.DataInputStream
 import java.io.IOException
 
-class SixNodeEntity : NodeBlockEntity() {
+class SixNodeEntity(pos: BlockPos, state: BlockState) : NodeBlockEntity(ElnBlockEntities.sixNode, pos, state) {
     @JvmField
     var elementRenderList = arrayOfNulls<SixNodeElementRender>(6)
     @JvmField
     var elementRenderIdList = ShortArray(6)
-    var sixNodeCacheBlock = Blocks.air
-    var sixNodeCacheBlockMeta: Byte = 0
+    var sixNodeCacheBlock = Blocks.AIR
+
+    val isCovered: Boolean
+        get() = sixNodeCacheBlock !== Blocks.AIR
+
+    fun coverState(): BlockState = sixNodeCacheBlock.defaultBlockState()
+
+    /** Bit n is set when side n holds an element. */
+    fun sideMask(): Int {
+        var mask = 0
+        val level = level ?: return 0
+        if (level.isClientSide) {
+            for (i in 0..5) if (elementRenderList[i] != null) mask = mask or (1 shl i)
+        } else {
+            val node = node as? SixNode ?: return 0
+            for (i in 0..5) if (node.sideElementList[i] != null) mask = mask or (1 shl i)
+        }
+        return mask
+    }
+
     override fun serverPublishUnserialize(stream: DataInputStream) {
-        val sixNodeCacheBlockOld = sixNodeCacheBlock
         super.serverPublishUnserialize(stream)
         try {
-            sixNodeCacheBlock = Block.getBlockById(stream.readInt())
-            sixNodeCacheBlockMeta = stream.readByte()
+            sixNodeCacheBlock = blockById(stream.readInt())
             var idx: Int
             idx = 0
             while (idx < 6) {
@@ -74,15 +93,6 @@ class SixNodeEntity : NodeBlockEntity() {
         } catch (e: SecurityException) {
             e.printStackTrace()
         }
-
-        //	worldObj.setLightValue(EnumSkyBlock.Sky, xCoord,yCoord,zCoord,15);
-        if (sixNodeCacheBlock !== sixNodeCacheBlockOld) {
-            val chunk = worldObj.getChunkFromBlockCoords(xCoord, zCoord)
-            chunk.generateHeightMap()
-            updateSkylight(chunk)
-            chunk.generateSkylightMap()
-            updateAllLightTypes(worldObj, xCoord, yCoord, zCoord)
-        }
     }
 
     override fun serverPacketUnserialize(stream: DataInputStream) {
@@ -102,12 +112,12 @@ class SixNodeEntity : NodeBlockEntity() {
         return elementRenderList[direction.int] != null
     }
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container? {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu? {
         val n = node as SixNode? ?: return null
         return n.newContainer(side, player)
     }
 
-    override fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen? {
+    override fun newGuiDraw(side: Direction, player: Player): Screen? {
         return elementRenderList[side.int]!!.newGuiDraw(side, player)
     }
 
@@ -130,11 +140,11 @@ class SixNodeEntity : NodeBlockEntity() {
         return true
     }
 
-    override fun unoptimizedRenderBoundingBox(): AxisAlignedBB {
+    override fun unoptimizedRenderBoundingBox(): AABB {
         var bb = localRenderBoundingBox()
         for (render in elementRenderList) {
             val custom = render?.getRenderBoundingBox(this) ?: continue
-            bb = AxisAlignedBB.getBoundingBox(
+            bb = AABB(
                 minOf(bb.minX, custom.minX),
                 minOf(bb.minY, custom.minY),
                 minOf(bb.minZ, custom.minZ),
@@ -153,19 +163,8 @@ class SixNodeEntity : NodeBlockEntity() {
         super.destructor()
     }
 
-    fun getDamageValue(world: World, @Suppress("UNUSED_PARAMETER") x: Int, @Suppress("UNUSED_PARAMETER") y: Int, @Suppress("UNUSED_PARAMETER") z: Int): Int {
-        if (world.isRemote) {
-            for (idx in 0..5) {
-                if (elementRenderList[idx] != null) {
-                    return elementRenderIdList[idx].toInt()
-                }
-            }
-        }
-        return 0
-    }
-
-    fun hasVolume(@Suppress("UNUSED_PARAMETER") world: World?, @Suppress("UNUSED_PARAMETER") x: Int, @Suppress("UNUSED_PARAMETER") y: Int, @Suppress("UNUSED_PARAMETER") z: Int): Boolean {
-        return if (worldObj.isRemote) {
+    fun hasVolume(): Boolean {
+        return if (worldObj.isClientSide) {
             for (e in elementRenderList) {
                 if (e != null && e.sixNodeDescriptor.hasVolume()) return true
             }
@@ -192,7 +191,7 @@ class SixNodeEntity : NodeBlockEntity() {
     }
 
     override fun isProvidingWeakPower(side: Direction?): Int {
-        return if (worldObj.isRemote) {
+        return if (worldObj.isClientSide) {
             var max = 0
             for (r in elementRenderList) {
                 if (r == null) continue

@@ -1,5 +1,7 @@
 package mods.eln.sixnode
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.i18n.I18N.tr
@@ -11,16 +13,12 @@ import mods.eln.sim.IProcess
 import mods.eln.sim.ThermalLoad
 import mods.eln.sim.nbt.NbtElectricalGateOutput
 import mods.eln.sim.nbt.NbtElectricalGateOutputProcess
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.IInventory
-import net.minecraft.inventory.ISidedInventory
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.tileentity.TileEntity
-import net.minecraftforge.common.util.ForgeDirection
-import net.minecraftforge.fluids.IFluidHandler
-import java.lang.reflect.Array
-import java.lang.reflect.Method
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.core.Direction as McDirection
+import net.neoforged.neoforge.capabilities.Capabilities
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.util.*
@@ -42,7 +40,7 @@ class ScannerDescriptor(name: String, obj: Obj3D) : SixNodeDescriptor(name, Scan
         leds[mode.value.toInt()].draw()
     }
 
-    override fun addInformation(itemStack: ItemStack?, entityPlayer: EntityPlayer?, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack?, entityPlayer: Player?, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
         list.add(tr("Scans blocks to produce signals."))
         list.add(tr("- For tanks, outputs fill percentage."))
@@ -73,7 +71,7 @@ class ScannerElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDescr
         val scannedCoord = Coordinate(coordinate!!).apply {
             move(appliedLRDU)
         }
-        val targetSide: ForgeDirection = appliedLRDU.inverse.toForge()
+        val targetSide: McDirection = appliedLRDU.inverse.toForge()
         val te = scannedCoord.tileEntity
         // TODO: Throttling.
         var out: Double? = null
@@ -92,98 +90,34 @@ class ScannerElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDescr
         slowProcessList.add(updater)
     }
 
-    private fun scanBlock(scannedCoord: Coordinate, targetSide: ForgeDirection): Double {
-        val block = scannedCoord.block
+    private fun scanBlock(scannedCoord: Coordinate, targetSide: McDirection): Double {
+        val state = scannedCoord.state
         return when {
-            block.hasComparatorInputOverride() ->
-                block.getComparatorInputOverride(scannedCoord.world(), scannedCoord.x, scannedCoord.y, scannedCoord.z, targetSide.ordinal) / 15.0
-            block.isOpaqueCube -> 1.0
-            block.isAir(scannedCoord.world(), scannedCoord.x, scannedCoord.y, scannedCoord.z) -> 0.0
+            state.hasAnalogOutputSignal() ->
+                state.getAnalogOutputSignal(scannedCoord.world(), scannedCoord.blockPos) / 15.0
+            state.isOpaqueCubeState -> 1.0
+            state.isAir -> 0.0
             else -> 1.0/3.0
         }
     }
 
-    private fun scanTileEntity(te: TileEntity, targetSide: ForgeDirection): Double? {
-        if (te is IFluidHandler) {
-            val info = te.getTankInfo(targetSide)?.filter { it.capacity > 0 } ?: return 0.0
-            if (info.isEmpty()) return 0.0
-            return info.sumOf {
-                (it.fluid?.amount ?: 0).toDouble() / it.capacity
-            } / info.size
-        } else if (hbmFluidUserClass?.isInstance(te) == true) {
-            return scanHbmFluidUser(te)
-        } else if (te is ISidedInventory) {
-            var sum = 0
-            var limit = 0
-            val slots = te.getAccessibleSlotsFromSide(targetSide.ordinal)
-            when (mode) {
-                ScanMode.SIMPLE -> slots.forEach {
-                        sum += te.getStackInSlot(it)?.stackSize ?: 0
-                        limit += te.inventoryStackLimit
-                    }
-
-                ScanMode.SLOTS -> slots.forEach {
-                    sum += if ((te.getStackInSlot(it)?.stackSize ?: 0) > 0) 1 else 0
-                    limit += 1
-                }
-            }
-            return sum.toDouble() / limit
-        } else if (te is IInventory) {
-            val sum = when (mode) {
-                ScanMode.SIMPLE -> (0..te.sizeInventory - 1).sumOf {
-                    te.getStackInSlot(it)?.stackSize ?: 0
-                }.toDouble()
-
-                ScanMode.SLOTS -> (0..te.sizeInventory - 1).count {
-                    (te.getStackInSlot(it)?.stackSize ?: 0) > 0
-                }.toDouble() * te.inventoryStackLimit
-            }
-            return sum / te.inventoryStackLimit / te.sizeInventory
-        } else {
-            return null
+    private fun scanTileEntity(te: BlockEntity, targetSide: McDirection): Double? {
+        val fluids = te.level?.getCapability(Capabilities.FluidHandler.BLOCK, te.blockPos, targetSide)
+        if (fluids != null) {
+            val tanks = (0 until fluids.tanks).filter { fluids.getTankCapacity(it) > 0 }
+            if (tanks.isEmpty()) return 0.0
+            return tanks.sumOf { fluids.getFluidInTank(it).amount.toDouble() / fluids.getTankCapacity(it) } / tanks.size
+        }
+        val items = te.level?.getCapability(Capabilities.ItemHandler.BLOCK, te.blockPos, targetSide) ?: return null
+        val slots = 0 until items.slots
+        if (slots.isEmpty()) return 0.0
+        return when (mode) {
+            ScanMode.SIMPLE -> slots.sumOf { items.getStackInSlot(it).count }.toDouble() / slots.sumOf { items.getSlotLimit(it) }.coerceAtLeast(1)
+            ScanMode.SLOTS -> slots.count { !items.getStackInSlot(it).isEmpty }.toDouble() / items.slots
         }
     }
 
-    private fun scanHbmFluidUser(te: TileEntity): Double? {
-        val method = hbmGetAllTanksMethod ?: return null
-        val tanks = try {
-            method.invoke(te)
-        } catch (_: Exception) {
-            return null
-        } ?: return 0.0
-
-        val tankCount = Array.getLength(tanks)
-        if (tankCount == 0) return 0.0
-
-        var sum = 0.0
-        var count = 0
-        for (idx in 0 until tankCount) {
-            val tank = Array.get(tanks, idx) ?: continue
-            val (fillMethod, maxFillMethod) = hbmTankMethodCache.getOrPut(tank.javaClass) {
-                val fill = tank.javaClass.getMethod("getFill")
-                val max = tank.javaClass.getMethod("getMaxFill")
-                fill to max
-            }
-            val maxFill = (maxFillMethod.invoke(tank) as? Number)?.toDouble() ?: continue
-            if (maxFill <= 0.0) continue
-            val fill = (fillMethod.invoke(tank) as? Number)?.toDouble() ?: 0.0
-            sum += fill / maxFill
-            count++
-        }
-        return if (count == 0) 0.0 else sum / count
-    }
-
-    companion object {
-        private val hbmFluidUserClass: Class<*>? by lazy {
-            runCatching { Class.forName("api.hbm.fluidmk2.IFluidUserMK2") }.getOrNull()
-        }
-        private val hbmGetAllTanksMethod: Method? by lazy {
-            hbmFluidUserClass?.getMethod("getAllTanks")
-        }
-        private val hbmTankMethodCache = mutableMapOf<Class<*>, Pair<Method, Method>>()
-    }
-
-    override fun onBlockActivated(entityPlayer: EntityPlayer, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
+    override fun onBlockActivated(entityPlayer: Player, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
         if (onBlockActivatedRotate(entityPlayer)) return true
         if (entityPlayer.isHoldingMeter()) return false
         mode = when (mode) {
@@ -217,12 +151,12 @@ class ScannerElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDescr
         stream.writeByte(mode.value.toInt())
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
-        nbt.setByte("mode", mode.value)
+        nbt.putByte("mode", mode.value)
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         mode = ScanMode.fromByte(nbt.getByte("mode"))!!
     }

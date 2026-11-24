@@ -1,14 +1,18 @@
 package mods.eln.wiki;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeType;
+
+import mods.eln.compat.Mc;
+
 import mods.eln.gui.GuiLabel;
 import mods.eln.gui.IGuiObject;
 import mods.eln.misc.Recipe;
 import mods.eln.misc.RecipesList;
 import mods.eln.misc.Utils;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.CraftingManager;
-import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,9 +27,9 @@ public class ItemDefault extends Default {
     }
 
     private ItemStack stack;
-    private GuiScreen previewScreen;
+    private Screen previewScreen;
 
-    public ItemDefault(ItemStack stack, GuiScreen previewScreen) {
+    public ItemDefault(ItemStack stack, Screen previewScreen) {
         super(previewScreen);
         this.stack = stack;
 
@@ -50,27 +54,25 @@ public class ItemDefault extends Default {
 
             self = new GuiItemStack(6, y, stack, helper);
             extender.add(self);
-            extender.add(new GuiLabel(6 + 21, y + 3, stack.getDisplayName()));
+            extender.add(new GuiLabel(6 + 21, y + 3, stack.getHoverName().getString()));
             y += 24;
 
             if (plugIn != null) y = plugIn.top(y, extender, stack);
 
-            List<IRecipe> recipeOutList = new ArrayList<IRecipe>();
-            List<IRecipe> recipeInList = new ArrayList<IRecipe>();
+            List<net.minecraft.world.item.crafting.Recipe<?>> recipeOutList = new ArrayList<net.minecraft.world.item.crafting.Recipe<?>>();
+            List<net.minecraft.world.item.crafting.Recipe<?>> recipeInList = new ArrayList<net.minecraft.world.item.crafting.Recipe<?>>();
             if (stack != null) {
-                List list = CraftingManager.getInstance().getRecipeList();
-                for (Object o : list) {
+                for (RecipeHolder<?> holder : Minecraft.getInstance().level.getRecipeManager().getRecipes()) {
                     try {
-                        if (o instanceof IRecipe) {
-                            IRecipe r = (IRecipe) o;
-
-                            ItemStack out = r.getRecipeOutput();
-                            if (out != null && out.getItem() == stack.getItem() && out.getItemDamage() == stack.getItemDamage()) {
+                        net.minecraft.world.item.crafting.Recipe<?> r = holder.value();
+                        if (r.getType() == RecipeType.CRAFTING) {
+                            ItemStack out = r.getResultItem(Mc.registries());
+                            if (out != null && out.getItem() == stack.getItem()) {
                                 recipeOutList.add(r);
                             }
 
                             for (ItemStack rStack : Utils.getRecipeInputs(r)) {
-                                if (rStack != null && rStack.getItem() == stack.getItem() && rStack.getItemDamage() == stack.getItemDamage()) {
+                                if (rStack != null && rStack.getItem() == stack.getItem()) {
                                     recipeInList.add(r);
                                     break;
                                 }
@@ -92,7 +94,7 @@ public class ItemDefault extends Default {
                 y += 12;
 
                 counter = -1;
-                for (IRecipe r : recipeOutList) {
+                for (net.minecraft.world.item.crafting.Recipe<?> r : recipeOutList) {
                     if (counter == 0) y += 60;
                     if (counter == -1) counter = 0;
                     ItemStack[][] stacks = Utils.getItemStackGrid(r);
@@ -118,7 +120,7 @@ public class ItemDefault extends Default {
                 extender.add(new GuiLabel(6, y, tr("Can be used to craft:")));
                 y += 12;
                 counter = -1;
-                for (IRecipe r : recipeInList) {
+                for (net.minecraft.world.item.crafting.Recipe<?> r : recipeInList) {
                     if (counter == 0) y += 60;
                     if (counter == -1) counter = 0;
 
@@ -133,7 +135,7 @@ public class ItemDefault extends Default {
                             }
                         }
 
-                        GuiItemStack gui = new GuiItemStack((int) (3.5 * 18) + 6 + counter * 105, 1 * 18 + y, r.getRecipeOutput(), helper);
+                        GuiItemStack gui = new GuiItemStack((int) (3.5 * 18) + 6 + counter * 105, 1 * 18 + y, r.getResultItem(Mc.registries()), helper);
                         extender.add(gui);
 
                         counter = (counter + 1) % 2;

@@ -1,13 +1,14 @@
 package mods.eln.node.six
 
+import mods.eln.compat.*
+
 import mods.eln.misc.INBTTReady
 import mods.eln.misc.Utils.readFromNBT
 import mods.eln.misc.Utils.writeToNBT
 import mods.eln.sixnode.electricalcable.IUtilityCableInventory
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
 
 class SixNodeElementInventory : IInventory, INBTTReady, IUtilityCableInventory {
     var sixNodeRender: SixNodeElementRender? = null
@@ -50,11 +51,11 @@ class SixNodeElementInventory : IInventory, INBTTReady, IUtilityCableInventory {
     override fun decrStackSize(slot: Int, amt: Int): ItemStack? {
         var stack = getStackInSlot(slot)
         if (stack != null) {
-            if (stack.stackSize <= amt) {
+            if (stack.count <= amt) {
                 setInventorySlotContents(slot, null)
             } else {
                 stack = stack.splitStack(amt)
-                if (stack.stackSize == 0) {
+                if (stack.count == 0) {
                     setInventorySlotContents(slot, null)
                 }
             }
@@ -73,8 +74,8 @@ class SixNodeElementInventory : IInventory, INBTTReady, IUtilityCableInventory {
     override fun setInventorySlotContents(slot: Int, stack: ItemStack?) {
         try {
             inv[slot] = stack
-            if (stack != null && stack.stackSize > inventoryStackLimit) {
-                stack.stackSize = inventoryStackLimit
+            if (stack != null && stack.count > inventoryStackLimit) {
+                stack.count = inventoryStackLimit
             }
         } catch (e: Exception) {
             // TODO: handle exception
@@ -89,7 +90,7 @@ class SixNodeElementInventory : IInventory, INBTTReady, IUtilityCableInventory {
         return stackLimit
     }
 
-    override fun isUseableByPlayer(player: EntityPlayer): Boolean {
+    override fun isUseableByPlayer(player: Player): Boolean {
         return true
     }
 
@@ -101,11 +102,11 @@ class SixNodeElementInventory : IInventory, INBTTReady, IUtilityCableInventory {
         }
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound, str: String) {
+    override fun readFromNBT(nbt: CompoundTag, str: String) {
         readFromNBT(nbt, str, this)
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound, str: String) {
+    override fun writeToNBT(nbt: CompoundTag, str: String) {
         writeToNBT(nbt, str, this)
     }
 

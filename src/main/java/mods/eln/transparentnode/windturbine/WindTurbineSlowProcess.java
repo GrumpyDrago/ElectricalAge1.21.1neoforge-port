@@ -1,12 +1,14 @@
 package mods.eln.transparentnode.windturbine;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.misc.Coordinate;
 import mods.eln.misc.INBTTReady;
 import mods.eln.misc.Utils;
 import mods.eln.sim.IProcess;
-import net.minecraft.init.Blocks;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.world.World;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.Level;
 
 class WindTurbineSlowProcess implements IProcess, INBTTReady {
     private static final double AIR_DENSITY = 1.225;
@@ -125,17 +127,17 @@ class WindTurbineSlowProcess implements IProcess, INBTTReady {
             int blockBusyCount = -d.blockMalusSubCount;
             boolean notInCache = false;
             if (turbine.node.coordinate.getWorldExist()) {
-                World world = turbine.node.coordinate.world();
+                Level world = turbine.node.coordinate.world();
                 //IChunkProvider chunk = world.getChunkProvider();
 
                 for (int x = x1; x <= x2; x++) {
                     for (int y = y1; y <= y2; y++) {
                         for (int z = z1; z <= z2; z++) {
-                            if (!world.blockExists(x, y, z)) {
+                            if (!Mc.blockExists(world, x, y, z)) {
                                 notInCache = true;
                                 break;
                             }
-                            if (world.getBlock(x, y, z) != Blocks.air) {
+                            if (Mc.getBlock(world, x, y, z) != Blocks.AIR) {
                                 blockBusyCount++;
                             }
                         }
@@ -199,7 +201,7 @@ class WindTurbineSlowProcess implements IProcess, INBTTReady {
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound nbt, String str) {
+    public void readFromNBT(CompoundTag nbt, String str) {
         localWind = nbt.getDouble(str + name + "localWind");
         environmentWindFactor = nbt.getDouble(str + name + "environementWindFactor");
         rotorRads = nbt.getDouble(str + name + "rotorRads");
@@ -209,12 +211,12 @@ class WindTurbineSlowProcess implements IProcess, INBTTReady {
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt, String str) {
-        nbt.setDouble(str + name + "localWind", localWind);
-        nbt.setDouble(str + name + "environementWindFactor", environmentWindFactor);
-        nbt.setDouble(str + name + "rotorRads", rotorRads);
-        nbt.setDouble(str + name + "lastElectricalPower", lastElectricalPower);
-        nbt.setDouble(str + name + "lastAerodynamicPower", lastAerodynamicPower);
-        nbt.setDouble(str + name + "stallFactor", stallFactor);
+    public void writeToNBT(CompoundTag nbt, String str) {
+        nbt.putDouble(str + name + "localWind", localWind);
+        nbt.putDouble(str + name + "environementWindFactor", environmentWindFactor);
+        nbt.putDouble(str + name + "rotorRads", rotorRads);
+        nbt.putDouble(str + name + "lastElectricalPower", lastElectricalPower);
+        nbt.putDouble(str + name + "lastAerodynamicPower", lastAerodynamicPower);
+        nbt.putDouble(str + name + "stallFactor", stallFactor);
     }
 }

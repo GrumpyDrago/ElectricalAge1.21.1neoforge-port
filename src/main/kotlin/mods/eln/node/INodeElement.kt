@@ -1,6 +1,7 @@
 package mods.eln.node
 
-import net.minecraft.inventory.IInventory
+import mods.eln.compat.*
+
 
 interface INodeElement {
     fun needPublish()

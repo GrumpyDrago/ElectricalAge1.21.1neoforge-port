@@ -1,8 +1,10 @@
 package mods.eln.fluid
 
+import mods.eln.compat.*
+
 import mods.eln.config.JsonConfig
-import net.minecraftforge.fluids.Fluid
-import net.minecraftforge.fluids.FluidRegistry
+import net.minecraft.world.level.material.Fluid
+import net.minecraft.world.level.material.Fluids
 import java.io.File
 
 data class ThermalPairConfig(
@@ -92,10 +94,10 @@ object ThermalRegistry {
     }
 
     fun resolveFluid(name: String): Fluid? {
-        val fluid = FluidRegistry.getFluid(name)
+        val fluid = FluidNames.find(name)
         if (fluid != null) return fluid
-        if (name == "steam") return FluidRegistry.getFluid("ic2steam")
-        if (name == "water") return FluidRegistry.WATER
+        if (name == "steam") return FluidNames.find("ic2steam")
+        if (name == "water") return Fluids.WATER
         return null
     }
 

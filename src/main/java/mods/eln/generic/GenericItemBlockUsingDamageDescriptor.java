@@ -1,17 +1,19 @@
 package mods.eln.generic;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
+import mods.eln.misc.ElnAssets;
 import mods.eln.misc.RealisticEnum;
-import net.minecraft.client.renderer.texture.IIconRegister;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.IIcon;
+import mods.eln.generic.GenericCreativeTab;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import mods.eln.compat.IIcon;
 
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +21,7 @@ import java.util.List;
 public class GenericItemBlockUsingDamageDescriptor {
 
     String iconName;
-    IIcon iconIndex;
+    private IIcon iconIndex;
     public String name;
 
     public static String INVALID_NAME = "$NO_DESCRIPTOR";
@@ -47,27 +49,23 @@ public class GenericItemBlockUsingDamageDescriptor {
         String iconName = name.replaceAll(" ", "").toLowerCase();
         //Utils.println("Icon Name: " + iconName);
         if (Eln.config.getBooleanOrElse("ui.icons.noSymbols", false) &&
-            getClass().getClassLoader().getResource("assets/eln/textures/blocks/" + iconName + "-ni.png") != null) {
+            ElnAssets.exists("textures/block/" + iconName + "-ni.png")) {
             this.iconName = iconName + "-ni";
         } else {
             this.iconName = iconName;
         }
+        iconIndex = new IIcon("eln:" + this.iconName);
     }
 
-    public NBTTagCompound getDefaultNBT() {
+    public CompoundTag getDefaultNBT() {
         return null;
     }
 
-    public void addInformation(ItemStack itemStack, EntityPlayer entityPlayer, List<String> list, boolean par4) {
+    public void addInformation(ItemStack itemStack, Player entityPlayer, List<String> list, boolean par4) {
     }
 
     public RealisticEnum addRealismContext(List<String> list) {
         return null;
-    }
-
-    @SideOnly(value = Side.CLIENT)
-    public void updateIcons(IIconRegister iconRegister) {
-        this.iconIndex = iconRegister.registerIcon("eln:" + iconName);
     }
 
     public IIcon getIcon() {
@@ -86,16 +84,16 @@ public class GenericItemBlockUsingDamageDescriptor {
     }
 
     public ItemStack newItemStack(int size) {
-        return new ItemStack(parentItem, size, parentItemDamage);
+        return new ItemStack(parentItem, size);
     }
 
     public ItemStack newItemStack() {
-        return new ItemStack(parentItem, 1, parentItemDamage);
+        return new ItemStack(parentItem);
     }
 
     public ItemStack newCreativeTabStack() {
-        ItemStack stack = new ItemStack(parentItem, 1, parentItemDamage);
-        stack.setTagCompound(getDefaultNBT());
+        ItemStack stack = new ItemStack(parentItem);
+        Mc.setTagCompound(stack, getDefaultNBT());
         return stack;
     }
 
@@ -105,16 +103,14 @@ public class GenericItemBlockUsingDamageDescriptor {
 
     public boolean checkSameItemStack(ItemStack stack) {
         if(stack == null) return false;
-        if(stack.getItem() != parentItem || stack.getItemDamage() != parentItemDamage) return false;
-        return true;
+        return stack.getItem() == parentItem;
     }
 
     public static GenericItemBlockUsingDamageDescriptor getDescriptor(ItemStack stack) {
         if (stack == null) return null;
         Item item = stack.getItem();
-        if (item instanceof GenericItemBlockUsingDamage == false) return null;
-        GenericItemBlockUsingDamage genItem = (GenericItemBlockUsingDamage) item;
-        return genItem.getDescriptor(stack);
+        if (item instanceof BlockDescriptorItem<?> d) return d.getDescriptor();
+        return null;
     }
 
     public static GenericItemBlockUsingDamageDescriptor getDescriptor(ItemStack stack, Class<?> extendClass) {
@@ -124,22 +120,22 @@ public class GenericItemBlockUsingDamageDescriptor {
         return desc;
     }
 
-    public boolean onEntityItemUpdate(EntityItem entityItem) {
+    public boolean onEntityItemUpdate(ItemEntity entityItem) {
         return false;
     }
 
-    public boolean onItemUseFirst(ItemStack stack, EntityPlayer player) {
+    public boolean onItemUseFirst(ItemStack stack, Player player) {
         return false;
     }
 
-    private CreativeTabs creativeTab;
+    private GenericCreativeTab creativeTab;
 
-    public GenericItemBlockUsingDamageDescriptor setCreativeTab(CreativeTabs creativeTab) {
+    public GenericItemBlockUsingDamageDescriptor setCreativeTab(GenericCreativeTab creativeTab) {
         this.creativeTab = creativeTab;
         return this;
     }
 
-    public CreativeTabs getCreativeTab() {
+    public GenericCreativeTab getCreativeTab() {
         return creativeTab;
     }
 

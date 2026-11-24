@@ -1,5 +1,7 @@
 package mods.eln.registration
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.generic.GenericCreativeTab
@@ -75,11 +77,10 @@ import mods.eln.sixnode.wirelesssignal.rx.WirelessSignalRxDescriptor
 import mods.eln.sixnode.wirelesssignal.source.WirelessSignalSourceDescriptor
 import mods.eln.sixnode.wirelesssignal.tx.WirelessSignalTxDescriptor
 import java.util.Locale
-import net.minecraft.creativetab.CreativeTabs
 
 object SixNodeRegistration {
 
-    private fun <T : GenericItemBlockUsingDamageDescriptor> T.inTab(tab: CreativeTabs) = apply {
+    private fun <T : GenericItemBlockUsingDamageDescriptor> T.inTab(tab: GenericCreativeTab) = apply {
         setCreativeTab(tab)
     }
 

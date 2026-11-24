@@ -1,147 +1,106 @@
-@file:Suppress("NAME_SHADOWING")
 package mods.eln.ghost
 
-import cpw.mods.fml.relauncher.Side
-import cpw.mods.fml.relauncher.SideOnly
 import mods.eln.Eln
 import mods.eln.misc.Coordinate
 import mods.eln.misc.Direction.Companion.fromIntMinecraftSide
+import mods.eln.node.transparent.TransparentNodeBlock
 import mods.eln.node.transparent.TransparentNodeEntity
-import net.minecraft.block.Block
-import net.minecraft.block.material.Material
-import net.minecraft.entity.Entity
-import net.minecraft.entity.EntityLivingBase
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.util.AxisAlignedBB
-import net.minecraft.util.MovingObjectPosition
-import net.minecraft.util.Vec3
-import net.minecraft.world.IBlockAccess
-import net.minecraft.world.World
-import java.util.*
+import net.minecraft.core.BlockPos
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.LevelReader
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.RenderShape
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.IntegerProperty
+import net.minecraft.world.level.material.PushReaction
+import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.HitResult
+import net.minecraft.world.phys.shapes.CollisionContext
+import net.minecraft.world.phys.shapes.Shapes
+import net.minecraft.world.phys.shapes.VoxelShape
 
-class GhostBlock : Block(Material.iron) {
-
-    override fun getItemDropped(p_149650_1_: Int, p_149650_2_: Random, p_149650_3_: Int): Item? {
-        return null
+/**
+ * Invisible filler for machines larger than one block. Behaviour comes from the [GhostElement] at its position.
+ */
+class GhostBlock : Block(
+    BlockBehaviour.Properties.of().strength(0.5f).noOcclusion().noLootTable().dynamicShape()
+        .pushReaction(PushReaction.BLOCK)
+        .isSuffocating { _, _, _ -> false }
+        .isViewBlocking { _, _, _ -> false }
+        .isRedstoneConductor { _, _, _ -> false }
+        .isValidSpawn { _, _, _, _ -> false }
+) {
+    init {
+        registerDefaultState(defaultBlockState().setValue(TYPE, tCube))
     }
 
-    override fun addCollisionBoxesToList(world: World, x: Int, y: Int, z: Int, par5AxisAlignedBB: AxisAlignedBB, list: MutableList<*>, entity: Entity?) {
-        @Suppress("UNCHECKED_CAST") var list = list as MutableList<AxisAlignedBB?>
-        val meta = world.getBlockMetadata(x, y, z)
-        when (meta) {
-            tFloor -> {
-                val axisalignedbb1 = AxisAlignedBB.getBoundingBox(x.toDouble(), y.toDouble(), z.toDouble(), x.toDouble() + 1, y.toDouble() + 0.0625, z.toDouble() + 1)
-                if (axisalignedbb1 != null && par5AxisAlignedBB.intersectsWith(axisalignedbb1)) {
-                    list.add(axisalignedbb1)
-                }
-            }
-            tLadder -> {
-            }
+    override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
+        builder.add(TYPE)
+    }
+
+    fun stateFor(type: Int): BlockState = defaultBlockState().setValue(TYPE, type)
+
+    override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
+        when (state.getValue(TYPE)) {
+            tFloor -> FLOOR
+            tLadder -> LADDER
+            else -> Shapes.block()
+        }
+
+    override fun getCollisionShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
+        when (state.getValue(TYPE)) {
+            tFloor -> FLOOR
+            tLadder -> Shapes.empty()
             else -> {
-                val element = getElement(world, x, y, z)
-                val coord = if (element == null) null else element.observatorCoordonate
-                val te = coord?.tileEntity
-                if (te != null && te is TransparentNodeEntity) {
-                    te.addCollisionBoxesToList(par5AxisAlignedBB, list, element!!.elementCoordinate)
-                } else {
-                    super.addCollisionBoxesToList(world, x, y, z, par5AxisAlignedBB, list, entity)
-                }
+                val element = if (level is Level && !level.isClientSide) getElement(level, pos) else null
+                val entity = element?.observatorCoordonate?.let { (level as Level).getBlockEntity(BlockPos(it.x, it.y, it.z)) }
+                if (entity is TransparentNodeEntity) TransparentNodeBlock.collisionShape(entity, pos) else Shapes.block()
             }
         }
+
+    override fun getOcclusionShape(state: BlockState, level: BlockGetter, pos: BlockPos): VoxelShape = Shapes.empty()
+
+    override fun getLightBlock(state: BlockState, level: BlockGetter, pos: BlockPos): Int = 0
+
+    override fun propagatesSkylightDown(state: BlockState, level: BlockGetter, pos: BlockPos): Boolean = true
+
+    override fun isLadder(state: BlockState, level: LevelReader, pos: BlockPos, entity: LivingEntity): Boolean =
+        state.getValue(TYPE) == tLadder
+
+    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.INVISIBLE
+
+    override fun getCloneItemStack(state: BlockState, target: HitResult, level: LevelReader, pos: BlockPos, player: Player): ItemStack = ItemStack.EMPTY
+
+    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, movedByPiston: Boolean) {
+        if (!level.isClientSide && !newState.`is`(this)) getElement(level, pos)?.breakBlock()
+        super.onRemove(state, level, pos, newState, movedByPiston)
     }
 
-    @SideOnly(Side.CLIENT)
-    override fun getSelectedBoundingBoxFromPool(w: World, x: Int, y: Int, z: Int): AxisAlignedBB {
-        val meta = w.getBlockMetadata(x, y, z)
-        return when (meta) {
-            tFloor -> AxisAlignedBB.getBoundingBox(x.toDouble(), y.toDouble(), z.toDouble(), x.toDouble() + 1, y.toDouble() + 0.0625, z.toDouble() + 1)
-            tLadder -> AxisAlignedBB.getBoundingBox(x.toDouble(), y.toDouble(), z.toDouble(), x.toDouble() + 0, y.toDouble() + 0.0, z.toDouble() + 0)
-            else -> super.getSelectedBoundingBoxFromPool(w, x, y, z)
-        }
-    }
-
-    override fun collisionRayTrace(world: World, x: Int, y: Int, z: Int, startVec: Vec3, endVec: Vec3): MovingObjectPosition? {
-        val meta = world.getBlockMetadata(x, y, z)
-        when (meta) {
-            tFloor -> maxY = 0.0625
-            tLadder -> {
-                maxX = 0.01
-                maxY = 0.01
-                maxZ = 0.01
-            }
-            else -> {
-            }
-        }
-        val m = super.collisionRayTrace(world, x, y, z, startVec, endVec)
-        when (meta) {
-            tFloor -> maxY = 1.0
-            tLadder -> {
-                maxX = 1.0
-                maxY = 1.0
-                maxZ = 1.0
-            }
-            else -> {
+    override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {
+        if (!level.isClientSide) {
+            val element = getElement(level, pos)
+            if (element != null) {
+                val done = element.onBlockActivated(
+                    player,
+                    fromIntMinecraftSide(hit.direction.get3DDataValue())!!,
+                    (hit.location.x - pos.x).toFloat(),
+                    (hit.location.y - pos.y).toFloat(),
+                    (hit.location.z - pos.z).toFloat()
+                )
+                return if (done) InteractionResult.CONSUME else InteractionResult.PASS
             }
         }
-        return m
+        return InteractionResult.sidedSuccess(level.isClientSide)
     }
 
-    override fun isLadder(world: IBlockAccess, x: Int, y: Int, z: Int, entity: EntityLivingBase): Boolean {
-        return world.getBlockMetadata(x, y, z) == tLadder
-    }
-
-    /*
-	 * @Override
-	 *
-	 * @SideOnly(Side.CLIENT) public int idPicked(World par1World, int par2, int par3, int par4) {
-	 *
-	 * return Block.dirt.blockID; }
-	 */
-    override fun isOpaqueCube(): Boolean {
-        return false
-    }
-
-    override fun renderAsNormalBlock(): Boolean {
-        return false
-    }
-
-    override fun getRenderType(): Int {
-        return -1
-    }
-
-    override fun getPickBlock(target: MovingObjectPosition, world: World, x: Int, y: Int, z: Int, player: EntityPlayer): ItemStack? {
-        return null
-    }
-
-    override fun isBlockSolid(blockAccess: IBlockAccess, x: Int, y: Int, z: Int, side: Int): Boolean {
-        return false
-    }
-
-    override fun breakBlock(world: World, x: Int, y: Int, z: Int, par5: Block, par6: Int) {
-        if (world.isRemote == false) {
-            val element = getElement(world, x, y, z)
-            if (element != null) element.breakBlock()
-        }
-        super.breakBlock(world, x, y, z, par5, par6)
-    }
-
-    override fun onBlockActivated(world: World, x: Int, y: Int, z: Int, player: EntityPlayer, side: Int, vx: Float, vy: Float, vz: Float): Boolean {
-        if (world.isRemote == false) {
-            val element = getElement(world, x, y, z)
-            if (element != null) return element.onBlockActivated(player, fromIntMinecraftSide(side), vx, vy, vz)
-        }
-        return true
-    }
-
-    fun getElement(world: World?, x: Int, y: Int, z: Int): GhostElement? {
-        return Eln.ghostManager.getGhost(Coordinate(x, y, z, world!!))
-    }
-
-    override fun getBlockHardness(par1World: World, par2: Int, par3: Int, par4: Int): Float {
-        return 0.5f
-    }
+    fun getElement(level: Level, pos: BlockPos): GhostElement? = Eln.ghostManager.getGhost(Coordinate(pos.x, pos.y, pos.z, level))
 
     val nodeUuid: String
         get() = "g"
@@ -150,5 +109,10 @@ class GhostBlock : Block(Material.iron) {
         const val tCube = 0
         const val tFloor = 1
         const val tLadder = 2
+
+        @JvmField
+        val TYPE: IntegerProperty = IntegerProperty.create("type", 0, 2)
+        private val FLOOR = box(0.0, 0.0, 0.0, 16.0, 1.0, 16.0)
+        private val LADDER = box(0.0, 0.0, 0.0, 0.16, 0.16, 0.16)
     }
 }

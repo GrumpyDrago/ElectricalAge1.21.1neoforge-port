@@ -3,7 +3,7 @@ package mods.eln.transparentnode.electricalmachine;
 import mods.eln.misc.Direction;
 import mods.eln.node.transparent.TransparentNodeElementInventory;
 import mods.eln.node.transparent.TransparentNodeElementRender;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 public class ElectricalMachineInventory extends TransparentNodeElementInventory {
     private ElectricalMachineElement machineElement;

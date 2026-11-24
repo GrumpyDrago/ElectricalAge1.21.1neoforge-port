@@ -1,16 +1,14 @@
 package mods.eln.entity
 
-import net.minecraft.client.model.ModelBase
-import net.minecraft.client.renderer.entity.RenderLiving
-import net.minecraft.entity.Entity
-import net.minecraft.util.ResourceLocation
+import net.minecraft.client.renderer.entity.EntityRendererProvider
+import net.minecraft.client.renderer.entity.MobRenderer
+import net.minecraft.resources.ResourceLocation
 
-class ReplicatorRender(model: ModelBase, shadowSize: Float) : RenderLiving(model, shadowSize) {
-    override fun getEntityTexture(entity: Entity): ResourceLocation {
-        return RES
-    }
+class ReplicatorRender(context: EntityRendererProvider.Context) :
+    MobRenderer<ReplicatorEntity, ReplicatorModel>(context, ReplicatorModel(context.bakeLayer(ReplicatorModel.LAYER)), 0.3f) {
+    override fun getTextureLocation(entity: ReplicatorEntity): ResourceLocation = TEXTURE
 
     companion object {
-        private val RES = ResourceLocation("eln:textures/entity/replicator.png")
+        private val TEXTURE = ResourceLocation.fromNamespaceAndPath("eln", "textures/entity/replicator.png")
     }
 }

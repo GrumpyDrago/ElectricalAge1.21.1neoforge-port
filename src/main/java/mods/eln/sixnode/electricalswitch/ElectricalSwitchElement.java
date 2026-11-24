@@ -1,5 +1,7 @@
 package mods.eln.sixnode.electricalswitch;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.i18n.I18N;
 import mods.eln.misc.Direction;
@@ -21,9 +23,9 @@ import mods.eln.sim.process.destruct.ResistorCurrentWatchdog;
 import mods.eln.sim.process.destruct.VoltageStateWatchDog;
 import mods.eln.sim.process.destruct.WorldExplosion;
 import mods.eln.sound.SoundCommand;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -78,7 +80,7 @@ public class ElectricalSwitchElement extends SixNodeElement {
     }
 
     @Override
-    public void readFromNBT(@NotNull NBTTagCompound nbt) {
+    public void readFromNBT(@NotNull CompoundTag nbt) {
         super.readFromNBT(nbt);
         byte value = nbt.getByte("front");
         front = LRDU.fromInt((value >> 0) & 0x3);
@@ -86,10 +88,10 @@ public class ElectricalSwitchElement extends SixNodeElement {
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         super.writeToNBT(nbt);
-        nbt.setByte("front", (byte) (front.toInt() << 0));
-        nbt.setBoolean("switchState", switchState);
+        nbt.putByte("front", (byte) (front.toInt() << 0));
+        nbt.putBoolean("switchState", switchState);
     }
 
     @Override
@@ -179,22 +181,22 @@ public class ElectricalSwitchElement extends SixNodeElement {
     }
 
     @Override
-    public boolean onBlockActivated(EntityPlayer entityPlayer, Direction side, float vx, float vy, float vz) {
+    public boolean onBlockActivated(Player entityPlayer, Direction side, float vx, float vy, float vz) {
         if (onBlockActivatedRotate(entityPlayer)) return true;
-        ItemStack currentItemStack = entityPlayer.getCurrentEquippedItem();
+        ItemStack currentItemStack = Mc.getCurrentEquippedItem(entityPlayer);
 
-        if (Eln.multiMeterElement.checkSameItemStack(entityPlayer.getCurrentEquippedItem())) {
+        if (Eln.multiMeterElement.checkSameItemStack(Mc.getCurrentEquippedItem(entityPlayer))) {
             return false;
         }
-        if (Eln.thermometerElement.checkSameItemStack(entityPlayer.getCurrentEquippedItem())) {
+        if (Eln.thermometerElement.checkSameItemStack(Mc.getCurrentEquippedItem(entityPlayer))) {
             return false;
         }
-        if (Eln.allMeterElement.checkSameItemStack(entityPlayer.getCurrentEquippedItem())) {
+        if (Eln.allMeterElement.checkSameItemStack(Mc.getCurrentEquippedItem(entityPlayer))) {
             return false;
         } else {
             setSwitchState(!switchState);
-            //playSoundEffect("random.click", 0.3F, 0.6F);
-            play(new SoundCommand("random.click").mulVolume(0.3F, 0.6f).smallRange());
+            //playSoundEffect("minecraft:block.lever.click", 0.3F, 0.6F);
+            play(new SoundCommand("minecraft:block.lever.click").mulVolume(0.3F, 0.6f).smallRange());
             return true;
         }
         //front = LRDU.fromInt((front.toInt()+1)&3);

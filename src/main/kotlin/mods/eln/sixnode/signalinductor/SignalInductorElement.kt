@@ -1,5 +1,7 @@
 package mods.eln.sixnode.signalinductor
 
+import mods.eln.compat.*
+
 import mods.eln.misc.Direction
 import mods.eln.misc.LRDU
 import mods.eln.misc.Utils.plotAmpere

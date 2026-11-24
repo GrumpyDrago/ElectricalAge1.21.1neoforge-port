@@ -1,8 +1,8 @@
 package mods.eln.client
 
-import cpw.mods.fml.client.registry.ClientRegistry
-import cpw.mods.fml.common.eventhandler.SubscribeEvent
-import cpw.mods.fml.common.gameevent.InputEvent.KeyInputEvent
+import mods.eln.compat.*
+
+import net.neoforged.bus.api.SubscribeEvent
 import mods.eln.Eln
 import mods.eln.ServerKeyHandler
 import mods.eln.i18n.I18N.tr
@@ -10,14 +10,16 @@ import mods.eln.misc.Utils
 import mods.eln.misc.UtilsClient.clientOpenGui
 import mods.eln.misc.UtilsClient.sendPacketToServer
 import mods.eln.wiki.Root
-import net.minecraft.client.settings.KeyBinding
-import net.minecraft.util.StatCollector
-import org.lwjgl.input.Keyboard
+import mods.eln.compat.client.Keyboard
+import net.minecraft.client.KeyMapping
+import net.minecraft.client.Minecraft
+import net.neoforged.neoforge.client.event.ClientTickEvent
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.IOException
 
-data class ElectricalAgeKey(var defaultKeybind: Int, val name: String, var lastState: Boolean = false, var binding: KeyBinding? = null)
+data class ElectricalAgeKey(var defaultKeybind: Int, val name: String, var lastState: Boolean = false, var binding: KeyMapping? = null)
 
 class ClientKeyHandler {
     // Note: C is the default wrench key, but it can be changed with the GUI in-game. This is override with the value stored in options.txt
@@ -28,15 +30,19 @@ class ClientKeyHandler {
 
     init {
         keyboardKeys.forEach {
-            it.binding = KeyBinding(it.name, it.defaultKeybind, StatCollector.translateToLocal("ElectricalAge"))
-            ClientRegistry.registerKeyBinding(it.binding)
+            it.binding = KeyMapping(it.name, it.defaultKeybind, "ElectricalAge")
         }
     }
 
+    fun register(event: RegisterKeyMappingsEvent) {
+        keyboardKeys.forEach { event.register(it.binding!!) }
+    }
+
     @SubscribeEvent
-    fun onKeyInput(@Suppress("UNUSED_PARAMETER") event: KeyInputEvent?) {
+    fun onTick(@Suppress("UNUSED_PARAMETER") event: ClientTickEvent.Post) {
+        if (Minecraft.getInstance().player == null) return
         keyboardKeys.forEach {
-            setState(it.name, it.binding?.isKeyPressed ?: return@forEach)
+            setState(it.name, it.binding?.isDown ?: return@forEach)
         }
     }
 

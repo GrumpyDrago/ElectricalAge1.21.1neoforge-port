@@ -1,17 +1,21 @@
 package mods.eln.sixnode.tutorialsign;
 
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import mods.eln.compat.client.Gui;
+
+import mods.eln.compat.Mc;
+
+import net.neoforged.bus.api.SubscribeEvent;
 import mods.eln.misc.Utils;
 import mods.eln.node.six.SixNodeBlock;
 import mods.eln.node.six.SixNodeElementRender;
 import mods.eln.node.six.SixNodeEntity;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityClientPlayerMP;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.MathHelper;
-import net.minecraft.world.World;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import mods.eln.compat.client.GL11;
 
 public class TutorialSignOverlay {
 
@@ -23,18 +27,18 @@ public class TutorialSignOverlay {
     }
 
     @SubscribeEvent
-    public void render(RenderGameOverlayEvent.Text event) {
-        Minecraft mc = Minecraft.getMinecraft();
-        EntityClientPlayerMP player = mc.thePlayer;
+    public void render(RenderGuiEvent.Post event) {
+        Minecraft mc = Minecraft.getInstance();
+        LocalPlayer player = mc.player;
 
         if (oldRender != null) {
             oldRender.lightInterpol.setTarget(0);
             oldRender = null;
         }
 
-        int px = MathHelper.floor_double(player.posX), py = MathHelper.floor_double(player.posY), pz = MathHelper.floor_double(player.posZ);
+        int px = Mth.floor(player.getX()), py = Mth.floor(player.getY()), pz = Mth.floor(player.getZ());
         int r = 1;
-        World w = player.worldObj;
+        Level w = Mc.worldObj(player);
 
         TutorialSignRender best = null;
         double bestDistance = 10000;
@@ -42,13 +46,13 @@ public class TutorialSignOverlay {
         for (int x = px - r; x <= px + r; x++) {
             for (int y = py - r; y <= py + r; y++) {
                 for (int z = pz - r; z <= pz + r; z++) {
-                    if (w.getBlock(x, y, z) instanceof SixNodeBlock) {
-                        TileEntity e = w.getTileEntity(x, y, z);
+                    if (Mc.getBlock(w, x, y, z) instanceof SixNodeBlock) {
+                        BlockEntity e = Mc.getTileEntity(w, x, y, z);
                         if (e instanceof SixNodeEntity) {
                             SixNodeEntity sne = (SixNodeEntity) e;
                             for (SixNodeElementRender render : sne.elementRenderList) {
                                 if (render instanceof TutorialSignRender) {
-                                    double d = Utils.getLength(player.posX, player.posY, player.posZ, x + 0.5, y + 0.5, z + 0.5);
+                                    double d = Utils.getLength(player.getX(), player.getY(), player.getZ(), x + 0.5, y + 0.5, z + 0.5);
                                     if (d < bestDistance) {
                                         bestDistance = d;
                                         best = (TutorialSignRender) render;
@@ -69,7 +73,7 @@ public class TutorialSignOverlay {
             GL11.glScalef(0.5f, 0.5f, 0.5f);
             int y = 0;
             for (String str : best.texts) {
-                Minecraft.getMinecraft().fontRenderer.drawString(str, 10/* event.resolution.getScaledWidth() / 2 - 50*/, 10 + y, 0xFFFFFF);
+                Gui.drawText(Minecraft.getInstance().font, str, 10/* event.resolution.getScaledWidth() / 2 - 50*/, 10 + y, 0xFFFFFF);
                 y += 10;
             }
             GL11.glPopMatrix();

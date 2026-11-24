@@ -1,12 +1,14 @@
 package mods.eln.sixnode.lampsocket.objrender
 
+import mods.eln.compat.*
+
 import mods.eln.misc.LRDU
 import mods.eln.misc.Obj3D
 import mods.eln.misc.UtilsClient
 import mods.eln.sixnode.lampsocket.LampSocketDescriptor
 import mods.eln.sixnode.lampsocket.LampSocketRender
-import net.minecraftforge.client.IItemRenderer.ItemRenderType
-import org.lwjgl.opengl.GL11
+import mods.eln.compat.IItemRenderer.ItemRenderType
+import mods.eln.compat.client.GL11
 
 class LampSocketSuspendedObjRender(obj: Obj3D, val onOffModel: Boolean, val length: Int, val canSwing: Boolean) : ILampSocketObjRender {
 

@@ -37,8 +37,8 @@ class Obj3DTest {
 
         val box = part.boundingBox()
         assertNotNull(box)
-        assertTrue(box.max.xCoord >= 1.0)
-        assertTrue(box.max.yCoord >= 1.0)
+        assertTrue(box.max.x >= 1.0)
+        assertTrue(box.max.y >= 1.0)
     }
 
     @Test

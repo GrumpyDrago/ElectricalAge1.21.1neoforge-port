@@ -5,8 +5,8 @@ import mods.eln.gui.GuiScreenEln;
 import mods.eln.gui.GuiTextFieldEln;
 import mods.eln.gui.IGuiObject;
 import mods.eln.misc.Utils;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.item.ItemStack;
+import mods.eln.compat.client.GuiButton;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 

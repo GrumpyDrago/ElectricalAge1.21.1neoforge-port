@@ -1,12 +1,25 @@
 package mods.eln.registration
 
-import cpw.mods.fml.common.registry.GameRegistry
+import net.minecraft.core.Holder
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.world.item.ArmorItem
+import net.minecraft.world.item.ArmorMaterial
+import net.minecraft.world.item.AxeItem
+import net.minecraft.world.item.HoeItem
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.PickaxeItem
+import net.minecraft.world.item.ShovelItem
+import net.minecraft.world.item.SwordItem
+import net.minecraft.world.item.Tiers
+import net.minecraft.world.item.crafting.Ingredient
+import mods.eln.item.ElnArmorItem
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.Eln.instance
 import mods.eln.generic.GenericItemUsingDamageDescriptor
 import mods.eln.generic.GenericItemUsingDamageDescriptorWithComment
-import mods.eln.generic.genericArmorItem
-import mods.eln.generic.genericArmorItem.ArmourType
 import mods.eln.i18n.I18N
 import mods.eln.i18n.I18N.tr
 import mods.eln.item.*
@@ -25,21 +38,16 @@ import mods.eln.railroad.ElectricMinecartItem
 import mods.eln.sixnode.electricaldatalogger.DataLogsPrintDescriptor
 import mods.eln.sixnode.wirelesssignal.WirelessSignalAnalyserItemDescriptor
 import mods.eln.wiki.Data
-import net.minecraft.entity.monster.IMob
-import net.minecraft.entity.passive.EntityAnimal
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.creativetab.CreativeTabs
-import net.minecraft.item.*
-import net.minecraft.item.Item.ToolMaterial
-import net.minecraft.item.ItemArmor.ArmorMaterial
-import net.minecraftforge.common.util.EnumHelper
-import net.minecraftforge.oredict.OreDictionary
+import net.minecraft.world.entity.monster.Enemy
+import net.minecraft.world.entity.animal.Animal
+import net.minecraft.world.entity.player.Player
+import mods.eln.generic.GenericCreativeTab
 import kotlin.ExperimentalUnsignedTypes
 import kotlin.OptIn
 
 object ItemRegistration {
 
-    private fun mapSharedGroup(id: Int, tab: CreativeTabs) {
+    private fun mapSharedGroup(id: Int, tab: GenericCreativeTab) {
         Eln.sharedItem.setCreativeTabForGroup(id, tab)
         Eln.sharedItemStackOne.setCreativeTabForGroup(id, tab)
     }
@@ -735,7 +743,7 @@ object ItemRegistration {
     }
 
     private fun addToOre(name: String, ore: ItemStack) {
-        OreDictionary.registerOre(name, ore)
+        OreDict.registerOre(name, ore)
         Eln.dictionnaryOreFromMod[name] = ore
     }
 
@@ -924,35 +932,30 @@ object ItemRegistration {
             name = I18N.TR_NAME(I18N.Type.NONE, "Silicon Wafer")
             Eln.siliconWafer = SiliconWafer(name)
             Eln.sharedItem.addElement(subId + (id shl 6), Eln.siliconWafer)
-            OreDictionary.registerOre(Eln.dictSiliconWafer, Eln.siliconWafer.newItemStack())
         }
         run {
             subId = 1
             name = I18N.TR_NAME(I18N.Type.NONE, "Transistor")
             Eln.transistor = Transistor(name)
             Eln.sharedItem.addElement(subId + (id shl 6), Eln.transistor)
-            OreDictionary.registerOre(Eln.dictTransistor, Eln.transistor.newItemStack())
         }
         run {
             subId = 2
             name = I18N.TR_NAME(I18N.Type.NONE, "NTC Thermistor")
             Eln.thermistor = Thermistor(name)
             Eln.sharedItem.addElement(subId + (id shl 6), Eln.thermistor)
-            OreDictionary.registerOre(Eln.dictThermistor, Eln.thermistor.newItemStack())
         }
         run {
             subId = 3
             name = I18N.TR_NAME(I18N.Type.NONE, "Nibble Memory Chip")
             Eln.nibbleMemory = NibbleMemory(name)
             Eln.sharedItem.addElement(subId + (id shl 6), Eln.nibbleMemory)
-            OreDictionary.registerOre(Eln.dictNibbleMemory, Eln.nibbleMemory.newItemStack())
         }
         run {
             subId = 4
             name = I18N.TR_NAME(I18N.Type.NONE, "Arithmetic Logic Unit")
             Eln.alu = ArithmeticLogicUnit(name)
             Eln.sharedItem.addElement(subId + (id shl 6), Eln.alu)
-            OreDictionary.registerOre(Eln.dictALU, Eln.alu.newItemStack())
         }
     }
 
@@ -1249,8 +1252,8 @@ object ItemRegistration {
             val descriptor = GenericItemUsingDamageDescriptor(name)
             Eln.sharedItem.addElement(completId, descriptor)
             Data.addResource(descriptor.newItemStack())
-            OreDictionary.registerOre("ingotAluminum", descriptor.newItemStack())
-            OreDictionary.registerOre("ingotAluminium", descriptor.newItemStack())
+            OreDict.registerOre("ingotAluminum", descriptor.newItemStack())
+            OreDict.registerOre("ingotAluminium", descriptor.newItemStack())
         }
         run {
             subId = 7
@@ -1259,7 +1262,7 @@ object ItemRegistration {
             val descriptor = GenericItemUsingDamageDescriptor(name)
             Eln.sharedItem.addElement(completId, descriptor)
             Data.addResource(descriptor.newItemStack())
-            OreDictionary.registerOre("ingotSteel", descriptor.newItemStack())
+            OreDict.registerOre("ingotSteel", descriptor.newItemStack())
         }
         run {
             subId = 8
@@ -1468,7 +1471,7 @@ object ItemRegistration {
             ).inOresAndMaterialsTab()
             Eln.sharedItem.addElement(subId + (id shl 6), desc)
             Data.addResource(desc.newItemStack())
-            OreDictionary.registerOre(Eln.config.getStringOrElse("runtime.dictionary.cheapChip", "circuitElnBasic"), desc.newItemStack())
+            OreDict.registerOre(Eln.config.getStringOrElse("runtime.dictionary.cheapChip", "circuitElnBasic"), desc.newItemStack())
         }
         run {
             subId = 1
@@ -1479,7 +1482,7 @@ object ItemRegistration {
             ).inOresAndMaterialsTab()
             Eln.sharedItem.addElement(subId + (id shl 6), desc)
             Data.addResource(desc.newItemStack())
-            OreDictionary.registerOre(Eln.config.getStringOrElse("runtime.dictionary.advancedChip", "circuitElnAdvanced"), desc.newItemStack())
+            OreDict.registerOre(Eln.config.getStringOrElse("runtime.dictionary.advancedChip", "circuitElnAdvanced"), desc.newItemStack())
         }
         run {
             subId = 2
@@ -1677,20 +1680,20 @@ object ItemRegistration {
             subId = 40
             name = I18N.TR_NAME(I18N.Type.NONE, "Player Filter")
             val desc =
-                EntitySensorFilterDescriptor(name, EntityPlayer::class.java, 0f, 1f, 0f)
+                EntitySensorFilterDescriptor(name, Player::class.java, 0f, 1f, 0f)
             Eln.sharedItem.addElement(subId + (id shl 6), desc)
         }
         run {
             subId = 41
             name = I18N.TR_NAME(I18N.Type.NONE, "Monster Filter")
-            val desc = EntitySensorFilterDescriptor(name, IMob::class.java, 1f, 0f, 0f)
+            val desc = EntitySensorFilterDescriptor(name, Enemy::class.java, 1f, 0f, 0f)
             Eln.sharedItem.addElement(subId + (id shl 6), desc)
         }
         run {
             subId = 42
             name = I18N.TR_NAME(I18N.Type.NONE, "Animal Filter")
             val desc = EntitySensorFilterDescriptor(
-                name, EntityAnimal::class.java, .3f, .3f,
+                name, Animal::class.java, .3f, .3f,
                 1f
             )
             Eln.sharedItem.addElement(subId + (id shl 6), desc)
@@ -1845,7 +1848,7 @@ object ItemRegistration {
             id = 1
             name = I18N.TR_NAME(I18N.Type.NONE, "Copper Ore")
             val desc =
-                OreDescriptor(name, id, 30 * (if (Eln.config.getBooleanOrElse("worldgen.ores.copper.enabled", true)) 1 else 0), 6, 10, 0, 80)
+                OreDescriptor(name, id)
             Eln.oreCopper = desc
             Eln.oreItem.addDescriptor(id, desc)
             addToOre("oreCopper", desc.newItemStack())
@@ -1855,7 +1858,7 @@ object ItemRegistration {
             id = 4
             name = I18N.TR_NAME(I18N.Type.NONE, "Lead Ore")
             val desc =
-                OreDescriptor(name, id, 8 * (if (Eln.config.getBooleanOrElse("worldgen.ores.lead.enabled", true)) 1 else 0), 3, 9, 0, 24)
+                OreDescriptor(name, id)
             Eln.oreItem.addDescriptor(id, desc)
             addToOre("oreLead", desc.newItemStack())
         }
@@ -1863,7 +1866,7 @@ object ItemRegistration {
             id = 5
             name = I18N.TR_NAME(I18N.Type.NONE, "Tungsten Ore")
             val desc =
-                OreDescriptor(name, id, 6 * (if (Eln.config.getBooleanOrElse("worldgen.ores.tungsten.enabled", true)) 1 else 0), 3, 9, 0, 32)
+                OreDescriptor(name, id)
             Eln.oreItem.addDescriptor(id, desc)
             addToOre(Eln.config.getStringOrElse("runtime.dictionary.tungstenOre", "oreElnTungsten"), desc.newItemStack())
         }
@@ -1871,158 +1874,71 @@ object ItemRegistration {
             id = 6
             name = I18N.TR_NAME(I18N.Type.NONE, "Cinnabar Ore")
             val desc =
-                OreDescriptor(name, id, 3 * (if (Eln.config.getBooleanOrElse("runtime.worldgen.ores.cinnabar.enabled", false)) 1 else 0), 3, 9, 0, 32)
+                OreDescriptor(name, id)
             Eln.oreItem.addDescriptor(id, desc)
             addToOre("oreCinnabar", desc.newItemStack())
         }
     }
 
-    public fun registerArmor() {
-        var name: String
+    private fun <T : Item> addPlain(name: String, item: T): T {
+        ElnRegistry.registerItem(registryPath(name), item)
+        ElnRegistry.registerName(name, ItemStack(item))
+        Eln.creativeTabToolsArmor.add { ItemStack(item) }
+        return item
+    }
 
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "Copper Helmet")
-            Eln.helmetCopper = genericArmorItem(
-                ArmorMaterial.IRON, 2, ArmourType.Helmet, "eln:textures" +
-                        "/armor/copper_layer_1.png", "eln:textures/armor/copper_layer_2.png"
-            ).setUnlocalizedName(name).setTextureName("eln:copper_helmet").setCreativeTab(Eln.creativeTabToolsArmor) as ItemArmor
-            GameRegistry.registerItem(Eln.helmetCopper, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.helmetCopper))
-        }
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "Copper Chestplate")
-            Eln.chestplateCopper = genericArmorItem(
-                ArmorMaterial.IRON, 2, ArmourType.Chestplate, "eln" +
-                        ":textures/armor/copper_layer_1.png", "eln:textures/armor/copper_layer_2.png"
-            ).setUnlocalizedName(name).setTextureName("eln:copper_chestplate")
-                .setCreativeTab(Eln.creativeTabToolsArmor) as ItemArmor
-            GameRegistry.registerItem(Eln.chestplateCopper, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.chestplateCopper))
-        }
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "Copper Leggings")
-            Eln.legsCopper = genericArmorItem(
-                ArmorMaterial.IRON, 2, ArmourType.Leggings, "eln:textures" +
-                        "/armor/copper_layer_1.png", "eln:textures/armor/copper_layer_2.png"
-            ).setUnlocalizedName(name).setTextureName("eln:copper_leggings")
-                .setCreativeTab(Eln.creativeTabToolsArmor) as ItemArmor
-            GameRegistry.registerItem(Eln.legsCopper, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.legsCopper))
-        }
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "Copper Boots")
-            Eln.bootsCopper = genericArmorItem(
-                ArmorMaterial.IRON, 2, ArmourType.Boots, "eln:textures" +
-                        "/armor/copper_layer_1.png", "eln:textures/armor/copper_layer_2.png"
-            ).setUnlocalizedName(name).setTextureName("eln:copper_boots").setCreativeTab(Eln.creativeTabToolsArmor) as ItemArmor
-            GameRegistry.registerItem(Eln.bootsCopper, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.bootsCopper))
-        }
-        val t1 = "eln:textures/armor/ecoal_layer_1.png"
-        val t2 = "eln:textures/armor/ecoal_layer_2.png"
-        val energyPerDamage = 500.0
-        var armor: Int
-        val eCoalMaterial = EnumHelper.addArmorMaterial(
-            "ECoal", 10,
-            intArrayOf(3, 8, 6, 3), 9
+    private fun armorMaterial(texture: String, defense: Map<ArmorItem.Type, Int>, enchantability: Int, repair: () -> Ingredient): Holder<ArmorMaterial> =
+        Holder.direct(
+            ArmorMaterial(
+                defense, enchantability, SoundEvents.ARMOR_EQUIP_IRON, repair,
+                listOf(ArmorMaterial.Layer(ElnRegistry.id(texture))), 0f, 0f
+            )
         )
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "E-Coal Helmet")
-            armor = 3
-            Eln.helmetECoal = ElectricalArmor(
-                eCoalMaterial, 2, ArmourType.Helmet, t1, t2, 8000.0, 2000.0,
-                armor / 20.0, armor * energyPerDamage, energyPerDamage
-            ).setUnlocalizedName(name).setTextureName(
-                "eln" +
-                        ":ecoal_helmet"
-            ).setCreativeTab(Eln.creativeTabToolsArmor) as ItemArmor
-            GameRegistry.registerItem(Eln.helmetECoal, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.helmetECoal))
-        }
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "E-Coal Chestplate")
-            armor = 8
-            Eln.plateECoal = ElectricalArmor(
-                eCoalMaterial, 2, ArmourType.Chestplate, t1, t2, 8000.0,
-                2000.0, armor / 20.0, armor * energyPerDamage, energyPerDamage
-            ).setUnlocalizedName(name).setTextureName("eln:ecoal_chestplate")
-                .setCreativeTab(Eln.creativeTabToolsArmor) as ItemArmor
-            GameRegistry.registerItem(Eln.plateECoal, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.plateECoal))
-        }
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "E-Coal Leggings")
-            armor = 6
-            Eln.legsECoal = ElectricalArmor(
-                eCoalMaterial, 2, ArmourType.Leggings, t1, t2, 8000.0, 2000.0,
-                armor / 20.0, armor * energyPerDamage, energyPerDamage
-            ).setUnlocalizedName(name).setTextureName(
-                "eln" +
-                        ":ecoal_leggings"
-            ).setCreativeTab(Eln.creativeTabToolsArmor) as ItemArmor
-            GameRegistry.registerItem(Eln.legsECoal, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.legsECoal))
-        }
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "E-Coal Boots")
-            armor = 3
-            Eln.bootsECoal = ElectricalArmor(
-                eCoalMaterial, 2, ArmourType.Boots, t1, t2, 8000.0, 2000.0,
-                armor / 20.0, armor * energyPerDamage, energyPerDamage
-            ).setUnlocalizedName(name).setTextureName(
-                "eln" +
-                        ":ecoal_boots"
-            ).setCreativeTab(Eln.creativeTabToolsArmor) as ItemArmor
-            GameRegistry.registerItem(Eln.bootsECoal, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.bootsECoal))
-        }
+
+    public fun registerArmor() {
+        val copper = armorMaterial(
+            "copper",
+            mapOf(
+                ArmorItem.Type.HELMET to 2, ArmorItem.Type.CHESTPLATE to 6,
+                ArmorItem.Type.LEGGINGS to 5, ArmorItem.Type.BOOTS to 2
+            ), 9
+        ) { Ingredient.of(OreDict.tag("ingotCopper")) }
+
+        fun copperArmor(name: String, type: ArmorItem.Type): ArmorItem =
+            addPlain(name, ElnArmorItem(name, copper, type, Item.Properties().durability(type.getDurability(15))))
+
+        Eln.helmetCopper = copperArmor(I18N.TR_NAME(I18N.Type.ITEM, "Copper Helmet"), ArmorItem.Type.HELMET)
+        Eln.chestplateCopper = copperArmor(I18N.TR_NAME(I18N.Type.ITEM, "Copper Chestplate"), ArmorItem.Type.CHESTPLATE)
+        Eln.legsCopper = copperArmor(I18N.TR_NAME(I18N.Type.ITEM, "Copper Leggings"), ArmorItem.Type.LEGGINGS)
+        Eln.bootsCopper = copperArmor(I18N.TR_NAME(I18N.Type.ITEM, "Copper Boots"), ArmorItem.Type.BOOTS)
+
+        val energyPerDamage = 500.0
+        val eCoal = armorMaterial("ecoal", emptyMap(), 0) { Ingredient.EMPTY }
+
+        fun eCoalArmor(name: String, type: ArmorItem.Type, armor: Int): ArmorItem = addPlain(
+            name,
+            ElectricalArmor(name, eCoal, type, 8000.0, 2000.0, armor / 20.0, armor * energyPerDamage, energyPerDamage)
+        )
+
+        Eln.helmetECoal = eCoalArmor(I18N.TR_NAME(I18N.Type.ITEM, "E-Coal Helmet"), ArmorItem.Type.HELMET, 3)
+        Eln.plateECoal = eCoalArmor(I18N.TR_NAME(I18N.Type.ITEM, "E-Coal Chestplate"), ArmorItem.Type.CHESTPLATE, 8)
+        Eln.legsECoal = eCoalArmor(I18N.TR_NAME(I18N.Type.ITEM, "E-Coal Leggings"), ArmorItem.Type.LEGGINGS, 6)
+        Eln.bootsECoal = eCoalArmor(I18N.TR_NAME(I18N.Type.ITEM, "E-Coal Boots"), ArmorItem.Type.BOOTS, 3)
     }
 
     public fun registerTool() {
-        var name: String
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "Copper Sword")
-            Eln.swordCopper = ItemSword(ToolMaterial.IRON).setUnlocalizedName(name).setTextureName(
-                "eln" +
-                        ":copper_sword"
-            ).setCreativeTab(Eln.creativeTabToolsArmor)
-            GameRegistry.registerItem(Eln.swordCopper, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.swordCopper))
-        }
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "Copper Hoe")
-            Eln.hoeCopper =
-                ItemHoe(ToolMaterial.IRON).setUnlocalizedName(name).setTextureName("eln:copper_hoe")
-                    .setCreativeTab(Eln.creativeTabToolsArmor)
-            GameRegistry.registerItem(Eln.hoeCopper, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.hoeCopper))
-        }
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "Copper Shovel")
-            Eln.shovelCopper = ItemSpade(ToolMaterial.IRON).setUnlocalizedName(name).setTextureName(
-                "eln" +
-                        ":copper_shovel"
-            ).setCreativeTab(Eln.creativeTabToolsArmor)
-            GameRegistry.registerItem(Eln.shovelCopper, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.shovelCopper))
-        }
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "Copper Pickaxe")
-            Eln.pickaxeCopper = ItemPickaxeEln(ToolMaterial.IRON).setUnlocalizedName(name).setTextureName(
-                "eln" +
-                        ":copper_pickaxe"
-            ).setCreativeTab(Eln.creativeTabToolsArmor)
-            GameRegistry.registerItem(Eln.pickaxeCopper, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.pickaxeCopper))
-        }
-        run {
-            name = I18N.TR_NAME(I18N.Type.ITEM, "Copper Axe")
-            Eln.axeCopper =
-                ItemAxeEln(ToolMaterial.IRON).setUnlocalizedName(name).setTextureName("eln:copper_axe")
-                    .setCreativeTab(Eln.creativeTabToolsArmor)
-            GameRegistry.registerItem(Eln.axeCopper, "Eln.$name")
-            GameRegistry.registerCustomItemStack(name, ItemStack(Eln.axeCopper))
-        }
+        val tier = Tiers.IRON
+
+        val sword = I18N.TR_NAME(I18N.Type.ITEM, "Copper Sword")
+        Eln.swordCopper = addPlain(sword, SwordItem(tier, Item.Properties().attributes(SwordItem.createAttributes(tier, 3, -2.4f))))
+        val hoe = I18N.TR_NAME(I18N.Type.ITEM, "Copper Hoe")
+        Eln.hoeCopper = addPlain(hoe, HoeItem(tier, Item.Properties().attributes(HoeItem.createAttributes(tier, -2f, -1f))))
+        val shovel = I18N.TR_NAME(I18N.Type.ITEM, "Copper Shovel")
+        Eln.shovelCopper = addPlain(shovel, ShovelItem(tier, Item.Properties().attributes(ShovelItem.createAttributes(tier, 1.5f, -3f))))
+        val pickaxe = I18N.TR_NAME(I18N.Type.ITEM, "Copper Pickaxe")
+        Eln.pickaxeCopper = addPlain(pickaxe, PickaxeItem(tier, Item.Properties().attributes(PickaxeItem.createAttributes(tier, 1f, -2.8f))))
+        val axe = I18N.TR_NAME(I18N.Type.ITEM, "Copper Axe")
+        Eln.axeCopper = addPlain(axe, AxeItem(tier, Item.Properties().attributes(AxeItem.createAttributes(tier, 6f, -3.1f))))
     }
 
 }

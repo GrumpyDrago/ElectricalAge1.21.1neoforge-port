@@ -1,11 +1,13 @@
 package mods.eln.transparentnode.electricalfurnace;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.generic.GenericItemUsingDamageDescriptor;
 import mods.eln.item.ThermalIsolatorElement;
 import mods.eln.node.transparent.TransparentNodeElementInventory;
 import mods.eln.sim.IProcess;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.FurnaceRecipes;
+import net.minecraft.world.item.ItemStack;
+import mods.eln.craft.Smelting;
 
 public class ElectricalFurnaceProcess implements IProcess {
 
@@ -95,14 +97,14 @@ public class ElectricalFurnaceProcess implements IProcess {
             ItemStack var1 = getSmeltResult();
             if (var1 == null) return false;
             if (inventory.getStackInSlot(ElectricalFurnaceElement.outSlotId) == null) return true;
-            if (!inventory.getStackInSlot(ElectricalFurnaceElement.outSlotId).isItemEqual(var1)) return false;
-            int result = inventory.getStackInSlot(ElectricalFurnaceElement.outSlotId).stackSize + var1.stackSize;
+            if (!Mc.isItemEqual(inventory.getStackInSlot(ElectricalFurnaceElement.outSlotId), var1)) return false;
+            int result = inventory.getStackInSlot(ElectricalFurnaceElement.outSlotId).getCount() + var1.getCount();
             return (result <= inventory.getInventoryStackLimit() && result <= var1.getMaxStackSize());
         }
     }
 
     public ItemStack getSmeltResult() {
-        return FurnaceRecipes.smelting().getSmeltingResult(inventory.getStackInSlot(ElectricalFurnaceElement.inSlotId));
+        return Smelting.result(inventory.getStackInSlot(ElectricalFurnaceElement.inSlotId));
     }
 
     /**
@@ -114,8 +116,8 @@ public class ElectricalFurnaceProcess implements IProcess {
 
             if (inventory.getStackInSlot(ElectricalFurnaceElement.outSlotId) == null) {
                 inventory.setInventorySlotContents(ElectricalFurnaceElement.outSlotId, var1.copy());
-            } else if (inventory.getStackInSlot(ElectricalFurnaceElement.outSlotId).isItemEqual(var1)) {
-                inventory.decrStackSize(ElectricalFurnaceElement.outSlotId, -var1.stackSize);
+            } else if (Mc.isItemEqual(inventory.getStackInSlot(ElectricalFurnaceElement.outSlotId), var1)) {
+                inventory.decrStackSize(ElectricalFurnaceElement.outSlotId, -var1.getCount());
             }
 
             inventory.decrStackSize(ElectricalFurnaceElement.inSlotId, 1);

@@ -1,13 +1,12 @@
 package mods.eln.client;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent.Phase;
-import cpw.mods.fml.common.gameevent.TickEvent.RenderTickEvent;
+import mods.eln.compat.FMLCommonHandler;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import mods.eln.misc.Utils;
 import mods.eln.node.NodeBlockEntity;
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.World;
+import net.minecraft.world.level.Level;
 
 import java.util.Iterator;
 
@@ -43,8 +42,7 @@ public class FrameTime {
     boolean boot = true;
 
     @SubscribeEvent
-    public void tick(RenderTickEvent event) {
-        if (event.phase != Phase.START) return;
+    public void tick(RenderFrameEvent.Pre event) {
 
         long nanoTime = System.nanoTime();
 
@@ -56,13 +54,13 @@ public class FrameTime {
         }
         oldNanoTime = nanoTime;
         Iterator<NodeBlockEntity> i = NodeBlockEntity.clientList.iterator();
-        World w = Minecraft.getMinecraft().theWorld;
+        Level w = Minecraft.getInstance().level;
 
         if (!Utils.isGameInPause()) {
             float deltaTcaped = getNotCaped2();
             while (i.hasNext()) {
                 NodeBlockEntity e = i.next();
-                if (e.getWorldObj() != w) {
+                if (e.getLevel() != w) {
                     i.remove();
                     continue;
                 }
