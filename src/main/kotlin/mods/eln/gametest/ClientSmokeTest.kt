@@ -15,11 +15,15 @@ import net.minecraft.client.Screenshot
 import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen
 import net.minecraft.client.gui.screens.DisconnectedScreen
 import net.minecraft.client.gui.screens.TitleScreen
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
+import net.minecraft.client.gui.screens.inventory.InventoryScreen
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.Difficulty
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
 import net.minecraft.world.level.GameRules
 import net.minecraft.world.level.GameType
 import net.minecraft.world.level.LevelSettings
@@ -51,6 +55,7 @@ object ClientSmokeTest {
         frames++
     }
 
+    private val JEI = java.lang.Boolean.getBoolean("eln.clientSmokeTest.jei")
     private val ORES = java.lang.Boolean.getBoolean("eln.clientSmokeTest.ores")
     private val sixPositions = ArrayList<Triple<String, BlockPos, Direction>>()
     private val transparentPositions = ArrayList<Pair<String, BlockPos>>()
@@ -144,6 +149,38 @@ object ClientSmokeTest {
         later { mc.stop() }
     }
 
+    /** Looks up recipes; JEI has to be in the mods folder. */
+    private fun planJei() {
+        fun look(name: String, stack: ItemStack, uses: Boolean) {
+            later(10) {
+                mc.setScreen(InventoryScreen(mc.player!!))
+                val found = if (uses) JeiSmokeTest.showUses(stack) else JeiSmokeTest.showRecipes(stack)
+                Eln.logger.info("SMOKE JEI {} {}: {}", if (uses) "uses of" else "recipes for", name, found)
+            }
+            later(5) { shot("jei_" + name.lowercase().replace(Regex("[^a-z0-9]+"), "_")) }
+        }
+        later(100) { mc.options.tutorialStep = net.minecraft.client.tutorial.TutorialSteps.NONE }
+        for (name in listOf(
+            "48V Macerator", "240V Macerator", "48V Plate Machine", "Rolling Shaft Machine", "48V Compressor", "48V Magnetizer",
+            "Old 480V Arc Furnace", "Fabricator", "Wire Roller", "Wire Insulator", "Wire Combiner", "Electrical Furnace",
+            "Stone Heat Furnace", "24V Egg Incubator"
+        )) look(name, Eln.findItemStack(name, 1), true)
+        look("Sand", ItemStack(Items.SAND), true)
+        look("Silicon Dust", Eln.findItemStack("Silicon Dust", 1), false)
+        later(5) {
+            for (name in listOf("48V Macerator", "240V Compressor", "Electrical Furnace")) {
+                val (_, pos) = transparentPositions.first { it.first == name }
+                gui("transparent", name, pos, Direction.YP) {
+                    Eln.logger.info("SMOKE JEI {} pixels of the {} GUI show recipes", JeiSmokeTest.clickAreas(it), name)
+                }
+            }
+            later {
+                Eln.logger.info("SMOKE done")
+                mc.stop()
+            }
+        }
+    }
+
     private fun plan() {
         if (ORES) return planOres()
         later(40) {
@@ -160,6 +197,7 @@ object ClientSmokeTest {
                 placeAll(level, player)
             }
         }
+        if (JEI) return planJei()
         // Rows of six nodes on the floor.
         val columns = 20
         val rows = (Eln.sixNodeItem.subItemList.size + columns - 1) / columns
@@ -299,7 +337,7 @@ object ClientSmokeTest {
 
     private var guiCount = 0
 
-    private fun gui(kind: String, name: String, pos: BlockPos, side: Direction) {
+    private fun gui(kind: String, name: String, pos: BlockPos, side: Direction, look: (AbstractContainerScreen<*>) -> Unit = {}) {
         later(4) {
             onServer { level, player ->
                 val node = NodeManager.instance!!.nodeList.firstOrNull {
@@ -316,6 +354,7 @@ object ClientSmokeTest {
             val screen = mc.screen
             if (screen is GuiScreen || screen is GuiContainer) {
                 guiCount++
+                if (screen is AbstractContainerScreen<*>) look(screen)
                 shot("gui_${kind}_" + name.lowercase().replace(Regex("[^a-z0-9]+"), "_"))
                 screen.onClose()
             } else if (screen != null) {

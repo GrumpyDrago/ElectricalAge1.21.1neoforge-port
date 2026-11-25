@@ -29,6 +29,12 @@ class RecipesList {
         return null
     }
 
+    /** Everything that the machines make this of, as many as it takes. */
+    fun getInputs(recipe: Recipe): List<ItemStack> =
+        OreDict.likelyInputs(recipe.input.item)
+            .map { it.defaultInstance.copyWithCount(recipe.input.count) }
+            .filter { getRecipe(it) === recipe }
+
     fun getRecipeFromOutput(output: ItemStack?): ArrayList<Recipe> {
         if (output == null) return ArrayList()
         val list = ArrayList<Recipe>()

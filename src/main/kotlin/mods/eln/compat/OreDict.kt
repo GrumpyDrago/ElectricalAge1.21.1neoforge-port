@@ -82,6 +82,28 @@ object OreDict {
     @JvmStatic
     fun doesOreNameExist(name: String): Boolean = getOres(name).isNotEmpty()
 
+    /** Kinds of things where those of the same material stand in for each other. Other common tags are too broad. */
+    private val materials = setOf(
+        "ores", "raw_materials", "ingots", "nuggets", "dusts", "plates", "rods", "gems", "storage_blocks", "sands", "cobblestones"
+    )
+
+    /** Whether things with this tag can replace each other in machines, as with the ore dictionary. */
+    fun isMaterial(tag: TagKey<Item>): Boolean {
+        val id = tag.location()
+        return if (id.namespace == "c") '/' in id.path && id.path.substringBefore('/') in materials else id == LOGS
+    }
+
+    private val LOGS = ResourceLocation.parse("minecraft:logs")
+
+    /** The item and everything that can replace it in machines. */
+    fun likelyInputs(item: Item): Set<Item> {
+        val items = linkedSetOf(item)
+        for (tag in ItemStack(item).tags.filter(::isMaterial)) {
+            for (holder in BuiltInRegistries.ITEM.getTagOrEmpty(tag)) items.add(holder.value())
+        }
+        return items
+    }
+
     @JvmStatic
     fun matches(stack: ItemStack, name: String): Boolean = stack.`is`(tag(name))
 }

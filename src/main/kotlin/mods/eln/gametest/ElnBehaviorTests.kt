@@ -2,8 +2,10 @@ package mods.eln.gametest
 
 import mods.eln.Eln
 import mods.eln.compat.orNull
+import mods.eln.craft.MachineRecipes
 import mods.eln.misc.Coordinate
 import mods.eln.misc.Direction
+import mods.eln.misc.RecipesList
 import mods.eln.node.NodeManager
 import mods.eln.node.six.SixNode
 import mods.eln.node.transparent.TransparentNode
@@ -138,6 +140,60 @@ object ElnBehaviorTests {
             helper.assertTrue(out.any { it.item === recipe.output[0].item }, "nothing came out")
             helper.assertTrue(machine.inventory!!.getStackInSlot(machine.inSlotId) == null, "the input is still there")
         }
+    }
+
+    /** NeoForge has tags that all kinds of ores are in. */
+    @GameTest(template = EMPTY)
+    @JvmStatic
+    fun machinesTellMaterialsApart(helper: GameTestHelper) {
+        fun expect(list: RecipesList, input: ItemStack, output: String?) {
+            val found = list.getRecipe(input.copyWithCount(64))?.let { BuiltInRegistries.ITEM.getKey(it.output[0].item).path }
+            helper.assertTrue(found == output, "$input becomes $found instead of $output")
+        }
+        with(Eln.instance) {
+            for (ore in listOf(Items.IRON_ORE, Items.DEEPSLATE_IRON_ORE)) expect(maceratorRecipes, ItemStack(ore), "iron_dust")
+            for (ore in listOf(Items.GOLD_ORE, Items.DEEPSLATE_GOLD_ORE)) expect(maceratorRecipes, ItemStack(ore), "gold_dust")
+            for (ore in listOf(Items.COPPER_ORE, Items.DEEPSLATE_COPPER_ORE)) expect(maceratorRecipes, ItemStack(ore), "copper_dust")
+            for (ore in listOf(Items.COAL_ORE, Items.DEEPSLATE_COAL_ORE)) expect(maceratorRecipes, ItemStack(ore), "coal")
+            expect(maceratorRecipes, Eln.findItemStack("Lead Ore", 1), "lead_dust")
+            expect(maceratorRecipes, ItemStack(Items.SAND), "silicon_dust")
+            expect(maceratorRecipes, ItemStack(Items.EMERALD_ORE), null)
+            expect(maceratorRecipes, ItemStack(Items.BLUE_DYE), null)
+            expect(arcFurnaceRecipes, ItemStack(Items.DIAMOND_ORE), "diamond")
+            expect(arcFurnaceRecipes, ItemStack(Items.EMERALD_ORE), "emerald")
+            expect(compressorRecipes, ItemStack(Items.BIRCH_LOG), "tree_resin")
+        }
+        helper.succeed()
+    }
+
+    /** Recipe viewers show what machines can do. */
+    @GameTest(template = EMPTY)
+    @JvmStatic
+    fun machineRecipesAreListed(helper: GameTestHelper) {
+        val failures = ArrayList<String>()
+        for (kind in MachineRecipes.all()) {
+            Eln.logger.info("{}: {} recipes, machines {}", kind.id, kind.recipes.size, kind.machines)
+            if (kind.machines.isEmpty() || kind.recipes.isEmpty()) failures.add("${kind.id}: nothing to show")
+            if (kind.machines.distinctBy { it.item }.size != kind.machines.size) failures.add("${kind.id}: machines twice")
+            val list = kind.list
+            if (list != null && kind.recipes.size != list.recipes.size) {
+                list.recipes.filter { list.getInputs(it).isEmpty() }.forEach { failures.add("${kind.id}: nothing makes ${it.output[0]} of ${it.input}") }
+            }
+            for (recipe in kind.recipes) {
+                val stacks = (recipe.inputs + recipe.tools).onEach { if (it.isEmpty()) failures.add("${kind.id}: nothing to put in for ${recipe.outputs}") }
+                if ((stacks.flatten() + recipe.outputs).any { it.isEmpty }) failures.add("${kind.id}: empty stack for ${recipe.outputs}")
+                if (recipe.outputs.isEmpty()) failures.add("${kind.id}: no output")
+            }
+        }
+        val macerator = MachineRecipes.all().first { it.id == "macerator" }
+        helper.assertTrue(macerator.machines.size == 2, "macerators: ${macerator.machines}")
+        helper.assertTrue(
+            macerator.recipes.any { r -> r.inputs[0].any { it.`is`(Items.SAND) } && r.outputs[0].item === Eln.findItemStack("Silicon Dust", 1).item },
+            "sand is missing"
+        )
+        failures.forEach { Eln.logger.error("FAILED {}", it) }
+        helper.assertTrue(failures.isEmpty(), failures.joinToString())
+        helper.succeed()
     }
 
     @GameTest(template = EMPTY, timeoutTicks = 400)

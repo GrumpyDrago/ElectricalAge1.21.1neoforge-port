@@ -17,6 +17,7 @@ changed for players and modpack authors.
 | 1.7.10 | 1.21.1 |
 | --- | --- |
 | Waila | Jade |
+| (in-game wiki only) | JEI: what the machines make of what, as JEI shows crafting recipes itself |
 | ComputerCraft | CC: Tweaked |
 | RF (CoFH) | NeoForge energy (FE), through the Eln exporter |
 | Ore dictionary | Item tags: `ingotCopper` is `c:ingots/copper`, `plateIron` is `c:plates/iron` and so on |
@@ -29,6 +30,9 @@ Steam machines need another mod that provides steam, as before.
 Recipes depend on the configuration and on which materials other mods bring, so they are built in code when data packs
 are (re)loaded. They behave like ordinary recipes: a data pack can replace one by providing a recipe with the same id,
 for example `data/eln/recipe/crafting/wrench.json`.
+
+Machines make the same of an item as of others in a tag like `c:ores/iron`, `c:ingots/copper`, `c:dusts/lead`,
+`c:sands/colorless` or `minecraft:logs`; see `OreDict.isMaterial` for which tags count.
 
 ## For developers
 
@@ -47,6 +51,7 @@ Two of them take a system property through `JAVA_TOOL_OPTIONS`:
 
 - `-Deln.stress=200` makes `runGameTestServer` also build 200 circuits and every component, and report what a tick costs.
 - `-Deln.clientSmokeTest.fps=true` makes `runClientSmokeTest` only measure the frame rate, with everything in view.
+  With `-Deln.clientSmokeTest.jei=true` it looks up the recipes of the machines in JEI, which has to be in `run/mods`.
   `-Deln.clientSmokeTest.noGuis=true` leaves out the GUIs, `-Deln.clientSmokeTest.ores=true` only counts ores.
 
 Run `runData` after adding a component, so that it gets an item model.
@@ -69,6 +74,7 @@ mod looks at these releases.
   What the descriptor draws on top, such as text, becomes a decoration. Anything else is drawn by `ElnItemRenderer`.
 - `mods.eln.registration.ElnRegistry` collects what the mod registers. `Eln.createContent()` runs once, when the first
   registry opens. Do not call `Block.asItem()` or make stacks from blocks before that is over.
+- What machines make of what is in the `RecipesList`s of `Eln`. `MachineRecipes` has it all in one form, for the JEI plugin.
 - A descriptor (`SixNodeDescriptor`, `TransparentNodeDescriptor`, `GenericItemUsingDamageDescriptor`) is one item. Six
   nodes share one block, as do transparent nodes; what is in the block is the node's business.
 - Node state travels in one payload, `packets.ElnPayload`, and in the update tag of the block entity (`node.NodeSync`).

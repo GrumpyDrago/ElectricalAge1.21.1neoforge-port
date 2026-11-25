@@ -3,6 +3,7 @@ package mods.eln.transparentnode.electricalmachine;
 import mods.eln.gui.GuiContainerEln;
 import mods.eln.gui.GuiHelperContainer;
 import mods.eln.gui.GuiVerticalVoltageSupplyBar;
+import mods.eln.misc.RecipesList;
 import mods.eln.node.transparent.TransparentNodeElementInventory;
 import net.minecraft.world.entity.player.Player;
 import mods.eln.compat.IInventory;
@@ -17,6 +18,11 @@ public class ElectricalMachineGuiDraw extends GuiContainerEln {
         super(new ElectricalMachineContainer(null, player, inventory, render.descriptor));
         this.inventory = (TransparentNodeElementInventory) inventory;
         this.render = render;
+    }
+
+    /** What the machine can do. */
+    public RecipesList getRecipes() {
+        return render.descriptor.recipe;
     }
 
     @Override

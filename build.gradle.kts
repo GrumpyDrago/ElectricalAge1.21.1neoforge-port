@@ -107,6 +107,7 @@ dependencies {
     // Optional integrations
     compileOnly("cc.tweaked:cc-tweaked-1.21.1-forge-api:1.122.0")
     compileOnly("maven.modrinth:jade:15.10.6+neoforge")
+    compileOnly("maven.modrinth:jei:viLBV5kx") // 19.64.0.454 for NeoForge
 
     // i18n AST string extraction (build-time only, not in published jar)
     compileOnly("com.github.javaparser:javaparser-core:3.26.3")

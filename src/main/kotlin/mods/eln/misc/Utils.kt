@@ -790,8 +790,7 @@ object Utils {
     fun areSame(stack: ItemStack, output: ItemStack): Boolean {
         try {
             if (stack.item === output.item) return true
-            val outputTags = output.tags.filter { it.location().namespace == "c" }.toList()
-            return outputTags.any { stack.`is`(it) && it.location().path.contains('/') }
+            return output.tags.anyMatch { OreDict.isMaterial(it) && stack.`is`(it) }
         } catch (_: Exception) {
         }
         return false

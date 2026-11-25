@@ -182,7 +182,12 @@ enum class FabricatorOperation(val nid: Int, val opName: String, val outputItem:
 class FabricatorProcess(val element: FabricatorElement): IProcess {
 
     var powerConsumed = 0.0
-    private val powerRequired = 4_000.0
+    private val powerRequired = ENERGY
+
+    companion object {
+        /** What it takes to make one sheet, in joules. */
+        const val ENERGY = 4_000.0
+    }
 
     override fun process(time: Double) {
         val operation = element.operation

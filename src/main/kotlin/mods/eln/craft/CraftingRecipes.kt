@@ -47,14 +47,7 @@ object CraftingRecipes {
     }
 
     /** Fills the recipe lists of the machines; tags must be loaded. */
-    fun buildMachines() {
-        with(Eln.instance) {
-            for (list in listOf(maceratorRecipes, compressorRecipes, plateMachineRecipes, arcFurnaceRecipes, magnetiserRecipes)) {
-                list.recipes.clear()
-            }
-        }
-        itemCrafting()
-    }
+    fun buildMachines() = itemCrafting()
 
     private fun recipeId(output: ItemStack, kind: String): ResourceLocation {
         val base = kind + "/" + BuiltInRegistries.ITEM.getKey(output.item).path
@@ -107,7 +100,11 @@ object CraftingRecipes {
     }
 
     private fun itemCrafting() {
-
+        with(Eln.instance) {
+            for (list in listOf(maceratorRecipes, compressorRecipes, plateMachineRecipes, arcFurnaceRecipes, magnetiserRecipes)) {
+                list.recipes.clear()
+            }
+        }
 
         //
         recipeEnergyConverter()

@@ -276,21 +276,14 @@ class WireMachineElement(node: TransparentNode, descriptor: TransparentNodeDescr
         val inputWire = input.asUtilityCableDescriptor()
         if (inputWire != null) {
             if (inputWire.insulated || inputWire.conductorCount != 1) return null
-            return UtilityCableDescriptor.allDescriptors()
-                .filter { it.insulated && !it.melted && it.conductorCount == 1 }
-                .firstOrNull {
-                    it.material == inputWire.material &&
-                        abs(it.totalConductorAreaMm2 - inputWire.totalConductorAreaMm2) <= 0.001
-                }
+            return WireMachineRules.insulated(inputWire)
         }
         val bundle = Eln.instance.woundWireBundleDescriptor
         if (bundle != null && bundle.checkSameItemStack(input)) {
             val material = bundle.getMaterial(input) ?: return null
             val targetLabel = bundle.getTargetLabel(input) ?: return null
             val conductorCount = bundle.getConductorCount(input)
-            return UtilityCableDescriptor.allDescriptors()
-                .filter { it.insulated && !it.melted && it.conductorCount == conductorCount }
-                .firstOrNull { it.material == material && it.sizeLabel == targetLabel }
+            return WireMachineRules.insulatedBundle(material, targetLabel, conductorCount)
         }
         return null
     }
@@ -319,12 +312,7 @@ class WireMachineElement(node: TransparentNode, descriptor: TransparentNodeDescr
         if (wires.any { !it.insulated || it.conductorCount != 1 }) return emptyList()
         if (wires.any { it.material != first.material }) return emptyList()
         if (wires.any { abs(it.totalConductorAreaMm2 - first.totalConductorAreaMm2) > 0.001 }) return emptyList()
-        return UtilityCableDescriptor.allDescriptors()
-            .filter { it.insulated && !it.melted && it.conductorCount == wires.size }
-            .filter { it.material == first.material }
-            .filter { abs((it.totalConductorAreaMm2 / it.conductorCount) - first.totalConductorAreaMm2) <= 0.001 }
-            .sortedBy { it.name }
-            .map { WireMachineOption(it.name, it) }
+        return WireMachineRules.combined(first, wires.size).map { WireMachineOption(it.name, it) }
     }
 
     private fun combinerTargetLengthMeters(): Double {
@@ -491,21 +479,14 @@ class WireMachineElement(node: TransparentNode, descriptor: TransparentNodeDescr
                 cable.setRemainingLengthMeters(stack, remaining)
             }
         }
-        val bundle = bundleDescriptor.createBundleStack(
-            descriptor.sizeLabel,
-            descriptor.metricSizeLabel,
-            descriptor.material,
-            descriptor.conductorCount,
-            descriptor.totalConductorAreaMm2 / descriptor.conductorCount,
-            targetLength
-        )
+        val bundle = WireMachineRules.bundle(bundleDescriptor, descriptor, targetLength)
         inventory.setInventorySlotContents(5, bundle)
         inventory.markDirty()
     }
 
     private fun requiredKgForLength(descriptor: UtilityCableDescriptor, targetLength: Double): Double {
         val baseLength = descriptor.defaultLengthMeters().coerceAtLeast(1.0)
-        return (targetLength / baseLength) * 10.0
+        return (targetLength / baseLength) * WireMachineRules.INGOTS_PER_WIRE
     }
 
     private fun absorbMetalInput() {
@@ -524,8 +505,8 @@ class WireMachineElement(node: TransparentNode, descriptor: TransparentNodeDescr
 
     private fun absorbInsulationInput() {
         val input = inventory.getStackInSlot(1) ?: return
-        if (!input.matchesOre("itemRubber")) return
-        insulationMetersBuffer += input.count * 32.0
+        if (!input.matchesOre(WireMachineRules.RUBBER)) return
+        insulationMetersBuffer += input.count * WireMachineRules.METERS_PER_RUBBER
         inventory.setInventorySlotContents(1, null)
         inventory.markDirty()
     }
@@ -537,14 +518,49 @@ class WireMachineElement(node: TransparentNode, descriptor: TransparentNodeDescr
     }
 
     private fun ItemStack.matchesOre(name: String): Boolean = OreDict.matches(this, name)
-    private fun ItemStack.matchesAnyOre(vararg names: String): Boolean = names.any { OreDict.matches(this, it) }
     private fun ItemStack.asUtilityCableDescriptor(): UtilityCableDescriptor? = Eln.sixNodeItem.getDescriptor(this) as? UtilityCableDescriptor
     private inline fun <reified T> ItemStack.itemDescriptorAs(): T? = GenericItemUsingDamageDescriptor.getDescriptor(this) as? T
-    private fun ItemStack.detectIngotMaterial(): UtilityCableMaterial? = when {
-        matchesOre("ingotCopper") -> UtilityCableMaterial.COPPER
-        matchesAnyOre("ingotAluminum", "ingotAluminium") -> UtilityCableMaterial.ALUMINUM
-        else -> null
+    private fun ItemStack.detectIngotMaterial(): UtilityCableMaterial? =
+        UtilityCableMaterial.entries.firstOrNull { material -> WireMachineRules.ingotNames(material).any { matchesOre(it) } }
+}
+
+/** What the wire machines make of what. */
+object WireMachineRules {
+    /** How many ingots make a wire of the default length. */
+    const val INGOTS_PER_WIRE = 10.0
+    const val METERS_PER_RUBBER = 32.0
+    const val RUBBER = "itemRubber"
+    const val MAX_COMBINED = 5
+
+    fun ingotNames(material: UtilityCableMaterial) = when (material) {
+        UtilityCableMaterial.COPPER -> listOf("ingotCopper")
+        UtilityCableMaterial.ALUMINUM -> listOf("ingotAluminum", "ingotAluminium")
     }
+
+    fun bareWires() = UtilityCableDescriptor.allDescriptors().filter { !it.insulated && !it.melted && it.conductorCount == 1 }
+
+    /** What the insulator makes of a bare wire. */
+    fun insulated(bare: UtilityCableDescriptor) = UtilityCableDescriptor.allDescriptors().firstOrNull {
+        it.insulated && !it.melted && it.conductorCount == 1 && it.material == bare.material &&
+            abs(it.totalConductorAreaMm2 - bare.totalConductorAreaMm2) <= 0.001
+    }
+
+    /** What the insulator makes of a wound bundle. */
+    fun insulatedBundle(material: UtilityCableMaterial, sizeLabel: String, conductors: Int) =
+        UtilityCableDescriptor.allDescriptors().firstOrNull {
+            it.insulated && !it.melted && it.conductorCount == conductors && it.material == material && it.sizeLabel == sizeLabel
+        }
+
+    /** The cables that some insulated wires can become; the combiner makes a bundle for the first. */
+    fun combined(wire: UtilityCableDescriptor, count: Int) = UtilityCableDescriptor.allDescriptors().filter {
+        it.insulated && !it.melted && it.conductorCount == count && it.material == wire.material &&
+            abs((it.totalConductorAreaMm2 / it.conductorCount) - wire.totalConductorAreaMm2) <= 0.001
+    }.sortedBy { it.name }
+
+    fun bundle(bundle: WoundWireBundleDescriptor, cable: UtilityCableDescriptor, meters: Double): ItemStack = bundle.createBundleStack(
+        cable.sizeLabel, cable.metricSizeLabel, cable.material, cable.conductorCount,
+        cable.totalConductorAreaMm2 / cable.conductorCount, meters
+    )
 }
 
 class WireMachineRender(entity: TransparentNodeEntity, descriptor: TransparentNodeDescriptor) : TransparentNodeElementRender(entity, descriptor) {
