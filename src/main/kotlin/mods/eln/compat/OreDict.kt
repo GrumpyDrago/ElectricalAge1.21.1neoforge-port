@@ -20,7 +20,7 @@ object OreDict {
 
     private val prefixes = listOf(
         "ingot" to "ingots", "dust" to "dusts", "plate" to "plates", "nugget" to "nuggets", "block" to "storage_blocks",
-        "ore" to "ores", "gem" to "gems", "crystal" to "gems", "dye" to "dyes"
+        "ore" to "ores", "raw" to "raw_materials", "gem" to "gems", "crystal" to "gems", "dye" to "dyes"
     )
 
     private val special = mapOf(

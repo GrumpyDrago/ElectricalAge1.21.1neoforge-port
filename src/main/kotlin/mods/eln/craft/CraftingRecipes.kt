@@ -20,6 +20,7 @@ import mods.eln.compat.*
 import mods.eln.Eln
 import mods.eln.i18n.I18N
 import mods.eln.misc.Recipe
+import mods.eln.misc.RecipesList
 import mods.eln.misc.Utils.println
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.item.Items
@@ -196,6 +197,7 @@ object CraftingRecipes {
 
         recipeGridDevices()
         recipeMaceratorModOres()
+        recipeRawMaterials()
         craftBrush()
         val cal: Calendar = Calendar.getInstance()
         val month: Int = cal.get(Calendar.MONTH) + 1
@@ -2107,6 +2109,32 @@ object CraftingRecipes {
                 ), 7000000.0
             )
         ) //hardcoded 7MJ to prevent overunity
+    }
+
+    /** What ores drop nowadays becomes the same as the ore. */
+    private fun recipeRawMaterials() {
+        val f = 4000.0
+        val smelt = 5000.0
+        val tungsten = Eln.config.getStringOrElse("runtime.dictionary.tungstenOre", "oreElnTungsten").replaceFirst("ore", "raw")
+        with(Eln.instance) {
+            rawMaterial(maceratorRecipes, "rawCopper", Eln.findItemStack("Copper Dust", 2), 1.0 * f)
+            rawMaterial(maceratorRecipes, "rawIron", Eln.findItemStack("Iron Dust", 2), 1.5 * f)
+            rawMaterial(maceratorRecipes, "rawGold", Eln.findItemStack("Gold Dust", 2), 3.0 * f)
+            rawMaterial(maceratorRecipes, "rawLead", Eln.findItemStack("Lead Dust", 2), 2.0 * f)
+            rawMaterial(maceratorRecipes, tungsten, Eln.findItemStack("Tungsten Dust", 2), 2.0 * f)
+            rawMaterial(maceratorRecipes, "rawCinnabar", Eln.findItemStack("Cinnabar Dust", 1), 2.0 * f)
+            rawMaterial(arcFurnaceRecipes, "rawCopper", Eln.findItemStack("Copper Ingot", 2), smelt)
+            rawMaterial(arcFurnaceRecipes, "rawIron", ItemStack(Items.IRON_INGOT, 2), smelt)
+            rawMaterial(arcFurnaceRecipes, "rawGold", ItemStack(Items.GOLD_INGOT, 2), smelt)
+            rawMaterial(arcFurnaceRecipes, "rawLead", Eln.findItemStack("Lead Ingot", 2), smelt)
+            rawMaterial(arcFurnaceRecipes, tungsten, Eln.findItemStack("Tungsten Ingot", 2), smelt)
+        }
+    }
+
+    private fun rawMaterial(list: RecipesList, name: String, output: ItemStack, energy: Double) {
+        // Some only exist with other mods. One stands for all with the tag.
+        val input = OreDict.getOres(name).firstOrNull() ?: return
+        list.addRecipe(Recipe(input.copyWithCount(1), output, energy))
     }
 
     private fun recipeMaceratorModOres() {

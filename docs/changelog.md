@@ -1,3 +1,8 @@
+## Unreleased
+
+- Macerators and the arc furnace take raw copper, iron, gold and lead, and make the same of them as of the ores; the macerator also takes raw cinnabar
+- Looks for updates every time a world is loaded or a server joined, not just the first time after starting the game
+
 ## 2.0.0-alpha.3
 
 - JEI shows what the machines can do: macerators, plate machines, compressors, magnetizers, the arc furnace, the fabricator and the wire machines

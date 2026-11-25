@@ -155,6 +155,12 @@ object ElnBehaviorTests {
             for (ore in listOf(Items.GOLD_ORE, Items.DEEPSLATE_GOLD_ORE)) expect(maceratorRecipes, ItemStack(ore), "gold_dust")
             for (ore in listOf(Items.COPPER_ORE, Items.DEEPSLATE_COPPER_ORE)) expect(maceratorRecipes, ItemStack(ore), "copper_dust")
             for (ore in listOf(Items.COAL_ORE, Items.DEEPSLATE_COAL_ORE)) expect(maceratorRecipes, ItemStack(ore), "coal")
+            for ((raw, dust) in listOf(Items.RAW_IRON to "iron_dust", Items.RAW_GOLD to "gold_dust", Items.RAW_COPPER to "copper_dust")) {
+                expect(maceratorRecipes, ItemStack(raw), dust)
+            }
+            expect(arcFurnaceRecipes, ItemStack(Items.RAW_IRON), "iron_ingot")
+            expect(arcFurnaceRecipes, ItemStack(Items.RAW_GOLD), "gold_ingot")
+            expect(arcFurnaceRecipes, ItemStack(Items.RAW_COPPER), "copper_ingot")
             expect(maceratorRecipes, Eln.findItemStack("Lead Ore", 1), "lead_dust")
             expect(maceratorRecipes, ItemStack(Items.SAND), "silicon_dust")
             expect(maceratorRecipes, ItemStack(Items.EMERALD_ORE), null)
