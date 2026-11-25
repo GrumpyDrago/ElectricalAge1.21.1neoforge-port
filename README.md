@@ -14,13 +14,13 @@ Key highlights:
 
 ## Download
 
-We only upload releases to the [GitHub releases page](https://github.com/age-series/ElectricalAge), the [Modrinth page](https://modrinth.com/mod/electrical-age-jrddunbr-edition), and the [CurseForge page](https://legacy.curseforge.com/minecraft/mc-mods/electrical-age-eln). If you download the mod from anywhere else, you are taking an unnecessary risk.
+Releases are only uploaded to the [GitHub releases page](https://github.com/GrumpyDrago/ElectricalAge1.21.1neoforge-port/releases) of this project. If you download the mod from anywhere else, you are taking an unnecessary risk.
 
 ## Getting started
 
 **This version is for Minecraft 1.21.1. NeoForge and [Kotlin for Forge](https://modrinth.com/mod/kotlin-for-forge) are required.** Worlds made with the 1.7.10 version cannot be opened, see [docs/neoforge-port.md](docs/neoforge-port.md).
 
-1. Fetch the latest stable build from the [releases](https://github.com/age-series/ElectricalAge/releases) page.
+1. Fetch the latest build from the [releases](https://github.com/GrumpyDrago/ElectricalAge1.21.1neoforge-port/releases) page.
 2. Drop the downloaded JAR and Kotlin for Forge 5 into your launcher’s mods folder. Use NeoForge 21.1.
 3. Launch the game and enjoy.
 

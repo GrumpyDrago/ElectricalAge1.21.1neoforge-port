@@ -51,6 +51,12 @@ Two of them take a system property through `JAVA_TOOL_OPTIONS`:
 
 Run `runData` after adding a component, so that it gets an item model.
 
+### Releases
+
+Set `mod_version` in `gradle.properties`, describe the version in [changelog.md](changelog.md) and push a tag `v<mod_version>`.
+The Build workflow then publishes the release, as a pre-release if the version has a `-` in it. The update check of the
+mod looks at these releases.
+
 ### Layout
 
 - `mods.eln.compat` keeps the vocabulary most of the code is written in, on top of the current API: `Level.getBlock(x, y, z)`,
