@@ -1,6 +1,7 @@
 package mods.eln.craft
 
 import mods.eln.Eln
+import mods.eln.fluid.FuelRegistry
 import net.minecraft.world.item.crafting.RecipeManager
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.neoforge.event.AddReloadListenerEvent
@@ -23,6 +24,7 @@ object RecipeInjector {
     // Which recipes exist depends on the materials that are around, so this has to wait for the tags.
     @SubscribeEvent
     fun onTags(event: TagsUpdatedEvent) {
+        FuelRegistry.forgetFluids()
         if (event.updateCause == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) manager?.let(::inject)
         if (event.shouldUpdateStaticData()) CraftingRecipes.buildMachines()
     }

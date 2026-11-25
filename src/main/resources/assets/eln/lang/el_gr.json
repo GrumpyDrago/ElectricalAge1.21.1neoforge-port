@@ -1541,7 +1541,7 @@
   "Fuel_level": "Επίπεδο καυσίμου",
   "Nominal_power:_%1$_W": "Ονομαστική ισχύς: %1$ W",
   "Nominal_voltage:_%1$_V": "Ονομαστική τάση: %1$ V",
-  "Produces_electricity_using_gasoline.": "Παράγει ηλεκτρισμό χρησιμοποιώντας βενζίνη.",
+  "Produces_electricity_using_gasoline_or_diesel.": "Παράγει ηλεκτρισμό χρησιμοποιώντας βενζίνη ή ντίζελ.",
   "Actual:_": "Πραγματική:",
   "Analog_regulator_slot": "Θέση αναλογικού ρυθμιστή",
   "Control_value_at_": "Τιμή ελέγχου στο",

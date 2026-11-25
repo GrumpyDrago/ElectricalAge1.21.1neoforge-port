@@ -1,3 +1,11 @@
+## 2.0.0-alpha.4
+
+- Engines, turbines and the fuel heat furnace take the fuels of all mods: the same fuel from several mods, and fuels known by tags such as `c:diesel` or by other names
+- Gas turbines, fuel generators and the radial motor take refined diesel fuels
+- Pipes can fill fuel generators
+- Fixes fuel generators that only took more fuel when empty, after the world was loaded again
+- Canisters that hold more than a bucket keep the rest when filling a fuel generator
+
 ## 2.0.0-alpha.3
 
 - JEI shows what the machines can do: macerators, plate machines, compressors, magnetizers, the arc furnace, the fabricator and the wire machines

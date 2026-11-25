@@ -152,7 +152,8 @@ class FuelHeatFurnaceElement(transparentNode: TransparentNode, descriptor: Trans
         slowProcessList.add(NodePeriodicPublishProcess(transparentNode, 2.0, 1.0))
         slowProcessList.add(thermalWatchdog)
 
-        tank.setFilter(FuelRegistry.fluidListToFluids(FuelRegistry.gasolineList + FuelRegistry.dieselList))
+        val fuels = FuelRegistry.gasolineList + FuelRegistry.dieselList
+        tank.setFilter { FuelRegistry.isOneOf(it, fuels) }
 
         thermalWatchdog.setTemperatureLimits((descriptor as FuelHeatFurnaceDescriptor).thermal)
             .setDestroys(WorldExplosion(this).machineExplosion())

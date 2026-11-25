@@ -3,20 +3,26 @@ package mods.eln.gametest
 import mods.eln.Eln
 import mods.eln.compat.orNull
 import mods.eln.craft.MachineRecipes
+import mods.eln.fluid.FluidNames
+import mods.eln.fluid.FuelRegistry
 import mods.eln.misc.Coordinate
 import mods.eln.misc.Direction
 import mods.eln.misc.RecipesList
 import mods.eln.node.NodeManager
 import mods.eln.node.six.SixNode
 import mods.eln.node.transparent.TransparentNode
+import mods.eln.node.transparent.TransparentNodeDescriptor
 import mods.eln.sixnode.electricalsource.ElectricalSourceElement
 import mods.eln.sixnode.lampsocket.LampSocketContainer
 import mods.eln.sixnode.lampsocket.LampSocketElement
+import mods.eln.transparentnode.FuelGeneratorElement
 import mods.eln.transparentnode.electricalmachine.ElectricalMachineElement
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.gametest.framework.GameTest
 import net.minecraft.gametest.framework.GameTestHelper
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.entity.item.ItemEntity
@@ -27,11 +33,17 @@ import net.minecraft.world.level.GameType
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.HopperBlock
 import net.minecraft.world.level.block.entity.HopperBlockEntity
+import net.minecraft.world.level.material.Fluid
+import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
 import net.neoforged.neoforge.capabilities.Capabilities
+import net.neoforged.neoforge.common.util.FakePlayerFactory
+import net.neoforged.neoforge.fluids.FluidStack
+import net.neoforged.neoforge.fluids.capability.IFluidHandler
 import net.neoforged.neoforge.gametest.GameTestHolder
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate
+import kotlin.math.abs
 import net.minecraft.core.Direction as McDirection
 
 /** What players do with the mod. Run with `./gradlew runGameTestServer`. */
@@ -258,6 +270,70 @@ object ElnBehaviorTests {
                     if (!helper.getBlockState(q).isAir) helper.setBlock(q, Blocks.AIR)
                 }
             }
+        }
+        helper.assertTrue(failures.isEmpty(), failures.joinToString())
+        helper.succeed()
+    }
+
+    /** With mods that have fuels in run/mods, this is about theirs. */
+    @GameTest(template = EMPTY)
+    @JvmStatic
+    fun enginesTakeFuelsOfAllMods(helper: GameTestHelper) {
+        val failures = ArrayList<String>()
+        val fluids = BuiltInRegistries.FLUID.filter { it !== Fluids.EMPTY && it.defaultFluidState().isSource }
+        // Those of other mods do not cope with players that have no client.
+        val player = FakePlayerFactory.getMinecraft(helper.level)
+        for (name in listOf("48V Fuel Generator", "Gas Turbine", "Radial Motor", "Fuel Heat Furnace", "Steam Turbine")) {
+            val stack = Eln.findItemStack(name, 1)
+            val descriptor = Eln.transparentNodeItem.getDescriptor(stack) as TransparentNodeDescriptor
+            // Some stand on something, and others reach below where they stand.
+            helper.setBlock(BlockPos(5, 3, 5), Blocks.STONE)
+            val p = helper.absolutePos(BlockPos(5, 4, 5))
+            helper.assertTrue(Eln.transparentNodeItem.placeBlockAt(stack, player, helper.level, p.x, p.y, p.z, 1), "$name was not placed")
+            val node = ownNode(helper, descriptor.parentItemDamage)
+            val taken = ArrayList<String>()
+            for (fluid in fluids) {
+                val tank = helper.level.getCapability(Capabilities.FluidHandler.BLOCK, node.coordinate.blockPos, McDirection.UP)
+                if (tank == null) {
+                    failures.add("$name has no tank")
+                    break
+                }
+                val filled = tank.fill(FluidStack(fluid, 1000), IFluidHandler.FluidAction.SIMULATE)
+                if (filled == 0) continue
+                taken.add("${FluidNames.idOf(fluid)}=${FuelRegistry.nameOf(fluid)}")
+                if (FuelRegistry.heatEnergyPerMilliBucket(fluid) <= 0) failures.add("$name gets nothing out of ${FluidNames.idOf(fluid)}")
+            }
+            Eln.logger.info("{} takes {} fluids: {}", name, taken.size, taken)
+            val generator = node.element
+            if (generator is FuelGeneratorElement && taken.size > 1) {
+                val tank = helper.level.getCapability(Capabilities.FluidHandler.BLOCK, node.coordinate.blockPos, McDirection.UP)!!
+                val (fuel, other) = taken.take(2).map { BuiltInRegistries.FLUID.get(ResourceLocation.parse(it.substringBefore('='))) }
+                fun fill(fluid: Fluid) = tank.fill(FluidStack(fluid, 1500), IFluidHandler.FluidAction.EXECUTE)
+                val filled = listOf(fill(fuel), fill(other), fill(fuel), fill(fuel))
+                if (filled != listOf(1500, 0, 500, 0)) failures.add("$name was filled with $filled")
+                val nbt = CompoundTag()
+                generator.writeToNBT(nbt)
+                generator.tankFluid = Fluids.EMPTY
+                generator.readFromNBT(nbt)
+                if (generator.tankFluid !== fuel || generator.tankLevel != 1.0) failures.add("$name forgot its fuel")
+                // By hand, in halves of the tank.
+                player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack(fuel.bucket))
+                generator.onBlockActivated(player, Direction.YP, 0f, 0f, 0f)
+                if (player.mainHandItem.item !== fuel.bucket) failures.add("$name took a bucket when full")
+                generator.tankLevel = 0.4
+                generator.onBlockActivated(player, Direction.YP, 0f, 0f, 0f)
+                if (abs(generator.tankLevel - 0.9) > 1e-9 || player.mainHandItem.item === fuel.bucket) failures.add("$name took no bucket: ${generator.tankLevel} ${player.mainHandItem}")
+                if (!player.inventory.contains(ItemStack(Items.BUCKET))) failures.add("$name kept the bucket")
+                player.inventory.clearContent()
+            }
+            for (water in listOf(Fluids.WATER, Fluids.LAVA)) if (taken.any { it.startsWith(FluidNames.idOf(water) + "=") }) failures.add("$name takes $water")
+            for (x in 0..10) for (y in 1..10) for (z in 0..10) {
+                if (!helper.getBlockState(BlockPos(x, y, z)).isAir) helper.setBlock(BlockPos(x, y, z), Blocks.AIR)
+            }
+        }
+        for (fluid in fluids) {
+            val id = BuiltInRegistries.FLUID.getKey(fluid)
+            if (id.namespace != "minecraft" && FuelRegistry.nameOf(fluid).isEmpty()) Eln.logger.info("no fuel: {}", id)
         }
         helper.assertTrue(failures.isEmpty(), failures.joinToString())
         helper.succeed()

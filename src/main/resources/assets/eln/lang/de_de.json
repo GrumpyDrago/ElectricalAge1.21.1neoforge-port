@@ -1541,7 +1541,7 @@
   "Fuel_level": "Brennstoffstand",
   "Nominal_power:_%1$_W": "Nennleistung: %1$ W",
   "Nominal_voltage:_%1$_V": "Nennspannung: %1$ V",
-  "Produces_electricity_using_gasoline.": "Erzeugt Strom aus Benzin.",
+  "Produces_electricity_using_gasoline_or_diesel.": "Erzeugt Strom aus Benzin oder Diesel.",
   "Actual:_": "Ist:",
   "Analog_regulator_slot": "Analogregler-Slot",
   "Control_value_at_": "Steuerwert bei",

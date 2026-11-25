@@ -16,14 +16,15 @@ import net.neoforged.neoforge.fluids.capability.templates.FluidTank
  * @param tankSize Tank size, in mB.
  */
 open class ElementFluidHandler(tankSize: Int) : IElnFluidHandler, INBTTReady {
-    private var whitelist: Array<Fluid>? = null
+    private var filter: ((Fluid) -> Boolean)? = null
     private var fluidHeat = 0f
 
     @JvmField
     var tank = FluidTank(tankSize)
 
-    fun setFilter(whitelist: Array<Fluid>) {
-        this.whitelist = whitelist
+    /** Which fluids are let in. */
+    fun setFilter(filter: (Fluid) -> Boolean) {
+        this.filter = filter
     }
 
     open val heatEnergyPerMilliBucket: Float
@@ -40,7 +41,7 @@ open class ElementFluidHandler(tankSize: Int) : IElnFluidHandler, INBTTReady {
         if (resource == null || resource.isEmpty) return 0
         // A non empty tank only takes more of the same.
         if (!tank.isEmpty) return tank.fill(resource, doFill)
-        if (whitelist?.contains(resource.fluid) == false) return 0
+        if (filter?.invoke(resource.fluid) == false) return 0
         if (doFill) setHeatEnergyPerMilliBucket(resource.fluid)
         return tank.fill(resource, doFill)
     }
@@ -53,7 +54,7 @@ open class ElementFluidHandler(tankSize: Int) : IElnFluidHandler, INBTTReady {
     override fun drain(from: Direction?, maxDrain: Int, doDrain: Boolean): FluidStack? = tank.drain(maxDrain, doDrain)
 
     override fun canFill(from: Direction?, stack: FluidStack): Boolean =
-        if (!tank.isEmpty) FluidStack.isSameFluid(tank.fluid, stack) else whitelist?.contains(stack.fluid) ?: true
+        if (!tank.isEmpty) FluidStack.isSameFluid(tank.fluid, stack) else filter?.invoke(stack.fluid) ?: true
 
     override fun tankFor(from: Direction?): FluidTank? = tank
 

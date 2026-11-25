@@ -51,9 +51,9 @@ class RadialMotorDescriptor(baseName: String, obj: Obj3D) :
     // Maximum fluid consumed per second, mB.
     val fluidConsumption: Float = 64f
     // How we describe the fluid in the tooltip.
-    val fluidDescription: String = "gasoline"
+    val fluidDescription: String = "fuel"
     // The fluids actually accepted.
-    val fluidTypes: Array<String> = FuelRegistry.gasolineList + FuelRegistry.gasList
+    val fluidTypes: Array<String> = FuelRegistry.engineList + FuelRegistry.gasList
     // Width of the efficiency curve.
     // <1 means "Can't be started without power".
     val efficiencyCurve: Float = 1.5f
@@ -144,7 +144,7 @@ class RadialMotorElement(node: TransparentNode, transparentNodeDescriptor: Trans
     }
 
     init {
-        tank.setFilter(FuelRegistry.fluidListToFluids(desc.fluidTypes))
+        tank.setFilter { FuelRegistry.isOneOf(it, desc.fluidTypes) }
         slowProcessList.add(radialMotorSlowProcess)
         electricalLoadList.add(throttle)
     }

@@ -429,6 +429,8 @@ public class Eln {
     }
 
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ElnBlockEntities.getTransparentNode(),
+            (entity, side) -> entity.fluidHandler(side));
         event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ElnBlockEntities.getTransparentNodeWithFluid(),
             (entity, side) -> entity.fluidHandler(side));
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ElnBlockEntities.getTransparentNode(),

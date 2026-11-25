@@ -34,6 +34,13 @@ for example `data/eln/recipe/crafting/wrench.json`.
 Machines make the same of an item as of others in a tag like `c:ores/iron`, `c:ingots/copper`, `c:dusts/lead`,
 `c:sands/colorless` or `minecraft:logs`; see `OreDict.isMaterial` for which tags count.
 
+### Fuels
+
+Fuels are in `config/eln/fluids.json`, by name. A fluid is a fuel if an entry has its id (`somemod:juice`), else its name,
+else the name of one of its `c:` tags; spelling and some common other names do not matter (`FuelNames`). Entries of
+`diesel` with `engine` set to true also work in engines and turbines. Mekanism's chemicals are not fluids, so its gases
+have to go through a rotary condensentrator first.
+
 ## For developers
 
 ### Commands

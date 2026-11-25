@@ -22,6 +22,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.level.Level
+import net.neoforged.neoforge.fluids.capability.IFluidHandler
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -30,6 +31,12 @@ import java.lang.reflect.InvocationTargetException
 
 open class TransparentNodeEntity(type: BlockEntityType<*>, pos: BlockPos, state: BlockState) : NodeBlockEntity(type, pos, state), ISidedInventory {
     constructor(pos: BlockPos, state: BlockState) : this(ElnBlockEntities.transparentNode, pos, state)
+
+    /** What other mods see of the tanks; machines that were placed before they had any are no different. */
+    fun fluidHandler(side: net.minecraft.core.Direction?): IFluidHandler? {
+        if (worldObj.isClientSide) return null
+        return (node as? TransparentNode)?.element?.getFluidHandler()?.forSide(side)
+    }
 
     var elementRender: TransparentNodeElementRender? = null
     var elementRenderId: Short = 0

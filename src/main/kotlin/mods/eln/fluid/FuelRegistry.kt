@@ -1,10 +1,11 @@
 package mods.eln.fluid
 
-import mods.eln.compat.*
-
 import mods.eln.config.JsonConfig
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.material.Fluid
+import net.minecraft.world.level.material.Fluids
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 data class FuelEntry(
     val name: String,
@@ -26,6 +27,11 @@ object FuelRegistry {
     private const val gasPath = "fuels.gas"
     private const val steamPath = "fuels.steam"
     private var config = JsonConfig(File("config/eln/fluids.cfg"), includeDefaultSpecs = false)
+
+    /** Diesel fuels that engines can use as well, by default. The others are too dirty or too thick. */
+    private val engineDiesels = setOf(
+        "biodiesel", "diesel", "diesel_crack", "diesel_crack_reform", "diesel_reform", "diesel_sulfur", "boosted_diesel", "high_power_biodiesel"
+    )
 
     private val dieselDefaults = listOf(
         fuel("creosote", 750000.0, 0.5, 0.3, "Railcraft, coal tar creosote, ~1.08 kg/L, LHV ~0.7 MJ/L."),
@@ -58,6 +64,10 @@ object FuelRegistry {
         fuel("diesel_crack_reform", 38200000.0, 0.5, 0.3, "HBM, cracked reformed diesel, ~0.82 kg/L, LHV ~46.6 MJ/kg."),
         fuel("heavyoil_vacuum", 38500000.0, 0.5, 0.3, "HBM, vacuum heavy oil, ~0.98 kg/L, LHV ~39.3 MJ/kg."),
         fuel("diesel", 38600000.0, 0.5, 0.3, "IE/PneumaticCraft/HBM diesel, ~0.83 kg/L, LHV ~45.5 MJ/kg (~38.6 MJ/L)."),
+        fuel("plantoil", 33000000.0, 0.5, 0.3, "Vegetable oils, ~0.92 kg/L, LHV ~36 MJ/kg."),
+        fuel("diesel_sulfur", 38600000.0, 0.5, 0.6, "Immersive Petroleum/Modern Industrialization, diesel before its sulfur is removed. Sooty, corrosive."),
+        fuel("high_power_biodiesel", 39000000.0, 0.5, 0.2, "Immersive Engineering, high power biodiesel."),
+        fuel("boosted_diesel", 42000000.0, 0.55, 0.2, "Modern Industrialization, boosted diesel."),
         fuel("heavyoil", 39100000.0, 0.5, 0.3, "Magneticraft/HBM heavy fuel oil, ~0.95 kg/L, LHV ~41.2 MJ/kg."),
         fuel("diesel_reform", 39200000.0, 0.5, 0.3, "HBM reformed diesel, ~0.84 kg/L, LHV ~46.7 MJ/kg.")
     )
@@ -94,6 +104,7 @@ object FuelRegistry {
         fuel("lightoil_crack", 34500000.0, 0.60, 0.30, "HBM cracked light oil, ~0.80 kg/L, LHV ~43.1 MJ/kg."),
         fuel("kerosene", 34800000.0, 0.55, 0.10, "PneumaticCraft/HBM kerosene (Jet A-1), ~0.81 kg/L, LHV ~43.0 MJ/kg (~34.8 MJ/L)."),
         fuel("lightoil_vacuum", 34800000.0, 0.60, 0.25, "HBM vacuum light oil, ~0.84 kg/L, LHV ~41.4 MJ/kg."),
+        fuel("turbofuel", 35000000.0, 0.60, 0.05, "Oritech, turbofuel."),
         fuel("xylene", 35000000.0, 0.55, 0.20, "HBM, BTX cut, ~0.87 kg/L, LHV ~40.2 MJ/kg (~35 MJ/L). Aromatic, sooty."),
         fuel("lightoil_ds", 35100000.0, 0.60, 0.05, "HBM desulfurized light oil, ~0.83 kg/L, LHV ~42.3 MJ/kg."),
         fuel("lightoil", 35358000.0, 0.60, 0.20, "Magneticraft/HBM light oil, ~0.83 kg/L, LHV ~42.6 MJ/kg."),
@@ -129,6 +140,7 @@ object FuelRegistry {
         fuel("hotsteam", 2.257 * 2, 0.35, 0.0, "HBM hot steam, ~2x base steam energy before ELN scaling."),
         fuel("ic2superheatedsteam", 2.257 * 3, 0.55, 0.0, "IC2 superheated steam, ~3x base before ELN scaling."),
         fuel("superhotsteam", 2.257 * 4, 0.75, 0.0, "HBM super hot steam, ~4x base before ELN scaling."),
+        fuel("high_pressure_steam", 2.257 * 8, 1.0, 0.0, "Modern Industrialization high pressure steam, 8x base before ELN scaling."),
         fuel("ultrahotsteam", 2.257 * 8, 1.0, 0.0, "HBM ultra hot steam, ~8x base before ELN scaling.")
     )
 
@@ -140,12 +152,14 @@ object FuelRegistry {
         config.load()
         config.save()
         config.writeExampleFile()
+        fuelNames = null
+        forgetFluids()
     }
 
     private fun registerConfigEntries(config: JsonConfig) {
         config.registerEntry(heatValueFactorPath, defaultHeatValueFactor, "Factor applied when converting real-world heat values to Minecraft heat values.")
         config.registerGroupComment(fuelsPath, "Fuel registry data. Each fuel entry stores heat value and wear properties together.")
-        config.registerGroupComment(dieselPath, "Heavy liquid fuels used by fuel heat furnaces.")
+        config.registerGroupComment(dieselPath, "Heavy liquid fuels used by fuel heat furnaces. Those with engine set to true also work in combustion engines and gas turbines.")
         config.registerGroupComment(gasolinePath, "Light liquid fuels usable by combustion engines and gas turbines.")
         config.registerGroupComment(gasPath, "Burnable gases. Stored values are pre-pressurization real-world energy equivalents.")
         config.registerGroupComment(steamPath, "Steam-like working fluids before ELN's global heat-value scaling is applied.")
@@ -163,6 +177,7 @@ object FuelRegistry {
             config.registerEntry("$entryPath.heatValue", entry.heatValue)
             config.registerEntry("$entryPath.temperatureFactor", entry.temperatureFactor)
             config.registerEntry("$entryPath.cleanlinessFactor", entry.cleanlinessFactor)
+            if (basePath == dieselPath) config.registerEntry("$entryPath.engine", entry.name in engineDiesels)
         }
     }
 
@@ -170,6 +185,10 @@ object FuelRegistry {
 
     val dieselList: Array<String>
         get() = fuelNames(dieselPath)
+
+    /** What combustion engines can use, besides gases. */
+    val engineList: Array<String>
+        get() = gasolineList + dieselList.filter { config.getBooleanOrElse("$dieselPath.$it.engine", false) }
 
     val gasolineList: Array<String>
         get() = fuelNames(gasolinePath)
@@ -202,13 +221,32 @@ object FuelRegistry {
         }
     }
 
-    fun fluidListToFluids(fluidNames: Array<String>) =
-        fluidNames.map { FluidNames.find(it) }.filterNotNull().toTypedArray()
+    private var fuelNames: FuelNames? = null
+    private val fluidNames = ConcurrentHashMap<Fluid, String>()
+
+    /** To be called when tags have changed. */
+    fun forgetFluids() = fluidNames.clear()
+
+    /** What the configuration calls this fluid, or "" if it is no fuel. */
+    fun nameOf(fluid: Fluid?): String {
+        if (fluid == null || fluid === Fluids.EMPTY) return ""
+        return fluidNames.getOrPut(fluid) {
+            val names = fuelNames ?: FuelNames(fuelCategoryPaths().flatMap { fuelNames(it).toList() }).also { fuelNames = it }
+            val tags = fluid.builtInRegistryHolder().tags().map { it.location().toString() }.toList()
+            names.find(BuiltInRegistries.FLUID.getKey(fluid).toString(), tags) ?: ""
+        }
+    }
+
+    /** Whether the fluid, of whichever mod, is one of these fuels. */
+    fun isOneOf(fluid: Fluid, fuels: Array<String>): Boolean {
+        val name = nameOf(fluid)
+        return name.isNotEmpty() && name in fuels
+    }
 
     fun heatEnergyPerMilliBucket(fuelName: String): Double =
         config.getDoubleOrElse(heatValueFactorPath, defaultHeatValueFactor) * baseHeatValueForFuel(fuelName)
 
-    fun heatEnergyPerMilliBucket(fluid: Fluid?): Double = heatEnergyPerMilliBucket(fluid?.name ?: "")
+    fun heatEnergyPerMilliBucket(fluid: Fluid?): Double = heatEnergyPerMilliBucket(nameOf(fluid))
 
     fun fuelEntry(fuelName: String): FuelEntry {
         val categoryPath = findFuelCategoryPath(fuelName)
@@ -237,7 +275,7 @@ object FuelRegistry {
         }
     }
 
-    fun fuelEntry(fluid: Fluid?): FuelEntry = fuelEntry(fluid?.name ?: "")
+    fun fuelEntry(fluid: Fluid?): FuelEntry = fuelEntry(nameOf(fluid))
 
     fun temperatureFactor(fuelName: String): Double = fuelEntry(fuelName).temperatureFactor
 

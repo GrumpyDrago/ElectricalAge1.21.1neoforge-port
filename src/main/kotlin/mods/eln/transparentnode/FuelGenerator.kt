@@ -2,14 +2,18 @@ package mods.eln.transparentnode
 
 import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.Fluids
+import net.neoforged.neoforge.fluids.FluidStack
 import net.neoforged.neoforge.fluids.FluidType
 import net.neoforged.neoforge.fluids.FluidUtil
 import net.neoforged.neoforge.fluids.capability.IFluidHandler
+import net.neoforged.neoforge.fluids.capability.templates.FluidTank
 import mods.eln.compat.*
 
 import mods.eln.Eln
 import mods.eln.cable.CableRenderType
+import mods.eln.fluid.FluidNames
 import mods.eln.fluid.FuelRegistry
+import mods.eln.fluid.IElnFluidHandler
 import mods.eln.i18n.I18N
 import mods.eln.i18n.I18N.tr
 import mods.eln.misc.*
@@ -32,6 +36,8 @@ import net.minecraft.nbt.CompoundTag
 import mods.eln.compat.client.GL11
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import kotlin.math.floor
+import net.minecraft.core.Direction as McDirection
 
 class FuelGeneratorDescriptor(name: String, internal val obj: Obj3D?, internal val cable: ElectricalCableDescriptor,
                               internal val nominalPower: Double, internal val maxVoltage: Double,
@@ -52,7 +58,7 @@ class FuelGeneratorDescriptor(name: String, internal val obj: Obj3D?, internal v
             else -> 1.5
         }
 
-        val TankCapacityInBuckets = 2
+        const val TankCapacityInBuckets = 2
         val GeneratorBailOutVoltageRatio = 0.5
         val MinimalLoadFractionOfNominalPower = 0.1
         val VoltageStabilizationGracePeriod = 1.0
@@ -64,7 +70,7 @@ class FuelGeneratorDescriptor(name: String, internal val obj: Obj3D?, internal v
     internal val switch = obj?.getPart("switch")
     internal val cableRenderDescriptor = cable.render
 
-    internal val fuels = FuelRegistry.gasolineList
+    internal val fuels = FuelRegistry.engineList
 
     init {
         voltageLevelColor = VoltageLevelColor.fromCable(cable)
@@ -107,7 +113,7 @@ class FuelGeneratorDescriptor(name: String, internal val obj: Obj3D?, internal v
                                 list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
 
-        list.add(tr("Produces electricity using gasoline."))
+        list.add(tr("Produces electricity using gasoline or diesel."))
         list.add("  " + tr("Nominal voltage: %1$ V", Utils.plotValue(cable.electricalNominalVoltage)))
         list.add("  " + tr("Nominal power: %1$ W", Utils.plotValue(nominalPower)))
     }
@@ -119,9 +125,9 @@ class FuelGeneratorElement(transparentNode: TransparentNode, descriptor_: Transp
     internal var powerSource = PowerSource("powerSource", positiveLoad)
     internal var slowProcess = FuelGeneratorSlowProcess(this)
     override var descriptor = descriptor_ as FuelGeneratorDescriptor
-    internal val fuels = FuelRegistry.fluidListToFluids(descriptor.fuels).toList()
     internal var tankLevel = 0.0
-    internal var tankFluid: Fluid = Fluids.LAVA
+    /** Nothing in worlds from before it was saved, even if there is fuel. */
+    internal var tankFluid: Fluid = Fluids.EMPTY
     internal var on by published(false)
     internal var voltageGracePeriod = 0.0
 
@@ -139,6 +145,26 @@ class FuelGeneratorElement(transparentNode: TransparentNode, descriptor_: Transp
         }
         else -> null
     }
+
+    private fun accepts(fluid: Fluid) = FuelRegistry.isOneOf(fluid, descriptor.fuels) &&
+        (fluid === tankFluid || tankFluid === Fluids.EMPTY || tankLevel * FuelGeneratorTank.CAPACITY < 1)
+
+    /** Puts up to [amount] mB in, and returns how many. */
+    internal fun fill(fluid: Fluid, amount: Int, doFill: Boolean): Int {
+        if (amount <= 0 || !accepts(fluid)) return 0
+        // What is in the tank is not a whole number.
+        val space = floor((1.0 - tankLevel) * FuelGeneratorTank.CAPACITY + 1e-6).toInt().coerceAtLeast(0)
+        val filled = minOf(amount, space)
+        if (doFill && filled > 0) {
+            tankFluid = fluid
+            tankLevel = minOf(1.0, tankLevel + filled.toDouble() / FuelGeneratorTank.CAPACITY)
+        }
+        return filled
+    }
+
+    private val tank = FuelGeneratorTank(this)
+
+    override fun getFluidHandler() = tank
 
     override fun getThermalLoad(side: Direction, lrdu: LRDU): ThermalLoad? = null
 
@@ -176,21 +202,17 @@ class FuelGeneratorElement(transparentNode: TransparentNode, descriptor_: Transp
             val bucket = player.currentEquippedItem
             val held = if (bucket == null) null else FluidUtil.getFluidContained(bucket).orElse(null)
             if (held != null && !held.isEmpty) {
-                val deltaLevel = 1.0 / FuelGeneratorDescriptor.TankCapacityInBuckets
-                if (tankLevel <= 1.0 - deltaLevel && held.amount >= FluidType.BUCKET_VOLUME) {
-                    if ((held.fluid === tankFluid || tankLevel <= 0.0) && held.fluid in fuels) {
-                        tankFluid = held.fluid
-                        tankLevel += deltaLevel
+                val handler = FluidUtil.getFluidHandler(bucket!!.copyWithCount(1)).orElse(null)
+                if (handler != null && fill(held.fluid, FluidType.BUCKET_VOLUME, false) == FluidType.BUCKET_VOLUME) {
+                    // Canisters and the like may hold more, and some give only all of it.
+                    val given = handler.drain(FluidType.BUCKET_VOLUME, IFluidHandler.FluidAction.EXECUTE)
+                    if (given.amount == FluidType.BUCKET_VOLUME) {
+                        fill(given.fluid, given.amount, true)
                         if (!player.isCreativeMode) {
-                            val handler = FluidUtil.getFluidHandler(bucket!!.copyWithCount(1)).orElse(null)
-                            if (handler != null) {
-                                handler.drain(FluidType.BUCKET_VOLUME, IFluidHandler.FluidAction.EXECUTE)
-                                val empty = handler.container
-                                bucket.shrink(1)
-                                if (!player.inventory.add(empty)) player.drop(empty, false)
-                            }
+                            bucket.shrink(1)
+                            val rest = handler.container
+                            if (!rest.isEmpty && !player.inventory.add(rest)) player.drop(rest, false)
                         }
-
                         return true
                     }
                 }
@@ -219,12 +241,14 @@ class FuelGeneratorElement(transparentNode: TransparentNode, descriptor_: Transp
     override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         tankLevel = nbt.getDouble("tankLevel")
+        tankFluid = FluidNames.find(nbt.getString("tankFluid")) ?: Fluids.EMPTY
         on = nbt.getBoolean("on")
     }
 
     override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
         nbt.putDouble("tankLevel", tankLevel)
+        nbt.putString("tankFluid", FluidNames.idOf(tankFluid))
         nbt.putBoolean("on", on)
     }
 
@@ -234,6 +258,42 @@ class FuelGeneratorElement(transparentNode: TransparentNode, descriptor_: Transp
         Pair(tr("Generated power"), Utils.plotPower("", powerSource.effectivePower)),
         Pair(tr("Voltage"), Utils.plotVolt("", powerSource.voltage))
     )
+}
+
+/** What pipes see of the fuel generator. They can only fill it. */
+class FuelGeneratorTank(private val generator: FuelGeneratorElement) : IElnFluidHandler {
+    companion object {
+        const val CAPACITY = FuelGeneratorDescriptor.TankCapacityInBuckets * FluidType.BUCKET_VOLUME
+    }
+
+    override fun fill(from: McDirection?, resource: FluidStack?, doFill: Boolean): Int =
+        if (resource == null || resource.isEmpty) 0 else generator.fill(resource.fluid, resource.amount, doFill)
+
+    override fun drain(from: McDirection?, resource: FluidStack?, doDrain: Boolean): FluidStack? = null
+
+    override fun drain(from: McDirection?, maxDrain: Int, doDrain: Boolean): FluidStack? = null
+
+    override fun canFill(from: McDirection?, stack: FluidStack): Boolean = FuelRegistry.isOneOf(stack.fluid, generator.descriptor.fuels)
+
+    override fun tankFor(from: McDirection?): FluidTank {
+        val tank = FluidTank(CAPACITY)
+        val amount = (generator.tankLevel * CAPACITY).toInt()
+        if (amount > 0 && generator.tankFluid !== Fluids.EMPTY) tank.fluid = FluidStack(generator.tankFluid, amount)
+        return tank
+    }
+
+    override fun forSide(side: McDirection?): IFluidHandler {
+        val owner = this
+        return object : IFluidHandler {
+            override fun getTanks() = 1
+            override fun getFluidInTank(index: Int): FluidStack = owner.tankFor(side).fluid
+            override fun getTankCapacity(index: Int) = CAPACITY
+            override fun isFluidValid(index: Int, stack: FluidStack) = owner.canFill(side, stack)
+            override fun fill(resource: FluidStack, action: IFluidHandler.FluidAction) = owner.fill(side, resource, action.execute())
+            override fun drain(resource: FluidStack, action: IFluidHandler.FluidAction): FluidStack = FluidStack.EMPTY
+            override fun drain(maxDrain: Int, action: IFluidHandler.FluidAction): FluidStack = FluidStack.EMPTY
+        }
+    }
 }
 
 class FuelGeneratorRender(tileEntity: TransparentNodeEntity, descriptor: TransparentNodeDescriptor) :

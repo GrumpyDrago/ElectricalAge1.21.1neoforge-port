@@ -150,9 +150,9 @@ class GasTurbineDescriptor(basename: String, obj: Obj3D, private val capacitySca
     // Provides about 8kW of power, given gasoline.
     // Less dense fuels will be proportionally less effective.
     override val fluidConsumption = 4f * capacityScale
-    override val fluidDescription = "gasoline"
+    override val fluidDescription = "fuel"
     // It runs on puns.
-    override val fluidTypes = FuelRegistry.gasolineList + FuelRegistry.gasList
+    override val fluidTypes = FuelRegistry.engineList + FuelRegistry.gasList
     // Gas turbines are finicky about turbine speed.
     override val efficiencyCurve = 0.5f
     // And need to be spun up before working.
@@ -261,7 +261,7 @@ class TurbineElement(node: TransparentNode, desc_: TransparentNodeDescriptor) :
     }
 
     init {
-        tank.setFilter(FuelRegistry.fluidListToFluids(desc.fluidTypes))
+        tank.setFilter { FuelRegistry.isOneOf(it, desc.fluidTypes) }
         slowProcessList.add(turbineSlowProcess)
         electricalLoadList.add(throttle)
         slowProcessList.add(NodePeriodicPublishProcess(node, 2.0, 1.0))

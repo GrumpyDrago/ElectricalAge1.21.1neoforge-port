@@ -1541,7 +1541,7 @@
   "Fuel_level": "Nível de combustível",
   "Nominal_power:_%1$_W": "Potência nominal: %1$ W",
   "Nominal_voltage:_%1$_V": "Tensão nominal: %1$ V",
-  "Produces_electricity_using_gasoline.": "Produz eletricidade usando gasolina.",
+  "Produces_electricity_using_gasoline_or_diesel.": "Produz eletricidade usando gasolina ou diesel.",
   "Actual:_": "Real:",
   "Analog_regulator_slot": "Espaço de regulador analógico",
   "Control_value_at_": "Valor de controle em",

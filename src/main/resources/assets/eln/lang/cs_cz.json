@@ -1541,7 +1541,7 @@
   "Fuel_level": "Úroveň paliva",
   "Nominal_power:_%1$_W": "Jmenovitý výkon: %1$ W",
   "Nominal_voltage:_%1$_V": "Jmenovité napětí: %1$ V",
-  "Produces_electricity_using_gasoline.": "Vyrábí elektřinu pomocí benzínu.",
+  "Produces_electricity_using_gasoline_or_diesel.": "Vyrábí elektřinu pomocí benzínu nebo nafty.",
   "Actual:_": "Skutečná:",
   "Analog_regulator_slot": "Slot pro analogový regulátor",
   "Control_value_at_": "Hodnota regulace při",

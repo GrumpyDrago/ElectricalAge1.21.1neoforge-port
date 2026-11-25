@@ -1541,7 +1541,7 @@
   "Fuel_level": "燃油含量",
   "Nominal_power:_%1$_W": "额定功率: %1$ W",
   "Nominal_voltage:_%1$_V": "额定电压: %1$ V",
-  "Produces_electricity_using_gasoline.": "燃烧轻油发电",
+  "Produces_electricity_using_gasoline_or_diesel.": "燃烧轻油或柴油发电",
   "Actual:_": "实际值:",
   "Analog_regulator_slot": "温控组件",
   "Control_value_at_": "控制值",
