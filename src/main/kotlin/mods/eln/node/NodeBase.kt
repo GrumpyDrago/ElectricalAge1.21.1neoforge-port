@@ -119,7 +119,7 @@ abstract class NodeBase {
         var explosionStrength = explosionStrength
         if (isDestructing) return
         isDestructing = true
-        if (!Eln.config.getBooleanOrElse("gameplay.hazards.explosionsEnabled", false)) explosionStrength = 0f
+        if (!Eln.explosionEnable) explosionStrength = 0f
         disconnect()
         coordinate.world().setBlockToAir(coordinate.x, coordinate.y, coordinate.z)
         NodeManager.instance!!.removeNode(this)
@@ -160,19 +160,21 @@ abstract class NodeBase {
         if (!entityPlayer.worldObj.isClientSide && equipped != null) {
             if (Eln.multiMeterElement.checkSameItemStack(equipped)) {
                 val str = multiMeterString(side)
-                addMeterChatMessages(entityPlayer, str)
+                addChatMessage(entityPlayer, str)
                 return true
             }
             if (Eln.thermometerElement.checkSameItemStack(equipped)) {
                 val str = thermoMeterString(side)
-                addMeterChatMessages(entityPlayer, str)
+                addChatMessage(entityPlayer, str)
                 return true
             }
             if (Eln.allMeterElement.checkSameItemStack(equipped)) {
                 val str1 = multiMeterString(side)
                 val str2 = thermoMeterString(side)
-                val str = listOf(str1, str2).filter { it.isNotEmpty() }.joinToString("\n")
-                if (str.isNotEmpty()) addMeterChatMessages(entityPlayer, str)
+                var str = ""
+                str += str1
+                str += str2
+                if (str != "") addChatMessage(entityPlayer, str)
                 return true
             }
             if (Eln.configCopyToolElement.checkSameItemStack(equipped)) {
@@ -207,13 +209,6 @@ abstract class NodeBase {
         return false
     }
 
-    private fun addMeterChatMessages(entityPlayer: Player, text: String) {
-        text.split('\n')
-            .map { it.trimEnd('\r') }
-            .filter { it.isNotEmpty() }
-            .forEach { addChatMessage(entityPlayer, it) }
-    }
-
     fun reconnect() {
         disconnect()
         connect()
@@ -222,43 +217,6 @@ abstract class NodeBase {
     abstract fun getSideConnectionMask(side: Direction, lrdu: LRDU): Int
     abstract fun getThermalLoad(side: Direction, lrdu: LRDU, mask: Int): ThermalLoad?
     abstract fun getElectricalLoad(side: Direction, lrdu: LRDU, mask: Int): ElectricalLoad?
-
-    open fun getElectricalLoad(side: Direction, lrdu: LRDU, mask: Int, remoteEndpoint: NodeConnectionEndpoint): ElectricalLoad? {
-        return getElectricalLoad(side, lrdu, mask)
-    }
-
-    open fun getConnectionEndpoint(side: Direction, lrdu: LRDU): NodeConnectionEndpoint {
-        return NodeConnectionEndpoint(this, side, lrdu, this, side, lrdu)
-    }
-
-    fun findAdjacentConnectionEndpoint(side: Direction, lrdu: LRDU): NodeConnectionEndpoint? {
-        findWrappedAdjacentConnectionEndpoint(side, lrdu)?.let { return it }
-        return findDirectAdjacentConnectionEndpoint(side, lrdu)
-    }
-
-    private fun findWrappedAdjacentConnectionEndpoint(side: Direction, lrdu: LRDU): NodeConnectionEndpoint? {
-        if (!isBlockWrappable(side)) return null
-        val emptyBlockCoord = intArrayOf(coordinate.x, coordinate.y, coordinate.z)
-        side.applyTo(emptyBlockCoord, 1)
-
-        val elementSide = side.applyLRDU(lrdu)
-        val otherBlockCoord = intArrayOf(emptyBlockCoord[0], emptyBlockCoord[1], emptyBlockCoord[2])
-        elementSide.applyTo(otherBlockCoord, 1)
-
-        val otherNode = NodeManager.instance!!.getNodeFromCoordonate(
-            Coordinate(otherBlockCoord[0], otherBlockCoord[1], otherBlockCoord[2], coordinate.dimension)
-        ) ?: return null
-        val otherDirection = elementSide.inverse
-        val otherLRDU = otherDirection.getLRDUGoingTo(side)?.inverse() ?: return null
-        return otherNode.getConnectionEndpoint(otherDirection, otherLRDU)
-    }
-
-    private fun findDirectAdjacentConnectionEndpoint(side: Direction, lrdu: LRDU): NodeConnectionEndpoint? {
-        val otherNode = getNeighbor(side) ?: return null
-        if (!otherNode.isAdded) return null
-        return otherNode.getConnectionEndpoint(side.inverse, lrdu.inverseIfLR())
-    }
-
     open fun checkCanStay(onCreate: Boolean) {}
     open fun connectJob() {
         // EXTERNAL OTHERS SIXNODE
@@ -337,7 +295,7 @@ abstract class NodeBase {
 
     fun disconnect() {
         if (!isAdded) {
-            // println("Node destroy error already destroy")
+            println("Node destroy error already destroy")
             return
         }
         disconnectJob()
@@ -493,8 +451,8 @@ abstract class NodeBase {
         const val maskThermal = 1 shl 1
         const val maskElectricalGate = 1 shl 2
         const val maskElectricalAll = maskElectricalPower or maskElectricalGate
-        const val maskElectricalInputGate = maskElectricalAll
-        const val maskElectricalOutputGate = maskElectricalAll
+        const val maskElectricalInputGate = maskElectricalGate
+        const val maskElectricalOutputGate = maskElectricalGate
         const val maskWire = 0
         const val maskElectricalWire = 1 shl 3
         const val maskThermalWire = maskWire + maskThermal
@@ -543,8 +501,8 @@ abstract class NodeBase {
                 nodeA.newConnectionAt(nodeConnection, true)
                 nodeB.newConnectionAt(nodeConnection, false)
                 var eLoad: ElectricalLoad?
-                if (nodeA.getElectricalLoad(directionA, lrduA, mskB, nodeConnection.endpoint(false)).also { eLoad = it } != null) {
-                    val otherELoad = nodeB.getElectricalLoad(directionB, lrduB, mskA, nodeConnection.endpoint(true))
+                if (nodeA.getElectricalLoad(directionA, lrduA, mskB).also { eLoad = it } != null) {
+                    val otherELoad = nodeB.getElectricalLoad(directionB, lrduB, mskA)
                     if (otherELoad != null) {
                         eCon = ElectricalConnection(eLoad, otherELoad)
                         Eln.simulator.addElectricalComponent(eCon)

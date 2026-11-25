@@ -5,7 +5,6 @@ import mods.eln.compat.*
 import mods.eln.Eln
 import mods.eln.i18n.I18N.tr
 import mods.eln.misc.*
-import mods.eln.misc.NominalVoltage
 import mods.eln.node.NodeBase
 import mods.eln.node.transparent.TransparentNode
 import mods.eln.node.transparent.TransparentNodeDescriptor
@@ -33,15 +32,15 @@ class GridSwitchDescriptor(
     GridSwitchElement::class.java,
     GridSwitchRender::class.java,
     "textures/wire.png",
-    Eln.instance.veryHighVoltageCableDescriptor,
+    Eln.instance.highVoltageCableDescriptor,
     12
 ) {
     var rebound: Double = 0.0  // coef. of restitution
     var nominalAccel: Double = 1.0  // rad/s^2
     var damping: Double = 4.0
     var drag: Double = 0.2  // 1/s
-    var nominalU: Double = NominalVoltage.V24
-    val resistance = Eln.instance.veryHighVoltageCableDescriptor.electricalRs
+    var nominalU: Double = Eln.MVU
+    val resistance = Eln.instance.highVoltageCableDescriptor.electricalRs
     var sinkMin = 20  // Essentially: full load
     var sinkMax = 1000  // Essentially: leakage
     var arcSound = "eln:arc"
@@ -152,7 +151,7 @@ class GridSwitchElement(node: TransparentNode, descriptor: TransparentNodeDescri
 
     val control = NbtElectricalGateInput("control")
     val power = NbtElectricalLoad("power").apply {
-        Eln.instance.lowVoltageCableDescriptor.applyTo(this)
+        Eln.instance.meduimVoltageCableDescriptor.applyTo(this)
     }
     val powerSink = Resistor(power, null).apply { resistance = desc.sinkMax.toDouble() }
 
@@ -242,7 +241,7 @@ class GridSwitchElement(node: TransparentNode, descriptor: TransparentNodeDescri
         ghostControl = GhostPowerNode(
             node!!.coordinate, front,
             Coordinate(-1, 0, 0, 0),
-            control, NodeBase.maskElectricalInputGate
+            control, NodeBase.maskElectricalGate
         )
         ghostControl!!.initialize()
         Utils.println("GS.i: ghost power at ${ghostPower!!.coord}, control at ${ghostControl!!.coord}")
@@ -288,7 +287,7 @@ class GridSwitchElement(node: TransparentNode, descriptor: TransparentNodeDescri
 
     override fun getWaila(): Map<String, String> {
         val info = mutableMapOf<String, String>()
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info[tr("Left")] = Utils.plotUIP(grida.voltage, grida.current)
             info[tr("Right")] = Utils.plotUIP(gridb.voltage, gridb.current)
             info[tr("Transfer")] = Utils.plotPower(transfer.power)

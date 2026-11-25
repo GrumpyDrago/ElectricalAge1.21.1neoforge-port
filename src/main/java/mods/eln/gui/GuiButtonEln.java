@@ -12,8 +12,6 @@ import java.util.ArrayList;
 public class GuiButtonEln extends GuiButton implements IGuiObject {
 
     IGuiObjectObserver observer;
-    private boolean playPressSound = true;
-    private boolean pressedInside = false;
 
     public GuiButtonEln(int x, int y, int width, int height, String str) {
         super(0, x, y, width, height, str);
@@ -27,11 +25,6 @@ public class GuiButtonEln extends GuiButton implements IGuiObject {
 
     public void setObserver(IGuiObjectObserver observer) {
         this.observer = observer;
-    }
-
-    public GuiButtonEln setPlayPressSound(boolean playPressSound) {
-        this.playPressSound = playPressSound;
-        return this;
     }
 
     @Override
@@ -55,24 +48,8 @@ public class GuiButtonEln extends GuiButton implements IGuiObject {
 
     @Override
     public void imouseClicked(int x, int y, int code) {
-        if (code != 0) {
-            return;
-        }
-        pressedInside = mousePressed(Minecraft.getInstance(), x, y);
-    }
-
-    @Override
-    public void imouseMovedOrUp(int x, int y, int witch) {
-        if (witch != 0) {
-            return;
-        }
-        boolean shouldActivate = pressedInside && enabled && visible
-            && x >= xPosition && y >= yPosition && x < xPosition + width && y < yPosition + height;
-        pressedInside = false;
-        if (shouldActivate) {
-            if (playPressSound) {
-                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-            }
+        if (mousePressed(Minecraft.getInstance(), x, y)) {
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
             onMouseClicked();
             if (observer != null) {
                 observer.guiObjectEvent(this);
@@ -82,6 +59,10 @@ public class GuiButtonEln extends GuiButton implements IGuiObject {
 
     @Override
     public void imouseMove(int x, int y) {
+    }
+
+    @Override
+    public void imouseMovedOrUp(int x, int y, int witch) {
     }
 
     @Override

@@ -90,7 +90,7 @@ class MqttSignalControllerElement(
     override fun getConnectionMask(lrdu: LRDU): Int {
         val facing = front
         return if (lrdu == facing || lrdu == facing.right() || lrdu == facing.inverse() || lrdu == facing.left()) {
-            NodeBase.maskElectricalAll
+            NodeBase.maskElectricalGate
         } else {
             0
         }

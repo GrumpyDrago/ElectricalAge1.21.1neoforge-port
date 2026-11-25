@@ -40,7 +40,7 @@ public class TurbineThermalProcess implements IProcess {
             turbine.getAmbientTemperatureKelvin()
         );
 
-        double E = src.getPower() * time / Eln.config.getDoubleOrElse("balance.generators.heatTurbinePowerFactor", 1.0);
+        double E = src.getPower() * time / Eln.instance.heatTurbinePowerFactor;
 
         double Pout = E / time;
         double Pin = descriptor.PoutToPin.getValue(Pout) / efficiency;

@@ -117,7 +117,7 @@ public class ThermalDissipatorPassiveElement extends TransparentNodeElement {
     public Map<String, String> getWaila() {
         Map<String, String> info = new HashMap<String, String>();
         info.put(I18N.tr("Temperature"), plotAmbientCelsius("", thermalLoad.temperatureCelsius));
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info.put(I18N.tr("Thermal power"), Utils.plotPower("", thermalLoad.getPower()));
         }
         return info;

@@ -2,9 +2,11 @@ package mods.eln.gametest
 
 import mods.eln.Eln
 import mods.eln.craft.MachineRecipes
+import mods.eln.integration.CraftableItems
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.gametest.framework.GameTest
 import net.minecraft.gametest.framework.GameTestHelper
+import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
@@ -42,6 +44,24 @@ object ElnRecipeTests {
         }
         failures.forEach { Eln.logger.error("CONFLICT {}", it) }
         helper.assertTrue(failures.isEmpty(), failures.joinToString())
+        helper.succeed()
+    }
+
+    /** Recipe viewers only list what is in the creative tabs by themselves. */
+    @GameTest(template = EMPTY)
+    @JvmStatic
+    fun hiddenItemsThatCanBeMadeAreListed(helper: GameTestHelper) {
+        val level = helper.level
+        val tabs = BuiltInRegistries.CREATIVE_MODE_TAB.filter { BuiltInRegistries.CREATIVE_MODE_TAB.getKey(it)!!.namespace == Eln.MODID }
+        val parameters = CreativeModeTab.ItemDisplayParameters(level.enabledFeatures(), true, level.registryAccess())
+        val shown = tabs.flatMap { it.buildContents(parameters); it.displayItems }
+        helper.assertTrue(shown.size > 100, "the creative tabs are empty")
+        val more = CraftableItems.notIn(shown, level.recipeManager, level.registryAccess()).map { path(it.item) }
+        val cables = listOf("signal", "signal_bus", "low_voltage", "medium_voltage", "high_voltage", "very_high_voltage", "low_current", "medium_current", "high_current")
+        val tabbed = shown.map { path(it.item) }
+        for (cable in cables) helper.assertTrue((more + tabbed).count { it == "${cable}_cable" } == 1, "the $cable cable is not listed once")
+        helper.assertTrue("conduit" !in more, "the conduit is listed")
+        Eln.logger.info("LISTED {}", more)
         helper.succeed()
     }
 

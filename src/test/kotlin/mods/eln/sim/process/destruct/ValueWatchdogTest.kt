@@ -53,8 +53,8 @@ class ValueWatchdogTest {
 
     @Test
     fun disabledOtherWatchdogsDoNotDestroy() {
-        val previous = Eln.config.getBooleanOrElse("simulation.watchdog.destruction.other", true)
-        Eln.config.setBoolean("simulation.watchdog.destruction.other", false)
+        val previous = Eln.watchdogOtherEnabled
+        Eln.watchdogOtherEnabled = false
         try {
             val watchdog = TestWatchdog(10.0)
             val target = StubDestructible()
@@ -69,7 +69,7 @@ class ValueWatchdogTest {
             assertTrue(watchdog.destroyCalled)
             assertFalse(target.destroyed)
         } finally {
-            Eln.config.setBoolean("simulation.watchdog.destruction.other", previous)
+            Eln.watchdogOtherEnabled = previous
         }
     }
 }

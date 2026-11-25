@@ -12,13 +12,8 @@ import mods.eln.gridnode.electricalpole.ElectricalPoleElement
 import mods.eln.gridnode.transformer.GridTransformerElement
 import mods.eln.mechanical.ShaftElement
 import mods.eln.environment.BiomeClimateService
-import mods.eln.item.lampitem.BoilerplateLampData
-import mods.eln.item.lampitem.LampLists
 import mods.eln.misc.Coordinate
-import mods.eln.misc.Direction
 import mods.eln.misc.FC
-import mods.eln.misc.GhostPowerNode
-import mods.eln.misc.LRDU
 import mods.eln.misc.Version
 import mods.eln.node.NodeBase
 import mods.eln.node.NodeManager
@@ -27,11 +22,13 @@ import mods.eln.node.simple.SimpleNode
 import mods.eln.node.six.SixNode
 import mods.eln.node.transparent.TransparentNode
 import mods.eln.server.ElnDestroyHelper
+import mods.eln.server.SaveConfig
 import mods.eln.server.console.ElnConsoleCommands.boolToStr
 import mods.eln.server.console.ElnConsoleCommands.cprint
 import mods.eln.server.console.ElnConsoleCommands.getArgBool
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.level.Level
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -92,11 +89,16 @@ private fun parseZoneBounds(ics: CommandSourceStack, args: List<String>, command
     )
 }
 
-private fun saveConfigPath(path: String, value: Any): String =
-    Eln.config.writePath(path, value.toString())
-
-private fun isConfigPathPattern(path: String): Boolean =
-    path.any { it in "*+?[](){}|^$\\" }
+private fun clearElnBlock(world: Level, x: Int, y: Int, z: Int): Boolean {
+    val block = world.getBlock(x, y, z)
+    val isElnBlock =
+        block == Eln.sixNodeBlock ||
+            block == Eln.transparentNodeBlock ||
+            block == Eln.ghostBlock
+    if (!isElnBlock) return false
+    world.setBlockToAir(x, y, z)
+    return true
+}
 
 class ElnLsCommand: IConsoleCommand {
     override val name = "ls"
@@ -114,114 +116,6 @@ class ElnLsCommand: IConsoleCommand {
     }
 }
 
-class ElnConfigCommand : IConsoleCommand {
-    override val name = "config"
-
-    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
-        when (args.getOrNull(0)?.lowercase()) {
-            "get" -> {
-                val path = args.getOrNull(1)
-                if (args.size != 2 || path.isNullOrBlank()) {
-                    cprint(ics, "Usage: /eln config get <path>", indent = 1)
-                    return
-                }
-                try {
-                    if (isConfigPathPattern(path)) {
-                        val values = Eln.config.readPathsMatching(path)
-                        values.forEach { (matchedPath, value) ->
-                            cprint(ics, "${FC.BRIGHT_GREEN}$matchedPath = $value", indent = 1)
-                        }
-                    } else {
-                        val value = Eln.config.readPath(path)
-                        if (value == null) {
-                            cprint(ics, "${FC.BRIGHT_RED}Unknown config path '$path'.", indent = 1)
-                            return
-                        }
-                        cprint(ics, "${FC.BRIGHT_GREEN}$path = $value", indent = 1)
-                    }
-                } catch (e: IllegalArgumentException) {
-                    cprint(ics, "${FC.BRIGHT_RED}${e.message}", indent = 1)
-                }
-            }
-            "set" -> {
-                val path = args.getOrNull(1)
-                if (args.size < 3 || path.isNullOrBlank()) {
-                    cprint(ics, "Usage: /eln config set <path> <value>", indent = 1)
-                    return
-                }
-                val rawValue = args.drop(2).joinToString(" ")
-                try {
-                    if (isConfigPathPattern(path)) {
-                        val matchedPaths = Eln.config.writePathsMatching(path, rawValue)
-                        if (matchedPaths.contains("lighting.lamps")) { // This is only true if attempting to assign an invalid nominal life to lamp(s)
-                            cprint(ics, "${FC.BRIGHT_RED}${BoilerplateLampData.SET_NOMINAL_LIFE_ERROR_MESSAGE}", indent = 1)
-                            return
-                        } else {
-                            cprint(ics, "${FC.BRIGHT_GREEN}Updated ${matchedPaths.size} config paths.", indent = 1)
-                            matchedPaths.forEach { matchedPath ->
-                                cprint(ics, "$matchedPath = ${Eln.config.readPath(matchedPath)}", indent = 2)
-                            }
-                        }
-                    } else {
-                        val writtenValue = Eln.config.writePath(path, rawValue)
-                        if (writtenValue == "lighting.lamps") { // This is only true if attempting to assign an invalid nominal life to lamp(s)
-                            cprint(ics, "${FC.BRIGHT_RED}${BoilerplateLampData.SET_NOMINAL_LIFE_ERROR_MESSAGE}", indent = 1)
-                            return
-                        } else cprint(ics, "${FC.BRIGHT_GREEN}$path = $writtenValue", indent = 1)
-                    }
-                    cprint(ics, "Changes saved to config/eln/eln.json.", indent = 1)
-                } catch (e: IllegalArgumentException) {
-                    cprint(ics, "${FC.BRIGHT_RED}${e.message}", indent = 1)
-                }
-            }
-            "list" -> {
-                val prefix = args.getOrNull(1)
-                if (args.size > 2) {
-                    cprint(ics, "Usage: /eln config list [prefix]", indent = 1)
-                    return
-                }
-                val paths = Eln.config.listPaths(prefix)
-                if (paths.isEmpty()) {
-                    cprint(ics, "${FC.BRIGHT_YELLOW}No config paths matched.", indent = 1)
-                    return
-                }
-                cprint(ics, "${FC.WHITE}Config paths:", indent = 1)
-                paths.forEach { cprint(ics, it, indent = 2) }
-            }
-            else -> {
-                cprint(ics, "Usage: /eln config get <path>", indent = 1)
-                cprint(ics, "Usage: /eln config set <path> <value>", indent = 1)
-                cprint(ics, "Usage: /eln config list [prefix]", indent = 1)
-            }
-        }
-    }
-
-    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
-        cprint(ics, "Read or modify any JSON-backed Electrical Age config path.", indent = 1)
-        cprint(ics, "This command updates the cache and writes back to config/eln/eln.json.", indent = 1)
-        cprint(ics, "", indent = 1)
-        cprint(ics, "Usage: /eln config get <path>", indent = 1)
-        cprint(ics, "Usage: /eln config get <path-regex>", indent = 1)
-        cprint(ics, "Usage: /eln config set <path> <value>", indent = 1)
-        cprint(ics, "Usage: /eln config set <path-regex> <value>", indent = 1)
-        cprint(ics, "Usage: /eln config list [prefix]", indent = 1)
-    }
-
-    override fun getTabCompletion(args: List<String>): List<String> {
-        val subcommands = listOf("get", "set", "list")
-        return when (args.size) {
-            0 -> subcommands
-            1 -> subcommands.filter { it.startsWith(args[0], ignoreCase = true) }
-            2 -> {
-                val subcommand = args[0].lowercase()
-                if (subcommand !in subcommands) return listOf()
-                Eln.config.listPaths(args[1].takeIf { it.isNotBlank() }).take(100)
-            }
-            else -> listOf()
-        }
-    }
-}
-
 open class ElnAboutCommand: IConsoleCommand {
     override val name = "about"
 
@@ -231,7 +125,7 @@ open class ElnAboutCommand: IConsoleCommand {
         cprint(ics, "${FC.BRIGHT_GREY}Version: ${FC.DARK_GREY}" + Version.simpleVersionName)
         if (Version.GIT_REVISION.isNotEmpty()) {
             cprint(ics, "${FC.BRIGHT_GREY}Git Build Version: ${FC.DARK_GREY}${Version.GIT_REVISION}")
-            cprint(ics, "${FC.BRIGHT_BLUE}[GitHub Link to Git Version]", "https://github.com/age-series/ElectricalAge/commit/" + Version.GIT_REVISION)
+            cprint(ics, "${FC.BRIGHT_BLUE}[GitHub Link to Git Version]", "https://github.com/jrddunbr/ElectricalAge/commit/" + Version.GIT_REVISION)
         }
     }
 
@@ -245,6 +139,257 @@ open class ElnAboutCommand: IConsoleCommand {
 
 // Since we tell people to run /eln version a lot, might as well have this alias.
 class ElnVersionCommand: ElnAboutCommand() { override val name = "version"}
+
+class ElnAgingCommand: IConsoleCommand {
+    override val name = "aging"
+
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        if (args.size == 1) {
+            val aging = getArgBool(ics, args[0])?: return
+
+            SaveConfig.instance?.batteryAging = aging
+            SaveConfig.instance?.infinitePortableBattery = !aging
+
+            SaveConfig.instance?.infiniteIncandescentLife = !aging
+            SaveConfig.instance?.infiniteEcoBulbLife = !aging
+            SaveConfig.instance?.infiniteLedBulbLife = !aging
+            SaveConfig.instance?.infiniteHalogenBulbLife = !aging
+
+            SaveConfig.instance?.heatFurnaceFuel = aging
+
+            cprint(ics, "Batteries / Furnace Fuel / Lamp aging: ${FC.DARK_GREEN}${boolToStr(aging)}", indent = 1)
+            cprint(ics, "Parameter saved in the map.", indent = 1)
+        } else {
+            cprint(ics, "This command only takes one argument - true or false")
+        }
+    }
+
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
+        cprint(ics, "Enables/disables aging on:", indent = 1)
+        cprint(ics, "- Portable and standards batteries", indent = 1)
+        cprint(ics, "- Lamps", indent = 1)
+        cprint(ics, "- Fuel into electrical furnaces", indent = 1)
+        cprint(ics, "Acts as a combination of the following commands:", indent = 1)
+        cprint(ics, "- batteryAging, lampAging, furnaceFuel", indent = 1)
+        cprint(ics, "Changes stored into the map.", indent = 1)
+        cprint(ics, "")
+        cprint(ics, "Parameters :", indent = 1)
+        cprint(ics, "@0:bool : Aging state (enabled/disabled).", indent = 2)
+        cprint(ics, "")
+    }
+
+    override fun requiredPermission() = listOf(UserPermission.IS_OPERATOR)
+
+    override fun getTabCompletion(args: List<String>): List<String> {
+        val options = listOf("true", "false")
+        return if (args.isEmpty() || args[0] == "") {
+            options
+        } else {
+            val returnList: List<String>
+            try {
+                // Sorting the list can cause the game to crash... so let's try to handle the situation
+                returnList = options.filter {it.startsWith(args[0], ignoreCase = true)}
+                return returnList
+            } catch (ex: java.lang.Exception) {
+                ex.printStackTrace()
+            }
+            return listOf()
+        }
+    }
+}
+
+class ElnCablePaceCommand: IConsoleCommand {
+    override val name = "cablePace"
+
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        cprint(ics, "The cable pace is set to ${Eln.cablePowerFactor}")
+    }
+
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
+        cprint(ics, "Simply prints the Cable Pace on the server.", indent = 1)
+        cprint(ics, "")
+        cprint(ics, "No input parameters.", indent = 1)
+        cprint(ics, "")
+    }
+}
+
+class ElnLampAgingCommand: IConsoleCommand {
+    override val name = "lampAging"
+
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        var printError = false
+
+        if (args.size == 3) {
+            val domain = args[0]
+            val bulbType = args[1]
+            val aging = getArgBool(ics, args[2])?: return
+
+            var updateIncandescent = false
+            var updateEco = false
+            var updateLed = false
+            var updateHalogen = false
+
+            when (bulbType) {
+                "incandescent" -> updateIncandescent = true
+                "eco" -> updateEco = true
+                "led" -> updateLed = true
+                "halogen" -> updateHalogen = true
+                "all" -> {
+                    updateIncandescent = true
+                    updateEco = true
+                    updateLed = true
+                    updateHalogen = true
+                }
+                else -> printError = true
+            }
+
+            if (!printError) when (domain) {
+                "local" -> {
+                    if (updateIncandescent) SaveConfig.instance?.infiniteIncandescentLife = !aging
+                    if (updateEco) SaveConfig.instance?.infiniteEcoBulbLife = !aging
+                    if (updateLed) SaveConfig.instance?.infiniteLedBulbLife = !aging
+                    if (updateHalogen) SaveConfig.instance?.infiniteHalogenBulbLife = !aging
+
+                    cprint(ics, "Lamp aging: ${FC.DARK_GREEN}${bulbType}, ${FC.DARK_GREEN}${boolToStr(aging)}", indent = 1)
+                    cprint(ics, "Parameter saved in the map.", indent = 1)
+                }
+                "global" -> {
+                    if (updateIncandescent) {
+                        Eln.incandescentLampInfiniteLife = !aging
+                        Eln.config.setBoolean("lighting.lamps.incandescent.infiniteLife", Eln.incandescentLampInfiniteLife)
+                    }
+                    if (updateEco) {
+                        Eln.ecoLampInfiniteLife = !aging
+                        Eln.config.setBoolean("lighting.lamps.economic.infiniteLife", Eln.ecoLampInfiniteLife)
+                    }
+                    if (updateLed) {
+                        Eln.ledLampInfiniteLife = !aging
+                        Eln.config.setBoolean("lighting.lamps.led.infiniteLife", Eln.ledLampInfiniteLife)
+                    }
+                    if (updateHalogen) {
+                        Eln.halogenLampInfiniteLife = !aging
+                        Eln.config.setBoolean("lighting.lamps.halogen.infiniteLife", Eln.halogenLampInfiniteLife)
+                    }
+                    Eln.config.save()
+
+                    cprint(ics, "Lamp aging: ${FC.DARK_GREEN}${bulbType}, ${FC.DARK_GREEN}${boolToStr(aging)}", indent = 1)
+                    cprint(ics, "Parameter saved in the config file.", indent = 1)
+                }
+                else -> printError = true
+            }
+        }
+        else printError = true
+
+        if (printError) cprint(ics, "This command takes three arguments - domain, bulb type, aging")
+    }
+
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
+        cprint(ics, "Enables/disables aging on lamps.", indent = 1)
+        cprint(ics, "Changes stored into the map (local) or config file (global).", indent = 1)
+        cprint(ics, "")
+        cprint(ics, "Parameters :", indent = 1)
+        cprint(ics, "@0:string : Domain (local/global).", indent = 2)
+        cprint(ics, "@1:string : Bulb Type (incandescent/eco/led/halogen/all).", indent = 2)
+        cprint(ics, "@2:bool : Aging (true/false).", indent = 2)
+        cprint(ics, "")
+    }
+
+    override fun requiredPermission() = listOf(UserPermission.IS_OPERATOR)
+
+    override fun getTabCompletion(args: List<String>): List<String> {
+        val arg0Options = listOf("local", "global")
+        val arg1Options = listOf("incandescent", "eco", "led", "halogen", "all")
+        val arg2Options = listOf("true", "false")
+
+        return when (args.size) {
+            0 -> arg0Options
+            1 -> {
+                if (args[0] == "") arg0Options
+                else arg0Options.filter {it.startsWith(args[0], ignoreCase = true)}
+            }
+            2 -> {
+                if (args[1] == "") arg1Options
+                else arg1Options.filter {it.startsWith(args[1], ignoreCase = true)}
+            }
+            3 -> {
+                if (args[2] == "") arg2Options
+                else arg2Options.filter {it.startsWith(args[2], ignoreCase = true)}
+            }
+            else -> listOf()
+        }
+    }
+}
+
+class ElnBatteryAgingCommand: IConsoleCommand {
+    override val name = "batteryAging"
+
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        if (args.size == 1) {
+            val lampAging = getArgBool(ics, args[0])?: return
+            SaveConfig.instance?.batteryAging = lampAging
+            cprint(ics, "Non portable batteries aging: ${FC.DARK_GREEN}${boolToStr(lampAging)}", indent = 1)
+            cprint(ics, "Parameter saved in the map.", indent = 1)
+        } else {
+            cprint(ics, "This command only takes one argument - true or false")
+        }
+    }
+
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
+        cprint(ics, "Enables/disables aging on standard batteries.", indent = 1)
+        cprint(ics, "Changes stored into the map.", indent = 1)
+        cprint(ics, "")
+        cprint(ics, "Parameters:", indent = 1)
+        cprint(ics, "@0:bool : Battery aging (enabled/disabled).", indent = 2)
+        cprint(ics, "")
+    }
+
+    override fun requiredPermission() = listOf(UserPermission.IS_OPERATOR)
+
+    override fun getTabCompletion(args: List<String>): List<String> {
+        val options = listOf("true", "false")
+        return if (args.isEmpty() || args[0] == "") {
+            options
+        } else {
+            return options.filter {it.startsWith(args[0], ignoreCase = true)}
+        }
+    }
+}
+
+class ElnHeatFurnaceFuelCommand: IConsoleCommand {
+    override val name = "furnaceFuel"
+
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        if (args.size == 1) {
+            val furnaceFuelAging = getArgBool(ics, args[0])?: return
+            SaveConfig.instance?.heatFurnaceFuel = furnaceFuelAging
+            cprint(ics, "Furnace fuel aging: ${FC.DARK_GREEN}${boolToStr(furnaceFuelAging)}", indent = 1)
+            cprint(ics, "Parameter saved in the map.", indent = 1)
+        } else {
+            cprint(ics, "This command only takes one argument - true or false")
+        }
+    }
+
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
+        cprint(ics, "Enables/disables aging on fuel into electrical furnaces.", indent = 1)
+        cprint(ics, "Changes stored into the map.", indent = 1)
+        cprint(ics, "")
+        cprint(ics, "Parameters:", indent = 1)
+        cprint(ics, "@0:bool : Furnace fuel aging (enabled/disabled).", indent = 2)
+        cprint(ics, "")
+    }
+
+    override fun requiredPermission() = listOf(UserPermission.IS_OPERATOR)
+
+    override fun getTabCompletion(args: List<String>): List<String> {
+        val options = listOf("true", "false")
+        return if (args.isEmpty() || args[0] == "") {
+            options
+        } else {
+            return options.filter {it.startsWith(args[0], ignoreCase = true)}
+        }
+    }
+}
+
 class ElnNewWindDirectionCommand: IConsoleCommand {
     override val name = "newWind"
 
@@ -262,6 +407,43 @@ class ElnNewWindDirectionCommand: IConsoleCommand {
     }
 
     override fun requiredPermission() = listOf(UserPermission.IS_OPERATOR)
+}
+
+class ElnLampsKillMonstersCommand: IConsoleCommand {
+    override val name = "killMonstersAroundLamps"
+
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        if (args.size == 1) {
+            val killMonstersAroundLamps = getArgBool(ics, args[0])?: return
+            Eln.instance.killMonstersAroundLamps = killMonstersAroundLamps
+            cprint(ics, "Avoid monsters spawning around lamps: ${FC.DARK_GREEN}${boolToStr(killMonstersAroundLamps)}", indent = 1)
+            cprint(ics, "Warning: Command effective to this game instance only, when you close the game, this config will be reverted.", indent = 1)
+        } else {
+            cprint(ics, "This command only takes one argument - true or false")
+        }
+    }
+
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
+        cprint(ics, "When set, monsters don't spawn around the lamps (default).", indent = 1)
+        cprint(ics, "When clear, leaving lights on in dark zones is recommended...", indent = 1)
+        cprint(ics, "Effective only during this game instance.", indent = 1)
+        cprint(ics, "(See \"config/eln/eln-1.24.json\" for permanent effect.)", indent = 1)
+        cprint(ics, "")
+        cprint(ics, "Parameters :", indent = 1)
+        cprint(ics, "@0:bool : Enable/disable.", indent = 1)
+        cprint(ics, "")
+    }
+
+    override fun requiredPermission() = listOf(UserPermission.IS_OPERATOR)
+
+    override fun getTabCompletion(args: List<String>): List<String> {
+        val options = listOf("true", "false")
+        return if (args.isEmpty() || args[0] == "") {
+            options
+        } else {
+            return options.filter {it.startsWith(args[0], ignoreCase = true)}
+        }
+    }
 }
 
 class ElnMatrixCommand: IConsoleCommand {
@@ -341,7 +523,7 @@ class ElnManCommand: IConsoleCommand {
         return if (args.isEmpty() || args[0] == "") {
             ElnConsoleCommandList.map {it.name}.toMutableList()
         } else {
-            ElnConsoleCommandList.filter {it.name.startsWith(args[0], ignoreCase = true)}.map{it.name}.toMutableList()
+            return ElnConsoleCommandList.filter {it.name.startsWith(args[0], ignoreCase = true)}.map{it.name}.toMutableList()
         }
     }
 }
@@ -396,11 +578,6 @@ class ElnZoneDumpCommand : IConsoleCommand {
                 builder.append("  ${coord}: ${node.javaClass.simpleName}")
                 if (node is TransparentNode) {
                     builder.append(" element=${node.element?.javaClass?.simpleName}")
-                    node.element?.let { element ->
-                        builder.append(" front=${element.front}")
-                        builder.append(" grounded=${element.grounded}")
-                        builder.append(" descriptor=${element.transparentNodeDescriptor.name}")
-                    }
                 } else if (node is SixNode) {
                     builder.append(" sixNode")
                 }
@@ -419,15 +596,6 @@ class ElnZoneDumpCommand : IConsoleCommand {
             }
         }
 
-        builder.append("\nNode details:\n")
-        if (nodesInZone.isEmpty()) {
-            builder.append("  <none>\n")
-        } else {
-            for (node in nodesInZone) {
-                appendNodeDetails(builder, node)
-            }
-        }
-
         builder.append("\nBlocks:\n")
         for (x in minX..maxX) {
             for (y in minY..maxY) {
@@ -437,11 +605,8 @@ class ElnZoneDumpCommand : IConsoleCommand {
                     val tile = world.getTileEntity(x, y, z)
                     builder.append("  ($x,$y,$z): ${block.descriptionId} meta=$meta tile=${tile?.javaClass?.simpleName}\n")
                     val coord = Coordinate(x, y, z, dim)
-                    if ((block == Eln.sixNodeBlock || block == Eln.transparentNodeBlock) && !coordToNode.containsKey(coord)) {
+                    if ((block == Eln.sixNodeBlock || block == Eln.transparentNodeBlock || block == Eln.ghostBlock) && !coordToNode.containsKey(coord)) {
                         warnings.add("Block ${block.descriptionId} at $coord has no registered node")
-                    }
-                    if (block == Eln.ghostBlock && !coordToNode.containsKey(coord) && Eln.ghostManager.getGhost(coord) == null) {
-                        warnings.add("Ghost block at $coord has no registered node or ghost manager entry")
                     }
                 }
             }
@@ -472,120 +637,6 @@ class ElnZoneDumpCommand : IConsoleCommand {
         cprint(ics, "Usage: /eln zonedump <radius>", indent = 1)
         cprint(ics, "Usage: /eln zonedump x1 y1 z1 x2 y2 z2", indent = 1)
         cprint(ics, "")
-    }
-
-    private fun appendNodeDetails(builder: StringBuilder, node: NodeBase) {
-        builder.append("  ${node.coordinate}: ${node.javaClass.simpleName}\n")
-        builder.append("    lrduCubeMask: ").append(formatCubeMask(node)).append('\n')
-        when (node) {
-            is TransparentNode -> appendTransparentNodeDetails(builder, node)
-            is SixNode -> appendSixNodeDetails(builder, node)
-            is GhostPowerNode -> appendGhostPowerNodeDetails(builder, node)
-        }
-    }
-
-    private fun appendGhostPowerNodeDetails(builder: StringBuilder, node: GhostPowerNode) {
-        builder.append("    ghostPowerLoad")
-            .append(" mask=").append(formatMask(node.mask))
-            .append(" load=").append(node.load.javaClass.simpleName)
-            .append(" U=").append(formatDouble(node.load.voltage))
-            .append(" I=").append(formatDouble(node.load.current))
-            .append(" Rs=").append(formatDouble(node.load.serialResistance))
-            .append(" subSystem=").append(node.load.subSystem?.hashCode()?.toString() ?: "null")
-            .append('\n')
-    }
-
-    private fun appendTransparentNodeDetails(builder: StringBuilder, node: TransparentNode) {
-        val element = node.element
-        if (element == null) {
-            builder.append("    element: <null>\n")
-            return
-        }
-        builder.append("    element: ${element.javaClass.simpleName}")
-            .append(" descriptor=${element.transparentNodeDescriptor.name}")
-            .append(" front=${element.front}")
-            .append(" grounded=${element.grounded}")
-            .append('\n')
-        appendWaila(builder, element.getWaila())
-        for (side in Direction.values()) {
-            for (lrdu in LRDU.values()) {
-                val mask = element.getConnectionMask(side, lrdu)
-                val load = element.getElectricalLoad(side, lrdu)
-                if (mask == 0 && load == null) continue
-                builder.append("    terminal side=$side lrdu=$lrdu")
-                    .append(" mask=").append(formatMask(mask))
-                if (load != null) {
-                    builder.append(" load=").append(load.javaClass.simpleName)
-                        .append(" U=").append(formatDouble(load.voltage))
-                        .append(" I=").append(formatDouble(load.current))
-                        .append(" Rs=").append(formatDouble(load.serialResistance))
-                        .append(" subSystem=").append(load.subSystem?.hashCode()?.toString() ?: "null")
-                }
-                builder.append('\n')
-            }
-        }
-    }
-
-    private fun appendSixNodeDetails(builder: StringBuilder, node: SixNode) {
-        for (side in Direction.values()) {
-            val element = node.sideElementList[side.int] ?: continue
-            builder.append("    side=$side element=${element.javaClass.simpleName}")
-                .append(" descriptor=${element.sixNodeElementDescriptor.name}")
-                .append(" front=${element.front}")
-                .append(" elementMask=").append(formatLrduMask(node.lrduElementMask[side]))
-                .append('\n')
-            appendWaila(builder, element.getWaila(), "      ")
-            for (lrdu in LRDU.values()) {
-                val mask = element.getConnectionMask(lrdu)
-                val load = element.getElectricalLoad(lrdu, mask)
-                if (mask == 0 && load == null) continue
-                builder.append("      terminal lrdu=$lrdu")
-                    .append(" worldSide=").append(side.applyLRDU(lrdu))
-                    .append(" mask=").append(formatMask(mask))
-                if (load != null) {
-                    builder.append(" load=").append(load.javaClass.simpleName)
-                        .append(" U=").append(formatDouble(load.voltage))
-                        .append(" I=").append(formatDouble(load.current))
-                        .append(" Rs=").append(formatDouble(load.serialResistance))
-                        .append(" subSystem=").append(load.subSystem?.hashCode()?.toString() ?: "null")
-                }
-                builder.append('\n')
-            }
-        }
-    }
-
-    private fun appendWaila(builder: StringBuilder, waila: Map<String, String>?, indent: String = "    ") {
-        if (waila == null || waila.isEmpty()) return
-        builder.append(indent).append("waila:\n")
-        for ((key, value) in waila) {
-            builder.append(indent).append("  ").append(key).append(": ").append(value).append('\n')
-        }
-    }
-
-    private fun formatCubeMask(node: NodeBase): String {
-        return Direction.values().joinToString(" ") { side ->
-            "$side=${formatLrduMask(node.lrduCubeMask[side])}"
-        }
-    }
-
-    private fun formatLrduMask(mask: mods.eln.misc.LRDUMask?): String {
-        if (mask == null || mask.mask == 0) return "-"
-        return LRDU.values()
-            .filter { mask[it] }
-            .joinToString("|") { it.name }
-    }
-
-    private fun formatMask(mask: Int): String {
-        if (mask == 0) return "0"
-        val labels = mutableListOf<String>()
-        if (mask and NodeBase.maskElectricalPower != 0) labels.add("power")
-        if (mask and NodeBase.maskElectricalGate != 0) labels.add("gate")
-        if (mask and NodeBase.maskElectricalInputGate != 0) labels.add("inputGate")
-        return "0x${mask.toString(16)}" + if (labels.isEmpty()) "" else "(${labels.joinToString("|")})"
-    }
-
-    private fun formatDouble(value: Double): String {
-        return String.format(Locale.ROOT, "%.6g", value)
     }
 }
 
@@ -656,7 +707,7 @@ class ElnZoneCleanCommand : IConsoleCommand {
                     if (!isNodeBlock) continue
                     val coord = Coordinate(x, y, z, dim)
                     if (coordKeyedNodes.containsKey(coord)) continue
-                    if (ElnDestroyHelper.clearElnBlock(world, x, y, z)) {
+                    if (clearElnBlock(world, x, y, z)) {
                         orphanBlocks++
                     }
                 }
@@ -746,7 +797,7 @@ class ElnZoneRemoveCommand : IConsoleCommand {
         for (x in minX..maxX) {
             for (y in minY..maxY) {
                 for (z in minZ..maxZ) {
-                    if (ElnDestroyHelper.clearElnBlock(world, x, y, z)) {
+                    if (clearElnBlock(world, x, y, z)) {
                         blocksCleared++
                     }
                 }
@@ -782,48 +833,6 @@ class ElnZoneRemoveCommand : IConsoleCommand {
             coord.z == minZ || coord.z == maxZ
     }
 
-}
-
-class ElnZoneDestroyCommand : IConsoleCommand {
-    override val name = "zonedestroy"
-
-    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
-        if (ics.player == null) {
-            cprint(ics, "${FC.BRIGHT_RED}This command can only be run by a player.", indent = 1)
-            return
-        }
-        val bounds = parseZoneBounds(ics, args, name) ?: return
-        val world = ics.level
-        val nodeManager = NodeManager.instance
-        if (nodeManager == null) {
-            cprint(ics, "${FC.BRIGHT_RED}Node manager unavailable, cannot run zonedestroy.", indent = 1)
-            return
-        }
-        val summary = ElnDestroyHelper.destroyWithinBounds(
-            world = world,
-            nodeManager = nodeManager,
-            minX = bounds.minX,
-            maxX = bounds.maxX,
-            minY = bounds.minY,
-            maxY = bounds.maxY,
-            minZ = bounds.minZ,
-            maxZ = bounds.maxZ,
-            player = ics.player!!
-        )
-
-        cprint(
-            ics,
-            "${FC.BRIGHT_GREEN}Zone destroy complete: destroyed ${summary.nodesDestroyed} nodes and cleared ${summary.blocksCleared} blocks without dropping items.",
-            indent = 1
-        )
-    }
-
-    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
-        cprint(ics, "Destroys all Eln nodes and blocks within a rectangular zone without dropping items.", indent = 1)
-        cprint(ics, "Usage: /eln zonedestroy <radius>", indent = 1)
-        cprint(ics, "Usage: /eln zonedestroy x1 y1 z1 x2 y2 z2", indent = 1)
-        cprint(ics, "")
-    }
 }
 
 class ElnStopShaftCommand : IConsoleCommand {
@@ -902,7 +911,7 @@ class ElnStopShaftCommand : IConsoleCommand {
 }
 
 class ElnResetAmbientTempsCommand : IConsoleCommand {
-    override val name = "resetAmbientTemps"
+    override val name = "reset-ambient-temps"
 
     override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (ics.player == null) {
@@ -910,7 +919,7 @@ class ElnResetAmbientTempsCommand : IConsoleCommand {
             return
         }
         if (args.size != 1) {
-            cprint(ics, "${FC.BRIGHT_YELLOW}Usage: /eln resetAmbientTemps <range 1..32>", indent = 1)
+            cprint(ics, "${FC.BRIGHT_YELLOW}Usage: /eln reset-ambient-temps <range 1..32>", indent = 1)
             return
         }
 
@@ -998,31 +1007,9 @@ class ElnResetAmbientTempsCommand : IConsoleCommand {
 
     override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Resets nearby Eln device temperatures to local biome ambient temperature.", indent = 1)
-        cprint(ics, "Usage: /eln resetAmbientTemps <range 1..32>", indent = 1)
+        cprint(ics, "Usage: /eln reset-ambient-temps <range 1..32>", indent = 1)
         cprint(ics, "")
     }
-}
-
-class ElnResetLampLifeCommand: IConsoleCommand {
-    override val name = "resetLampLives"
-
-    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
-        if (args.isEmpty()) {
-            LampLists.resetLampLifeFlag = true // This flag is automatically set to false up to two seconds after this command is called.
-            cprint(ics, "Resetting the lives of all light bulbs to their default values...", indent = 1)
-        } else {
-            cprint(ics, "This command does not take any arguments.", indent = 1)
-        }
-    }
-
-    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
-        cprint(ics, "Resets the lives of all light bulbs installed in lamp sockets to the nominal values defined in the config file.", indent = 1)
-        cprint(ics, "If the config file entries are invalid, the lives are reset to the default nominal values defined in the codebase.", indent = 1)
-        cprint(ics, "")
-        cprint(ics, "This command does not have any parameters.", indent = 1)
-    }
-
-    override fun requiredPermission() = listOf(UserPermission.IS_OPERATOR)
 }
 
 class ElnWailaEasyModeCommand: IConsoleCommand {
@@ -1031,7 +1018,9 @@ class ElnWailaEasyModeCommand: IConsoleCommand {
     override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.size == 1) {
             val wailaEasyMode = getArgBool(ics, args[0])?: return
-            saveConfigPath("ui.waila.easyMode", wailaEasyMode)
+            Eln.wailaEasyMode = wailaEasyMode
+            Eln.config.setBoolean("ui.waila.easyMode", Eln.wailaEasyMode)
+            Eln.config.save()
             cprint(ics, "Waila Easy Mode: ${FC.DARK_GREEN}${boolToStr(wailaEasyMode)}", indent = 1)
         } else {
             cprint(ics, "This command only takes one argument - true or false")
@@ -1054,7 +1043,7 @@ class ElnWailaEasyModeCommand: IConsoleCommand {
         return if (args.isEmpty() || args[0] == "") {
             options
         } else {
-            options.filter {it.startsWith(args[0], ignoreCase = true)}
+            return options.filter {it.startsWith(args[0], ignoreCase = true)}
         }
     }
 }
@@ -1065,7 +1054,9 @@ class ElnDebugCommand: IConsoleCommand {
     override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.size == 1) {
             val debug = getArgBool(ics, args[0])?: return
-            saveConfigPath("debug.logging.enabled", debug)
+            Eln.debugEnabled = debug
+            Eln.config.setBoolean("debug.logging.enabled", Eln.debugEnabled)
+            Eln.config.save()
             cprint(ics, "Debug mode: ${FC.DARK_GREEN}${boolToStr(debug)}", indent = 1)
         } else {
             cprint(ics, "This command only takes one argument - true or false")
@@ -1088,7 +1079,7 @@ class ElnDebugCommand: IConsoleCommand {
         return if (args.isEmpty() || args[0] == "") {
             options
         } else {
-            options.filter {it.startsWith(args[0], ignoreCase = true)}
+            return options.filter {it.startsWith(args[0], ignoreCase = true)}
         }
     }
 }
@@ -1099,7 +1090,9 @@ class ElnSimSnapshotCommand: IConsoleCommand {
     override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.size == 1) {
             val enableSnapshots = getArgBool(ics, args[0]) ?: return
-            saveConfigPath("debug.logging.simSnapshot", enableSnapshots)
+            Eln.simSnapshotEnabled = enableSnapshots
+            Eln.config.setBoolean("debug.logging.simSnapshot", Eln.simSnapshotEnabled)
+            Eln.config.save()
             cprint(ics, "Simulation snapshots: ${FC.DARK_GREEN}${boolToStr(enableSnapshots)}", indent = 1)
             cprint(ics, "Requires debug logging to be enabled as well.", indent = 1)
         } else {
@@ -1126,9 +1119,45 @@ class ElnSimSnapshotCommand: IConsoleCommand {
     }
 }
 
+class ElnExplosionsCommand: IConsoleCommand {
+    override val name = "explosions"
+
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        if (args.size == 1) {
+            val explosions = getArgBool(ics, args[0]) ?: return
+            Eln.explosionEnable = explosions
+            Eln.config.setBoolean("gameplay.hazards.explosionsEnabled", Eln.explosionEnable)
+            Eln.config.save()
+            cprint(ics, "Explosions: ${FC.DARK_GREEN}${boolToStr(explosions)}", indent = 1)
+        } else {
+            cprint(ics, "This command only takes one argument - true or false")
+        }
+    }
+
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
+        cprint(ics, "Enables/disables explosions.", indent = 1)
+        cprint(ics, "This will save to the server config file.", indent = 1)
+        cprint(ics, "")
+        cprint(ics, "Parameters:", indent = 1)
+        cprint(ics, "@0:bool : Explosions (enabled/disabled).", indent = 2)
+        cprint(ics, "")
+    }
+
+    override fun requiredPermission() = listOf(UserPermission.IS_OPERATOR)
+
+    override fun getTabCompletion(args: List<String>): List<String> {
+        val options = listOf("true", "false")
+        return if (args.isEmpty() || args[0] == "") {
+            options
+        } else {
+            return options.filter {it.startsWith(args[0], ignoreCase = true)}
+        }
+    }
+}
+
 class ElnWatchdogCommand: IConsoleCommand {
     override val name = "watchdog"
-    private val validTypes = listOf("all", "thermal", "resistorHeat", "current", "voltage", "shaftSpeed", "other", "defaults")
+    private val validTypes = listOf("all", "thermal", "resistorHeat", "voltage", "shaftSpeed", "other", "defaults")
 
     override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.isEmpty() || args.size > 2) {
@@ -1148,7 +1177,7 @@ class ElnWatchdogCommand: IConsoleCommand {
             }
             applyDefaults()
             saveWatchdogConfig()
-            cprint(ics, "Watchdog defaults restored (thermal=true, resistorHeat=false, current=true, voltage=true, shaftSpeed=true, other=true).", indent = 1)
+            cprint(ics, "Watchdog defaults restored (thermal=true, resistorHeat=false, voltage=true, shaftSpeed=true, other=true).", indent = 1)
             return
         }
         if (args.size != 2) {
@@ -1159,19 +1188,17 @@ class ElnWatchdogCommand: IConsoleCommand {
 
         when (type.lowercase()) {
             "all" -> {
-                Eln.config.setBoolean("simulation.watchdog.destruction.thermal", watchdogEnabled)
-                Eln.config.setBoolean("simulation.watchdog.destruction.resistorHeat", watchdogEnabled)
-                Eln.config.setBoolean("simulation.watchdog.destruction.current", watchdogEnabled)
-                Eln.config.setBoolean("simulation.watchdog.destruction.voltage", watchdogEnabled)
-                Eln.config.setBoolean("simulation.watchdog.destruction.shaftSpeed", watchdogEnabled)
-                Eln.config.setBoolean("simulation.watchdog.destruction.other", watchdogEnabled)
+                Eln.watchdogThermalEnabled = watchdogEnabled
+                Eln.watchdogResistorHeatEnabled = watchdogEnabled
+                Eln.watchdogVoltageEnabled = watchdogEnabled
+                Eln.watchdogShaftSpeedEnabled = watchdogEnabled
+                Eln.watchdogOtherEnabled = watchdogEnabled
             }
-            "thermal" -> Eln.config.setBoolean("simulation.watchdog.destruction.thermal", watchdogEnabled)
-            "resistorheat" -> Eln.config.setBoolean("simulation.watchdog.destruction.resistorHeat", watchdogEnabled)
-            "current" -> Eln.config.setBoolean("simulation.watchdog.destruction.current", watchdogEnabled)
-            "voltage" -> Eln.config.setBoolean("simulation.watchdog.destruction.voltage", watchdogEnabled)
-            "shaftspeed" -> Eln.config.setBoolean("simulation.watchdog.destruction.shaftSpeed", watchdogEnabled)
-            "other" -> Eln.config.setBoolean("simulation.watchdog.destruction.other", watchdogEnabled)
+            "thermal" -> Eln.watchdogThermalEnabled = watchdogEnabled
+            "resistorheat" -> Eln.watchdogResistorHeatEnabled = watchdogEnabled
+            "voltage" -> Eln.watchdogVoltageEnabled = watchdogEnabled
+            "shaftspeed" -> Eln.watchdogShaftSpeedEnabled = watchdogEnabled
+            "other" -> Eln.watchdogOtherEnabled = watchdogEnabled
         }
 
         saveWatchdogConfig()
@@ -1184,30 +1211,29 @@ class ElnWatchdogCommand: IConsoleCommand {
     }
 
     private fun applyDefaults() {
-        Eln.config.setBoolean("simulation.watchdog.destruction.thermal", true)
-        Eln.config.setBoolean("simulation.watchdog.destruction.resistorHeat", false)
-        Eln.config.setBoolean("simulation.watchdog.destruction.current", true)
-        Eln.config.setBoolean("simulation.watchdog.destruction.voltage", true)
-        Eln.config.setBoolean("simulation.watchdog.destruction.shaftSpeed", true)
-        Eln.config.setBoolean("simulation.watchdog.destruction.other", true)
+        Eln.watchdogThermalEnabled = true
+        Eln.watchdogResistorHeatEnabled = false
+        Eln.watchdogVoltageEnabled = true
+        Eln.watchdogShaftSpeedEnabled = true
+        Eln.watchdogOtherEnabled = true
     }
 
     private fun saveWatchdogConfig() {
-        saveConfigPath("simulation.watchdog.destruction.thermal", Eln.config.getBooleanOrElse("simulation.watchdog.destruction.thermal", true))
-        saveConfigPath("simulation.watchdog.destruction.resistorHeat", Eln.config.getBooleanOrElse("simulation.watchdog.destruction.resistorHeat", false))
-        saveConfigPath("simulation.watchdog.destruction.current", Eln.config.getBooleanOrElse("simulation.watchdog.destruction.current", true))
-        saveConfigPath("simulation.watchdog.destruction.voltage", Eln.config.getBooleanOrElse("simulation.watchdog.destruction.voltage", true))
-        saveConfigPath("simulation.watchdog.destruction.shaftSpeed", Eln.config.getBooleanOrElse("simulation.watchdog.destruction.shaftSpeed", true))
-        saveConfigPath("simulation.watchdog.destruction.other", Eln.config.getBooleanOrElse("simulation.watchdog.destruction.other", true))
+        Eln.config.setBoolean("simulation.watchdog.destruction.thermal", Eln.watchdogThermalEnabled)
+        Eln.config.setBoolean("simulation.watchdog.destruction.resistorHeat", Eln.watchdogResistorHeatEnabled)
+        Eln.config.setBoolean("simulation.watchdog.destruction.voltage", Eln.watchdogVoltageEnabled)
+        Eln.config.setBoolean("simulation.watchdog.destruction.shaftSpeed", Eln.watchdogShaftSpeedEnabled)
+        Eln.config.setBoolean("simulation.watchdog.destruction.other", Eln.watchdogOtherEnabled)
+        Eln.config.save()
     }
 
     override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Enable or disable destruction for one watchdog category at runtime.", indent = 1)
         cprint(ics, "Use defaults to restore the default watchdog profile.", indent = 1)
-        cprint(ics, "This also updates config/eln/eln.json.", indent = 1)
+        cprint(ics, "This also updates config/eln/eln-1.24.json.", indent = 1)
         cprint(ics, "")
         cprint(ics, "Parameters:", indent = 1)
-        cprint(ics, "@0:string : Watchdog type (all, thermal, resistorHeat, current, voltage, shaftSpeed, other, defaults).", indent = 2)
+        cprint(ics, "@0:string : Watchdog type (all, thermal, resistorHeat, voltage, shaftSpeed, other, defaults).", indent = 2)
         cprint(ics, "@1:bool : Destruction state (enabled/disabled). Not used by defaults.", indent = 2)
         cprint(ics, "")
     }
@@ -1230,7 +1256,9 @@ class ElnIconsCommand: IConsoleCommand {
     override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.size == 1) {
             val symbols = args[0].equals("symbols", ignoreCase = true)
-            saveConfigPath("ui.icons.noSymbols", symbols)
+            Eln.noSymbols = symbols
+            Eln.config.setBoolean("ui.icons.noSymbols", Eln.noSymbols)
+            Eln.config.save()
             cprint(ics, "Icons mode: ${FC.DARK_GREEN}${boolToStr(symbols)}", indent = 1)
         } else {
             cprint(ics, "This command only takes one argument - true or false")
@@ -1253,7 +1281,7 @@ class ElnIconsCommand: IConsoleCommand {
         return if (args.isEmpty() || args[0] == "") {
             options
         } else {
-            options.filter {it.startsWith(args[0], ignoreCase = true)}
+            return options.filter {it.startsWith(args[0], ignoreCase = true)}
         }
     }
 }

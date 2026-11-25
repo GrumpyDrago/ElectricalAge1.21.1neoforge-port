@@ -7,7 +7,7 @@ import mods.eln.gui.ISlotSkin.SlotSkin
 import mods.eln.gui.SlotWithSkinAndComment
 import net.minecraft.world.item.ItemStack
 
-open class SixNodeItemSlot(
+class SixNodeItemSlot(
     inventory: IInventory, slot: Int,
     x: Int, y: Int,
     var stackLimit: Int,

@@ -16,7 +16,7 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import mods.eln.misc.ElnDamage
 
-class FlywheelDescriptor(baseName: String, obj: Obj3D, val capacityScale: Float = 1f) : SimpleShaftDescriptor(baseName,
+class FlywheelDescriptor(baseName: String, obj: Obj3D) : SimpleShaftDescriptor(baseName,
     FlyWheelElement::class, ShaftRender::class, EntityMetaTag.Basic) {
     override val obj = obj
     override val static = arrayOf(obj.getPart("Stand"), obj.getPart("Cowl"))
@@ -24,13 +24,12 @@ class FlywheelDescriptor(baseName: String, obj: Obj3D, val capacityScale: Float 
 }
 
 class FlyWheelElement(node: TransparentNode, desc_: TransparentNodeDescriptor) : StraightJointElement(node, desc_) {
-    val massScale = (desc_ as FlywheelDescriptor).capacityScale.toDouble()
-    override val shaftMass = Eln.config.getDoubleOrElse("balance.mechanics.flywheelMass", 50.0) * massScale
+    override val shaftMass = Eln.flywheelMass?: 50.0
 
     inner class FlyWheelFlingProcess : IProcess {
         val interval = 0.05
-        val yTolerance = if (massScale > 1.0) 2.0 else 1.0
-        val xzTolerance = if (massScale > 1.0) 1.5 else 0.5
+        val yTolerance = 1.0
+        val xzTolerance = 0.5
         val minRads = 5.0
         val velocityF = LinearFunction(0f, 0f, absoluteMaximumShaftSpeed.toFloat(), 1f)
         val damageF = LinearFunction(5f, 1f, absoluteMaximumShaftSpeed.toFloat(), 20f)
@@ -50,8 +49,7 @@ class FlyWheelElement(node: TransparentNode, desc_: TransparentNodeDescriptor) :
             val rads = shaft.rads
             if(rads < minRads) return
             val coord = coordinate()
-            val bbRay = if (massScale > 1.0) 3 else 1
-            val objects = coord.world().getEntitiesWithinAABB(Entity::class.java, coord.getAxisAlignedBB(bbRay))
+            val objects = coord.world().getEntitiesWithinAABB(Entity::class.java, coord.getAxisAlignedBB(1))
             //if(objects.size > 0) Utils.println("FFP.sP: within range: " + objects.size)
             for(obj in objects) {
                 val ent = obj as Entity

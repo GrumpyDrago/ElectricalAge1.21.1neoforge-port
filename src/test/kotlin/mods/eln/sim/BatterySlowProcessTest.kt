@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import mods.eln.misc.FunctionTable
+import mods.eln.server.SaveConfig
 import mods.eln.sim.mna.component.VoltageSource
 
 private class TestBatterySlowProcess(
@@ -53,7 +54,13 @@ class BatterySlowProcessTest {
         slow.lifeNominalLost = 0.5
         source.currentState.state = 1.0
 
-        slow.process(1.0)
+        val previous = SaveConfig.instance
+        SaveConfig.instance = SaveConfig()
+        try {
+            slow.process(1.0)
+        } finally {
+            SaveConfig.instance = previous
+        }
         assertEquals(0.5, process.life)
     }
 }

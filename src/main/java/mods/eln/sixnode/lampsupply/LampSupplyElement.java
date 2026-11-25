@@ -24,9 +24,7 @@ import mods.eln.sim.mna.misc.MnaConst;
 import mods.eln.sim.nbt.NbtElectricalLoad;
 import mods.eln.sim.process.destruct.VoltageStateWatchDog;
 import mods.eln.sim.process.destruct.WorldExplosion;
-import mods.eln.sixnode.currentcable.CurrentCableDescriptor;
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor;
-import mods.eln.sixnode.genericcable.GenericCableDescriptor;
 import mods.eln.sixnode.wirelesssignal.IWirelessSignalSpot;
 import mods.eln.sixnode.wirelesssignal.IWirelessSignalTx;
 import mods.eln.sixnode.wirelesssignal.WirelessUtils;
@@ -68,13 +66,9 @@ public class LampSupplyElement extends SixNodeElement implements IConfigurable {
     public Resistor loadResistor;
     public IProcess lampSupplySlowProcess = new LampSupplySlowProcess();
 
-    private final IInventory inventory = new SixNodeElementInventory(1, 64, this, LampSupplyContainer.requiredCableLength);
+    private AutoAcceptInventoryProxy inventory = (new AutoAcceptInventoryProxy(new SixNodeElementInventory(1, 64, this)))
+        .acceptIfIncrement(0, 64, ElectricalCableDescriptor.class);
 
-    // ElectricalCableDescriptor here covers utility cables
-    // Java reports the Kotlin vararg of descriptor classes as an unchecked array creation here.
-    @SuppressWarnings("unchecked")
-    private final AutoAcceptInventoryProxy inventoryProxy = (new AutoAcceptInventoryProxy(inventory))
-        .acceptIfEmpty(0, ElectricalCableDescriptor.class, CurrentCableDescriptor.class);
 
     static class Entry {
         Entry(String powerChannel, String wirelessChannel, int aggregator) {
@@ -102,8 +96,8 @@ public class LampSupplyElement extends SixNodeElement implements IConfigurable {
 
     @Override
     public IInventory getInventory() {
-        if (inventoryProxy != null)
-            return inventoryProxy.getInventory();
+        if (inventory != null)
+            return inventory.getInventory();
         else
             return null;
     }
@@ -111,7 +105,7 @@ public class LampSupplyElement extends SixNodeElement implements IConfigurable {
     @Nullable
     @Override
     public AbstractContainerMenu newContainer(@NotNull Direction side, @NotNull Player player) {
-        return new LampSupplyContainer(player, inventoryProxy.getInventory());
+        return new LampSupplyContainer(player, inventory.getInventory());
     }
 
     public LampSupplyElement(SixNode sixNode, Direction side, SixNodeDescriptor descriptor) {
@@ -246,7 +240,7 @@ public class LampSupplyElement extends SixNodeElement implements IConfigurable {
             }
         }
         info.put(I18N.tr("Total power"), Utils.plotPower("", powerLoad.getVoltage() * powerLoad.getCurrent()));
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info.put(I18N.tr("Voltage"), Utils.plotVolt("", powerLoad.getVoltage()));
         }
         return info;
@@ -276,21 +270,7 @@ public class LampSupplyElement extends SixNodeElement implements IConfigurable {
     public boolean onBlockActivated(Player entityPlayer, Direction side, float vx, float vy, float vz) {
         if (onBlockActivatedRotate(entityPlayer)) return true;
 
-        ItemStack playerEquippedItem = Mc.getCurrentEquippedItem(entityPlayer);
-        GenericItemBlockUsingDamageDescriptor desc = GenericItemBlockUsingDamageDescriptor.getDescriptor(playerEquippedItem, GenericCableDescriptor.class);
-        boolean takeItem = false;
-
-        // ElectricalCableDescriptor here covers utility cables (utility cables are not signal cables)
-        // Spool length check and trimming are handled in AutoAcceptInventoryProxy
-        if (desc instanceof ElectricalCableDescriptor) {
-            takeItem = !((ElectricalCableDescriptor) desc).signalWire;
-        } else if (desc instanceof CurrentCableDescriptor) {
-            takeItem = true;
-        }
-
-        if (takeItem) {
-            return inventoryProxy.take(playerEquippedItem, this, false, true);
-        } else return false;
+        return inventory.take(Mc.getCurrentEquippedItem(entityPlayer), this, false, true);
     }
 
     @Override
@@ -360,10 +340,11 @@ public class LampSupplyElement extends SixNodeElement implements IConfigurable {
     void setupFromInventory() {
         ItemStack cableStack = getInventory().getStackInSlot(LampSupplyContainer.cableSlotId);
         if (cableStack != null) {
-            GenericItemBlockUsingDamageDescriptor desc = GenericItemBlockUsingDamageDescriptor.getDescriptor(cableStack, GenericCableDescriptor.class);
-            if (desc instanceof GenericCableDescriptor) {
-                ((GenericCableDescriptor) desc).applyTo(powerLoad);
-                voltageWatchdog.setNominalVoltage(((GenericCableDescriptor) desc).electricalNominalVoltage);
+            ElectricalCableDescriptor desc = (ElectricalCableDescriptor) GenericItemBlockUsingDamageDescriptor.getDescriptor(
+                cableStack, ElectricalCableDescriptor.class);
+            if (desc != null) {
+                desc.applyTo(powerLoad);
+                voltageWatchdog.setNominalVoltage(desc.electricalNominalVoltage);
             } else {
                 voltageWatchdog.setNominalVoltage(10000);
                 powerLoad.highImpedance();
@@ -438,7 +419,7 @@ public class LampSupplyElement extends SixNodeElement implements IConfigurable {
     }
 
     public int getRange() {
-        return getRange(descriptor, inventoryProxy.getInventory());
+        return getRange(descriptor, inventory.getInventory());
     }
 
     private int getRange(LampSupplyDescriptor desc, IInventory inventory2) {
@@ -474,7 +455,7 @@ public class LampSupplyElement extends SixNodeElement implements IConfigurable {
             }
             needPublish();
         }
-        if(ConfigCopyToolDescriptor.readCableType(compound, getInventory(), 0, invoker, false))
+        if(ConfigCopyToolDescriptor.readCableType(compound, getInventory(), 0, invoker))
             needPublish();
     }
 

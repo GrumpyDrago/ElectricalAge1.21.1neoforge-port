@@ -14,7 +14,6 @@ import mods.eln.misc.Coordinate
 import mods.eln.misc.Direction.Companion.fromIntMinecraftSide
 import mods.eln.misc.LRDU
 import mods.eln.misc.Utils.addChatMessage
-import mods.eln.sixnode.electricalcable.UtilityCableDescriptor
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerPlayer
@@ -32,11 +31,6 @@ class SixNodeItem : GenericItemBlockUsingDamage<SixNodeDescriptor>() {
 
     override fun newItem(damage: Int, descriptor: SixNodeDescriptor): DescriptorItem = SixNodeDescriptorItem(this, damage, descriptor)
 
-    private fun shouldConsumeUtilityCableLength(player: Player): Boolean {
-        val creativeFreeLength = Eln.config.getBooleanOrElse("gameplay.cables.creativeFreeLength", true)
-        return !(creativeFreeLength && player is ServerPlayer && mods.eln.misc.Utils.isCreative(player))
-    }
-
     /**
      * The player clicked on [side] of the block at x, y, z with this stack.
      */
@@ -51,26 +45,13 @@ class SixNodeItem : GenericItemBlockUsingDamage<SixNodeDescriptor>() {
         }
         if (stack.isEmpty) return false
         val descriptor = getDescriptor(stack)
-        if (descriptor is UtilityCableDescriptor && !descriptor.hasLengthForPlacement(stack)) {
-            if (!world.isClientSide) addChatMessage(player, tr("Not enough wire length remaining to place another segment"))
-            return false
-        }
         if (!player.mayUseItemAt(pos, Direction.from3DDataValue(side), stack)) return false
         if (!world.isInWorldBounds(pos)) return false
         if (world.isClientSide) return true
         if (placeBlockAt(stack, player, world, pos.x, pos.y, pos.z, side)) {
             val sound = SoundType.METAL
             world.playSound(null, pos, sound.placeSound, SoundSource.BLOCKS, (sound.volume + 1f) / 2f, sound.pitch * 0.8f)
-            if (descriptor is UtilityCableDescriptor) {
-                if (shouldConsumeUtilityCableLength(player)) {
-                    descriptor.consumeLengthForPlacement(stack)
-                    if (!descriptor.hasLengthForPlacement(stack)) {
-                        stack.shrink(1)
-                    }
-                }
-            } else {
-                stack.consume(1, player)
-            }
+            stack.consume(1, player)
         }
         return true
     }

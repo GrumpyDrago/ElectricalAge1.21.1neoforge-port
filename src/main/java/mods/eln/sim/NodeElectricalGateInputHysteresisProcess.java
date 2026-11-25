@@ -9,20 +9,12 @@ public abstract class NodeElectricalGateInputHysteresisProcess implements IProce
 
     NbtElectricalGateInput gate;
     String name;
-    double lowThreshold;
-    double highThreshold;
 
     boolean state = false;
 
     public NodeElectricalGateInputHysteresisProcess(String name, NbtElectricalGateInput gate) {
-        this(name, gate, Eln.SVU * 0.3, Eln.SVU * 0.7);
-    }
-
-    public NodeElectricalGateInputHysteresisProcess(String name, NbtElectricalGateInput gate, double lowThreshold, double highThreshold) {
         this.gate = gate;
         this.name = name;
-        this.lowThreshold = lowThreshold;
-        this.highThreshold = highThreshold;
     }
 
     protected abstract void setOutput(boolean value);
@@ -30,12 +22,12 @@ public abstract class NodeElectricalGateInputHysteresisProcess implements IProce
     @Override
     public void process(double time) {
         if (state) {
-            if (gate.getVoltage() < lowThreshold) {
+            if (gate.getVoltage() < Eln.SVU * 0.3) {
                 state = false;
                 setOutput(false);
             } else setOutput(true);
         } else {
-            if (gate.getVoltage() > highThreshold) {
+            if (gate.getVoltage() > Eln.SVU * 0.7) {
                 state = true;
                 setOutput(true);
             } else setOutput(false);

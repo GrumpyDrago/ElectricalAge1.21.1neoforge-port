@@ -54,7 +54,7 @@ public class ComputerCraftIoElement extends TransparentNodeElement {
     @Override
     public int getConnectionMask(Direction side, LRDU lrdu) {
         if (lrdu == lrdu.Down && side.isNotY()) {
-            return NodeBase.maskElectricalAll;
+            return NodeBase.maskElectricalGate;
         }
         return 0;
     }
@@ -63,6 +63,7 @@ public class ComputerCraftIoElement extends TransparentNodeElement {
     @Override
     public String multiMeterString(@NotNull Direction side) {
         return "";
+        //Utils.plotUIP(powerLoad.Uc, powerLoad.getCurrent());
     }
 
     @NotNull

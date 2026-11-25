@@ -18,8 +18,8 @@ import mods.eln.node.transparent.TransparentNodeElementInventory;
 import mods.eln.sim.DiodeProcess;
 import mods.eln.sim.ElectricalLoad;
 import mods.eln.sim.ThermalLoad;
-import mods.eln.sim.mna.component.CurrentSource;
-import mods.eln.sim.mna.component.Resistor;
+import mods.eln.sim.mna.component.VoltageSource;
+import mods.eln.sim.mna.process.PowerSourceBipole;
 import mods.eln.sim.nbt.NbtElectricalLoad;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -38,12 +38,12 @@ public class SolarPanelElement extends TransparentNodeElement {
     SolarPanelDescriptor descriptor;
     NbtElectricalLoad positiveLoad = new NbtElectricalLoad("positiveLoad");
     NbtElectricalLoad negativeLoad = new NbtElectricalLoad("negativeLoad");
-    CurrentSource panelSrc = new CurrentSource("panelSrc", positiveLoad, negativeLoad);
-    Resistor panelShunt = new Resistor(positiveLoad, negativeLoad);
+    VoltageSource positiveSrc = new VoltageSource("posSrc", positiveLoad, null);
+    VoltageSource negativeSrc = new VoltageSource("negSrc", negativeLoad, null);
 
     //ElectricalCurrentSource currentSource;
     DiodeProcess diode;
-    SolarPanelPowerProcess powerSource;
+    PowerSourceBipole powerSource;
 
     SolarPannelSlowProcess slowProcess = new SolarPannelSlowProcess(this);
 
@@ -55,7 +55,7 @@ public class SolarPanelElement extends TransparentNodeElement {
         super(transparentNode, descriptor);
         this.descriptor = (SolarPanelDescriptor) descriptor;
 
-        enforceGroundingMode();
+        grounded = false;
 
 		/*if(this.descriptor.basicModel == false)
 		{
@@ -66,16 +66,7 @@ public class SolarPanelElement extends TransparentNodeElement {
 		}
 		else*/
         {
-            powerSource = new SolarPanelPowerProcess(
-                positiveLoad,
-                negativeLoad,
-                panelSrc,
-                panelShunt,
-                this.descriptor.openCircuitVoltage,
-                this.descriptor.optimumVoltage,
-                this.descriptor.optimumCurrent,
-                this.descriptor.shortCircuitCurrent
-            );
+            powerSource = new PowerSourceBipole(positiveLoad, negativeLoad, positiveSrc, negativeSrc);
 
 
         }
@@ -84,9 +75,8 @@ public class SolarPanelElement extends TransparentNodeElement {
         electricalLoadList.add(negativeLoad);
 
 
-        electricalComponentList.add(panelSrc);
-        electricalComponentList.add(panelShunt);
-        electricalComponentList.add(new Resistor(negativeLoad, null).pullDown());
+        electricalComponentList.add(positiveSrc);
+        electricalComponentList.add(negativeSrc);
 
         slowProcessList.add(slowProcess);
     }
@@ -149,6 +139,9 @@ public class SolarPanelElement extends TransparentNodeElement {
 
     @Override
     public void initialize() {
+        powerSource.setMaximumVoltage(this.descriptor.electricalUmax);
+        powerSource.setMaximumCurrent(this.descriptor.electricalPmax / this.descriptor.electricalUmax * 1.5);
+
         descriptor.applyTo(positiveLoad);
         descriptor.applyTo(negativeLoad);
 
@@ -183,7 +176,6 @@ public class SolarPanelElement extends TransparentNodeElement {
     @Override
     public void readFromNBT(CompoundTag nbt) {
         super.readFromNBT(nbt);
-        enforceGroundingMode();
         powerSource.readFromNBT(nbt, "powerSource");
         panelAlpha = nbt.getDouble("panelAlpha");
     }
@@ -206,7 +198,6 @@ public class SolarPanelElement extends TransparentNodeElement {
     public byte networkUnserialize(DataInputStream stream) {
 
         byte packetType = super.networkUnserialize(stream);
-        enforceGroundingMode();
         try {
             switch (packetType) {
                 case unserializePannelAlpha:
@@ -224,12 +215,6 @@ public class SolarPanelElement extends TransparentNodeElement {
         return unserializeNulldId;
     }
 
-    private void enforceGroundingMode() {
-        if (descriptor.groundCoordinate == null) grounded = false;
-    }
-
-    // Java reports the Kotlin vararg of descriptor classes as an unchecked array creation here.
-    @SuppressWarnings("unchecked")
     private final AutoAcceptInventoryProxy inventory =
         (new AutoAcceptInventoryProxy(new TransparentNodeElementInventory(1, 64, this)))
             .acceptIfEmpty(0, SolarTrackerDescriptor.class);
@@ -257,7 +242,7 @@ public class SolarPanelElement extends TransparentNodeElement {
         info.put(I18N.tr("Sun angle"), Utils.plotValue(((slowProcess.getSolarAlpha()) * (180 / Math.PI)) - 90, "\u00B0"));
         info.put(I18N.tr("Panel angle"), Utils.plotValue((panelAlpha * (180 / Math.PI)) - 90, "\u00B0"));
         info.put(I18N.tr("Producing energy"), (slowProcess.getSolarLight() != 0 ? "Yes" : "No"));
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info.put(I18N.tr("Produced power"), Utils.plotPower("", powerSource.getPower()));
         }
         return info;

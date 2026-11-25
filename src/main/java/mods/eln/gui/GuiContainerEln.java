@@ -46,12 +46,6 @@ public abstract class GuiContainerEln extends GuiContainer implements IGuiObject
     void apply(GuiHelperContainer helper) {
         for (int idx = inventorySlots.slots.size() - 36; idx < inventorySlots.slots.size(); idx++) {
             Slot s = (Slot) inventorySlots.slots.get(idx);
-            s.x = (idx - (inventorySlots.slots.size() - 36)) % 9 * 18;
-            s.y = (idx - (inventorySlots.slots.size() - 36)) / 9 * 18;
-            if (idx >= inventorySlots.slots.size() - 9) {
-                s.y = 58;
-                s.x = (idx - (inventorySlots.slots.size() - 9)) * 18;
-            }
             s.x += helper.xInv;
             s.y += helper.yInv;
         }
@@ -59,12 +53,6 @@ public abstract class GuiContainerEln extends GuiContainer implements IGuiObject
 
     public GuiTextFieldEln newGuiTextField(int x, int y, int width) {
         GuiTextFieldEln o = helper.newGuiTextField(x, y, width);
-        o.setObserver(this);
-        return o;
-    }
-
-    public GuiTextFieldEln newGuiTextField(int x, int y, int width, int maxLength) {
-        GuiTextFieldEln o = helper.newGuiTextField(x, y, width, maxLength);
         o.setObserver(this);
         return o;
     }

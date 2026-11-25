@@ -74,8 +74,8 @@ public class ElectricalCableDescriptor extends GenericCableDescriptor {
         this.thermalNominalHeatTime = thermalNominalHeatTime;
         thermalRp = thermalWarmLimit / thermalMaximalPowerDissipated;
         thermalRs = thermalConductivityTao / thermalC / 2;
-        if (Eln.config.getBooleanOrElse("simulation.thermal.cableSpikeLimiter.enabled", true) && thermalNominalHeatTime > 0) {
-            thermalSelfHeatingRateLimit = thermalWarmLimit / thermalNominalHeatTime * Eln.config.getDoubleOrElse("simulation.thermal.cableSpikeLimiter.factor", 20.0);
+        if (Eln.cableThermalSpikeLimiterEnabled && thermalNominalHeatTime > 0) {
+            thermalSelfHeatingRateLimit = thermalWarmLimit / thermalNominalHeatTime * Eln.cableThermalSpikeLimitFactor;
         } else {
             thermalSelfHeatingRateLimit = Double.POSITIVE_INFINITY;
         }
@@ -121,7 +121,7 @@ public class ElectricalCableDescriptor extends GenericCableDescriptor {
     }
 
     @Override
-    public void addInformation(ItemStack itemStack, Player entityPlayer, List<String> list, boolean par4) {
+    public void addInformation(ItemStack itemStack, Player entityPlayer, List list, boolean par4) {
         super.addInformation(itemStack, entityPlayer, list, par4);
         if (signalWire) {
             Collections.addAll(list, tr("Cable is adapted to conduct\nelectrical signals.").split("\n"));
@@ -148,7 +148,7 @@ public class ElectricalCableDescriptor extends GenericCableDescriptor {
     }
 
     @Override
-    public RealisticEnum addRealismContext(List<String> list) {
+    public RealisticEnum addRealismContext(List list) {
         list.add(tr("Has some caveats:"));
         list.add(tr("  * Wire resistance is much higher than normal"));
         list.add(tr("  * Wire resistance is not impacted by temperature"));

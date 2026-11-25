@@ -37,10 +37,6 @@ class ClutchPlateItem(
     val maxDTF: Float, val minDTF: Float,
     val wearSpeed: Float, public val explodes: Boolean
 ) : GenericItemUsingDamageDescriptor(name) {
-    companion object {
-        var infiniteLifeEnabled: Boolean = false
-    }
-
     override fun getDefaultNBT() = CompoundTag()
 
     fun setWear(stack: ItemStack, wear: Double) {
@@ -295,7 +291,7 @@ class ClutchElement(node: TransparentNode, desc_: TransparentNodeDescriptor) : S
                 if (Math.signum(rightShaft.rads - leftShaft.rads) != Math.signum(preRads[RIGHT] - preRads[LEFT]))
                 {
                     if (!canClutchStopSlipping(leftShaft, rightShaft)) {
-                        if (!ClutchPlateItem.infiniteLifeEnabled) clutchPlateDescriptor!!.setWear(clutchPlateStack!!, wear + clutching * slipWearF.getValue(Math.abs(deltaR)))
+                        clutchPlateDescriptor!!.setWear(clutchPlateStack!!, wear + clutching * slipWearF.getValue(Math.abs(deltaR)))
                         slipping = false
                         return
                     }
@@ -319,7 +315,7 @@ class ClutchElement(node: TransparentNode, desc_: TransparentNodeDescriptor) : S
                         slower.rads = finalW
                     }
                 } else {
-                    if (!ClutchPlateItem.infiniteLifeEnabled) clutchPlateDescriptor!!.setWear(clutchPlateStack!!, wear + clutching * slipWearF.getValue(Math.abs(deltaR)))
+                    clutchPlateDescriptor!!.setWear(clutchPlateStack!!, wear + clutching * slipWearF.getValue(Math.abs(deltaR)))
                 }
             } else {
                 val maxE = clutching * maxStaticEnergyF.getValue(wear)
@@ -335,8 +331,8 @@ class ClutchElement(node: TransparentNode, desc_: TransparentNodeDescriptor) : S
                     slipping = true
                     needPublish()
                 } else {
-                    leftShaft.rads = Math.sqrt(2 * leftEnergy / (mass * Eln.config.getDoubleOrElse("balance.mechanics.shaftEnergyFactor", 0.05)))
-                    rightShaft.rads = Math.sqrt(2 * rightEnergy / (mass * Eln.config.getDoubleOrElse("balance.mechanics.shaftEnergyFactor", 0.05)))
+                    leftShaft.rads = Math.sqrt(2 * leftEnergy / (mass * Eln.shaftEnergyFactor))
+                    rightShaft.rads = Math.sqrt(2 * rightEnergy / (mass * Eln.shaftEnergyFactor))
                 }
             }
         }
@@ -429,7 +425,7 @@ class ClutchElement(node: TransparentNode, desc_: TransparentNodeDescriptor) : S
         info.put(tr("Energies"), entries.map {
             Utils.plotEnergy("", it.value.energy)
         }.joinToString(", "))
-        if(Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if(Eln.wailaEasyMode) {
             info.put("Masses", entries.map {
                 Utils.plotValue(it.value.mass * 1000, "g")
             }.joinToString(", "))
@@ -439,7 +435,7 @@ class ClutchElement(node: TransparentNode, desc_: TransparentNodeDescriptor) : S
                 info.put("Wear", String.format("%.6f", desc.getWear(stack)))
         }
         info.put(tr("Clutching"), Utils.plotVolt(inputGate.signalVoltage))
-        if(Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if(Eln.wailaEasyMode) {
             info.put("Slipping", if (slipping) {
                 "YES"
             } else {

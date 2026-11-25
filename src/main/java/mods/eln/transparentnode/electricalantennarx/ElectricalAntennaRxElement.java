@@ -155,7 +155,7 @@ public class ElectricalAntennaRxElement extends TransparentNodeElement {
     public Map<String, String> getWaila() {
         Map<String, String> info = new HashMap<String, String>();
         info.put(I18N.tr("Receiving"), powerSrc.getPower() != 0 ? "Yes" : "No");
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info.put(I18N.tr("Power received"), Utils.plotPower("", powerSrc.getPower()));
             info.put(I18N.tr("Effective power"), Utils.plotPower("", powerSrc.getEffectivePower()));
         }

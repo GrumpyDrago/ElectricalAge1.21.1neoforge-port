@@ -2,7 +2,6 @@ package mods.eln
 
 import mods.eln.compat.ClientHooks
 import mods.eln.compat.getTileEntity
-import mods.eln.item.WireSnipsContainer
 import mods.eln.misc.Direction
 import mods.eln.misc.Utils
 import mods.eln.node.INodeEntity
@@ -52,7 +51,6 @@ object GuiHandler {
     }
 
     private fun createMenu(id: Int, player: Player, world: Level, x: Int, y: Int, z: Int): AbstractContainerMenu? {
-        if (id == wireSnipsOpen) return WireSnipsContainer(player)
         if (id < nodeBaseOpen || id > nodeBaseOpen + 5) return null
         val entity = nodeEntity(world, x, y, z) ?: return null
         return entity.newContainer(Direction.fromInt(id - nodeBaseOpen)!!, player)

@@ -103,7 +103,7 @@ public class ElectricalTimeoutElement extends SixNodeElement {
         Map<String, String> info = new HashMap<String, String>();
         info.put(I18N.tr("Input"), inputGate.stateHigh() ? I18N.tr("ON") : I18N.tr("OFF"));
         info.put(I18N.tr("Output"), timeOutCounter > 0 ? I18N.tr("ON") : I18N.tr("OFF"));
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info.put(I18N.tr("Remaining"), Utils.plotValue(timeOutCounter, "s"));
         }
         return info;

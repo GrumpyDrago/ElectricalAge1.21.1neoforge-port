@@ -1,5 +1,7 @@
 # Minecraft Mod - Codename: ELN
 
+Since 2.0.0-alpha.6 this port is made from release 1.24.8 of Electrical Age. See [docs/changelog.md](docs/changelog.md).
+
 Electrical Age (ELN) brings large-scale electrical simulations and advanced automation tools to Minecraft 1.21.1. Development continues here as the maintained fork by Jared Dunbar (jrddunbr) and Graham Nothup (Grissess); upstream has gone dormant. Back up your worlds before testing new builds.
 
 Visit [electrical-age.net](https://electrical-age.net/) for general project info, join the [Discord server](https://discord.gg/YjK2JAD) for support/discussion, and browse the [GitHub wiki](https://github.com/age-series/ElectricalAge/wiki) for extra documentation.

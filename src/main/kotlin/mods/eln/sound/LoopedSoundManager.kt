@@ -33,14 +33,14 @@ class LoopedSoundManager(val updateInterval: Float = 0.5f) {
                 val player = Minecraft.getInstance().player ?: return
                 val distDeltaSquared = sqDistDelta(cx, cy, cz, player.x, player.y, player.z)
                 // when comparing, compare distDeltaSquared to the square of the distance delta that you are trying to compare against.
-                if (it.getVolume() > 0 && it.getPitch() > 0 && !soundHandler.isActive(it) && distDeltaSquared < Eln.config.getDoubleOrElse("ui.audio.maxSoundDistance", 16.0) * Eln.config.getDoubleOrElse("ui.audio.maxSoundDistance", 16.0)) {
+                if (it.getVolume() > 0 && it.getPitch() > 0 && !soundHandler.isActive(it) && distDeltaSquared < Eln.maxSoundDistance * Eln.maxSoundDistance) {
                     try {
                         soundHandler.play(it)
                     } catch (e: IllegalArgumentException) {
                         System.out.println(e)
                     }
                 }
-                if (distDeltaSquared >= Eln.config.getDoubleOrElse("ui.audio.maxSoundDistance", 16.0) * Eln.config.getDoubleOrElse("ui.audio.maxSoundDistance", 16.0) || it.getVolume() == 0f || it.getPitch() == 0f) {
+                if (distDeltaSquared >= Eln.maxSoundDistance * Eln.maxSoundDistance || it.getVolume() == 0f || it.getPitch() == 0f) {
                     try {
                         soundHandler.stop(it)
                     }catch (e: Exception) {

@@ -12,11 +12,10 @@ import mods.eln.compat.client.GL11
 import java.io.DataInputStream
 import java.io.IOException
 
-class FloodlightRender(tileEntity: TransparentNodeEntity, transparentNodeDescriptor: TransparentNodeDescriptor) :
-    TransparentNodeElementRender(tileEntity, transparentNodeDescriptor) {
+class FloodlightRender(tileEntity: TransparentNodeEntity, transparentNodeDescriptor: TransparentNodeDescriptor) : TransparentNodeElementRender(tileEntity, transparentNodeDescriptor) {
 
     override val inventory = TransparentNodeElementInventory(2, 64, this)
-    val descriptor = transparentNodeDescriptor as FloodlightDescriptor
+    private val descriptor = transparentNodeDescriptor as FloodlightDescriptor
 
     private var rotationAxis = XN
     private var blockFacing = XN
@@ -51,103 +50,103 @@ class FloodlightRender(tileEntity: TransparentNodeEntity, transparentNodeDescrip
     }
 
     override fun newGuiDraw(side: Direction, player: Player): Screen {
-        return FloodlightGui(player, this)
+        return FloodlightGui(player, inventory, this)
     }
 
     private fun glNormalizePlacement(axis: HybridNodeDirection, facing: HybridNodeDirection) {
         when (axis) {
             XN -> {
-                GL11.glRotated(-90.0, 0.0, 0.0, 1.0)
-                GL11.glRotated(180.0, -1.0, 0.0, 0.0)
+                GL11.glRotatef(-90f, 0f, 0f, 1f)
+                GL11.glRotatef(180f, -1f, 0f, 0f)
 
                 when (facing) {
                     XN -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
                     XP -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
-                    YN -> GL11.glRotated(0.0, 0.0, 1.0, 0.0)
-                    YP -> GL11.glRotated(180.0, 0.0, 1.0, 0.0)
-                    ZN -> GL11.glRotated(-90.0, 0.0, 1.0, 0.0)
-                    ZP -> GL11.glRotated(90.0, 0.0, 1.0, 0.0)
+                    YN -> GL11.glRotatef(0f, 0f, 1f, 0f)
+                    YP -> GL11.glRotatef(180f, 0f, 1f, 0f)
+                    ZN -> GL11.glRotatef(-90f, 0f, 1f, 0f)
+                    ZP -> GL11.glRotatef(90f, 0f, 1f, 0f)
                 }
             }
             XP -> {
-                GL11.glRotated(-90.0, 0.0, 0.0, 1.0)
-                GL11.glRotated(0.0, -1.0, 0.0, 0.0)
+                GL11.glRotatef(-90f, 0f, 0f, 1f)
+                GL11.glRotatef(0f, -1f, 0f, 0f)
 
                 when (facing) {
                     XN -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
                     XP -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
-                    YN -> GL11.glRotated(0.0, 0.0, 1.0, 0.0)
-                    YP -> GL11.glRotated(180.0, 0.0, 1.0, 0.0)
-                    ZN -> GL11.glRotated(90.0, 0.0, 1.0, 0.0)
-                    ZP -> GL11.glRotated(-90.0, 0.0, 1.0, 0.0)
+                    YN -> GL11.glRotatef(0f, 0f, 1f, 0f)
+                    YP -> GL11.glRotatef(180f, 0f, 1f, 0f)
+                    ZN -> GL11.glRotatef(90f, 0f, 1f, 0f)
+                    ZP -> GL11.glRotatef(-90f, 0f, 1f, 0f)
                 }
             }
             YN -> {
                 when (facing) {
                     XN -> {
-                        GL11.glRotated(180.0, -1.0, 0.0, 0.0)
-                        GL11.glRotated(180.0, 0.0, 1.0, 0.0)
+                        GL11.glRotatef(180f, -1f, 0f, 0f)
+                        GL11.glRotatef(180f, 0f, 1f, 0f)
                     }
                     XP -> {
-                        GL11.glRotated(180.0, 1.0, 0.0, 0.0)
-                        GL11.glRotated(0.0, 0.0, 1.0, 0.0)
+                        GL11.glRotatef(180f, 1f, 0f, 0f)
+                        GL11.glRotatef(0f, 0f, 1f, 0f)
                     }
                     YN -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
                     YP -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
                     ZN -> {
-                        GL11.glRotated(180.0, 0.0, 0.0, -1.0)
-                        GL11.glRotated(90.0, 0.0, 1.0, 0.0)
+                        GL11.glRotatef(180f, 0f, 0f, -1f)
+                        GL11.glRotatef(90f, 0f, 1f, 0f)
                     }
                     ZP -> {
-                        GL11.glRotated(180.0, 0.0, 0.0, 1.0)
-                        GL11.glRotated(-90.0, 0.0, 1.0, 0.0)
+                        GL11.glRotatef(180f, 0f, 0f, 1f)
+                        GL11.glRotatef(-90f, 0f, 1f, 0f)
                     }
                 }
             }
             YP -> {
                 when (facing) {
                     XN -> {
-                        GL11.glRotated(0.0, -1.0, 0.0, 0.0)
-                        GL11.glRotated(180.0, 0.0, 1.0, 0.0)
+                        GL11.glRotatef(0f, -1f, 0f, 0f)
+                        GL11.glRotatef(180f, 0f, 1f, 0f)
                     }
                     XP -> {
-                        GL11.glRotated(0.0, 1.0, 0.0, 0.0)
-                        GL11.glRotated(0.0, 0.0, 1.0, 0.0)
+                        GL11.glRotatef(0f, 1f, 0f, 0f)
+                        GL11.glRotatef(0f, 0f, 1f, 0f)
                     }
                     YN -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
                     YP -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
                     ZN -> {
-                        GL11.glRotated(0.0, 0.0, 0.0, -1.0)
-                        GL11.glRotated(90.0, 0.0, 1.0, 0.0)
+                        GL11.glRotatef(0f, 0f, 0f, -1f)
+                        GL11.glRotatef(90f, 0f, 1f, 0f)
                     }
                     ZP -> {
-                        GL11.glRotated(0.0, 0.0, 0.0, 1.0)
-                        GL11.glRotated(-90.0, 0.0, 1.0, 0.0)
+                        GL11.glRotatef(0f, 0f, 0f, 1f)
+                        GL11.glRotatef(-90f, 0f, 1f, 0f)
                     }
                 }
             }
             ZN -> {
-                GL11.glRotated(-90.0, 0.0, 0.0, 1.0)
-                GL11.glRotated(90.0, -1.0, 0.0, 0.0)
+                GL11.glRotatef(-90f, 0f, 0f, 1f)
+                GL11.glRotatef(90f, -1f, 0f, 0f)
 
                 when (facing) {
-                    XN -> GL11.glRotated(90.0, 0.0, 1.0, 0.0)
-                    XP -> GL11.glRotated(-90.0, 0.0, 1.0, 0.0)
-                    YN -> GL11.glRotated(0.0, 0.0, 1.0, 0.0)
-                    YP -> GL11.glRotated(180.0, 0.0, 1.0, 0.0)
+                    XN -> GL11.glRotatef(90f, 0f, 1f, 0f)
+                    XP -> GL11.glRotatef(-90f, 0f, 1f, 0f)
+                    YN -> GL11.glRotatef(0f, 0f, 1f, 0f)
+                    YP -> GL11.glRotatef(180f, 0f, 1f, 0f)
                     ZN -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
                     ZP -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
                 }
             }
             ZP -> {
-                GL11.glRotated(-90.0, 0.0, 0.0, 1.0)
-                GL11.glRotated(-90.0, -1.0, 0.0, 0.0)
+                GL11.glRotatef(-90f, 0f, 0f, 1f)
+                GL11.glRotatef(-90f, -1f, 0f, 0f)
 
                 when (facing) {
-                    XN -> GL11.glRotated(-90.0, 0.0, 1.0, 0.0)
-                    XP -> GL11.glRotated(90.0, 0.0, 1.0, 0.0)
-                    YN -> GL11.glRotated(0.0, 0.0, 1.0, 0.0)
-                    YP -> GL11.glRotated(180.0, 0.0, 1.0, 0.0)
+                    XN -> GL11.glRotatef(-90f, 0f, 1f, 0f)
+                    XP -> GL11.glRotatef(90f, 0f, 1f, 0f)
+                    YN -> GL11.glRotatef(0f, 0f, 1f, 0f)
+                    YP -> GL11.glRotatef(180f, 0f, 1f, 0f)
                     ZN -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
                     ZP -> TODO("Unused - impossible rotation direction. If you get this message there's a bug in the code.")
                 }

@@ -96,7 +96,6 @@ class CurrentRelayDescriptor(
 
     override fun addInformation(itemStack: ItemStack?, entityPlayer: Player?, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
-        list.add(tr("Deprecated legacy relay. Prefer relays that follow the AWG/mm cable system."))
         list.addAll(
             tr("A relay is an electrical\ncontact that conducts\ncurrent when a signal\nvoltage is applied.")
                 .split("\n".toRegex()).dropLastWhile { it.isEmpty() }
@@ -251,7 +250,7 @@ class CurrentRelayElement(sixNode: SixNode, side: Direction, descriptor: SixNode
         info[tr("Position")] = if (switchState) tr("Closed") else tr("Open")
         info[tr("Current")] = plotAmpere("", aLoad.current)
         info[tr("Temperature")] = plotAmbientCelsius("", thermalLoad.temperatureCelsius)
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info[tr("Default position")] = if (defaultOutput) tr("Closed") else tr("Open")
             info[tr("Voltages")] =
                 plotVolt("", aLoad.voltage) + plotVolt(" ", bLoad.voltage)

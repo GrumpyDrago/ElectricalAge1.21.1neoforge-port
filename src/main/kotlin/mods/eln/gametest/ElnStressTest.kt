@@ -30,6 +30,10 @@ object ElnStressTest {
     private const val WARM_UP = 200
     private const val MEASURED = 400
 
+    /** Where to record what the server does while it is measured, for Java Mission Control or `jfr print`. */
+    private val RECORDING: String? = System.getProperty("eln.stressJfr")
+    private var recording: jdk.jfr.Recording? = null
+
     private val began = LongArray(WARM_UP + MEASURED)
     private val took = LongArray(WARM_UP + MEASURED)
     private var tick = -1
@@ -56,6 +60,11 @@ object ElnStressTest {
         tick = 0
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, ServerTickEvent.Pre::class.java) {
             if (tick in 0 until took.size) began[tick] = System.nanoTime()
+            // The simulator tells what takes how long, every second.
+            if (tick == WARM_UP && System.getProperty("eln.stressDebug") != null) Eln.debugEnabled = true
+            if (tick == WARM_UP && RECORDING != null && recording == null) {
+                recording = jdk.jfr.Recording(jdk.jfr.Configuration.getConfiguration("profile")).apply { start() }
+            }
         }
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, ServerTickEvent.Post::class.java) {
             if (tick in 0 until took.size && began[tick] != 0L) {
@@ -64,6 +73,12 @@ object ElnStressTest {
             }
         }
         helper.runAfterDelay((WARM_UP + MEASURED + 20).toLong()) {
+            recording?.let {
+                it.stop()
+                it.dump(java.nio.file.Path.of(RECORDING!!))
+                it.close()
+                recording = null
+            }
             val sorted = took.copyOfRange(WARM_UP, took.size).sorted()
             Eln.logger.info(
                 "STRESS first tick {} ms; then average {} us, median {} us, 99% {} us, {} subsystems",

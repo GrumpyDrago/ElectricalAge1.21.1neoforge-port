@@ -9,13 +9,9 @@ import mods.eln.misc.LRDU
 import mods.eln.misc.Utils.mustDropItem
 import mods.eln.misc.Utils.newNbtTagCompund
 import mods.eln.misc.Utils.println
-import mods.eln.misc.Utils.isCreative
 import mods.eln.node.Node
-import mods.eln.node.NodeConnectionEndpoint
 import mods.eln.sim.ElectricalLoad
 import mods.eln.sim.ThermalLoad
-import mods.eln.transparentnode.floodlight.FloodlightDescriptor
-import mods.eln.transparentnode.floodlight.FloodlightElement
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.server.level.ServerPlayer
@@ -81,20 +77,12 @@ class TransparentNode : Node() {
         return element!!.getElectricalLoad(side, lrdu)
     }
 
-    override fun getElectricalLoad(side: Direction, lrdu: LRDU, mask: Int, remoteEndpoint: NodeConnectionEndpoint): ElectricalLoad? {
-        return element!!.getElectricalLoad(side, lrdu, remoteEndpoint)
-    }
-
     override fun getThermalLoad(side: Direction, lrdu: LRDU, mask: Int): ThermalLoad? {
         return element!!.getThermalLoad(side, lrdu)
     }
 
     override fun getSideConnectionMask(side: Direction, lrdu: LRDU): Int {
         return element!!.getConnectionMask(side, lrdu)
-    }
-
-    override fun getConnectionEndpoint(side: Direction, lrdu: LRDU): NodeConnectionEndpoint {
-        return NodeConnectionEndpoint(this, side, lrdu, element, side, lrdu)
     }
 
     override fun multiMeterString(side: Direction): String {
@@ -144,9 +132,6 @@ class TransparentNode : Node() {
             val metadata = itemStack!!.itemDamage
             elementId = metadata
             element = descriptor!!.ElementClass.getConstructor(TransparentNode::class.java, TransparentNodeDescriptor::class.java).newInstance(this, descriptor) as TransparentNodeElement
-            if (descriptor is FloodlightDescriptor) {
-                FloodlightElement.placingPlayerIsCreative = entityLiving is ServerPlayer && isCreative(entityLiving)
-            }
             element!!.initializeFromThat(front, entityLiving, itemStack.tagCompound)
         } catch (e: InstantiationException) {
             e.printStackTrace()

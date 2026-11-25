@@ -2,243 +2,286 @@ package mods.eln.sixnode.lampsocket
 
 import mods.eln.compat.*
 
-import mods.eln.item.lampitem.BoilerplateLampData
-import mods.eln.item.lampitem.LampDescriptor
+import mods.eln.Eln
+import mods.eln.item.LampDescriptor
 import mods.eln.lightblock.LightBlockEntity
 import mods.eln.misc.Coordinate
+import mods.eln.misc.INBTTReady
+import mods.eln.misc.MutVec3
 import mods.eln.misc.Utils
+import mods.eln.server.SaveConfig
 import mods.eln.sim.IProcess
 import mods.eln.sixnode.lampsupply.LampSupplyElement
+import mods.eln.sixnode.lampsupply.LampSupplyElement.PowerSupplyChannelHandle
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.item.ItemStack
-import mods.eln.misc.MutVec3
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.IOException
-import kotlin.math.abs
 
-class LampSocketProcess(var element: LampSocketElement) : IProcess {
+class LampSocketProcess(var lamp: LampSocketElement) : IProcess, INBTTReady /*,LightBlockObserver*/ {
+    @JvmField
+    var light = 0 // 0..15
+    @JvmField
+    var alphaZ = 0.0
+    var stableProb = 0.0
+    var lampStackLast: ItemStack? = null
+    var boot = true
+    private var ageTime = 0.0
+    var lbCoord: Coordinate
 
-    private var processElapsedTime = 0.0
+    var bestChannelHandle: Pair<Double, PowerSupplyChannelHandle>? = null
 
-    var cachedBestChannelHandle: Pair<Double, LampSupplyElement.PowerSupplyChannelHandle>? = null
-    var stableLightProbability = 0.0
-    var fastLightValue = 0
-
-    private var lampInInventory = false
-    private var cableInInventory = false
-
-    override fun process(time: Double) {
-        val lampStack = element.inventory.getStackInSlot(LampSocketContainer.LAMP_SLOT_ID)
-        val cableStack = element.inventory.getStackInSlot(LampSocketContainer.CABLE_SLOT_ID)
-
-        var activeLampSupplyConnection = false
-        var newLightValue = BoilerplateLampData.MIN_LIGHT_VALUE
-
-        if (lampStack != null && cableStack != null) {
-            val lampDescriptor = Utils.getItemObject(lampStack) as LampDescriptor
-
-            if (element.poweredByLampSupply) {
-                findBestLampSupply(element.sixNode!!.coordinate)
-
-                val bestLampSupply = cachedBestChannelHandle?.second
-
-                if (bestLampSupply != null && bestLampSupply.element.getChannelState(bestLampSupply.id)) {
-                    bestLampSupply.element.addToRp(lampDescriptor.lampData.resistance)
-                    element.electricalLoad.state = bestLampSupply.element.powerLoad.state
-                } else {
-                    element.electricalLoad.state = 0.0
-                }
-
-                activeLampSupplyConnection = (bestLampSupply != null)
-            }
-
-            val lampData = lampDescriptor.lampData
-            val lampVoltage = abs(element.lampResistor.voltage)
-
-            if (lampVoltage > (lampData.nominalU * lampData.technology.minimalUFactor)) {
-                val num: Double = lampVoltage - (lampData.nominalU * lampData.technology.minimalUFactor)
-                val den: Double = lampData.nominalU - (lampData.nominalU * lampData.technology.minimalUFactor)
-
-                newLightValue = ((num / den) * lampData.nominalLightValue).toInt()
-
-                // This code makes the fluorescent lights blink, and the other lights are just "stable"
-                if (lampData.technology.lampType == "fluorescent") {
-                    if (newLightValue >= LampSocketRender.MIN_LIGHT_ON_VALUE && stableLightProbability <= 1.0) {
-                        stableLightProbability += (lampVoltage / lampData.nominalU) * (time / lampData.technology.timeUntilStableInSeconds)
-                        if (stableLightProbability < Math.random()) newLightValue = BoilerplateLampData.MIN_LIGHT_VALUE
-                        if (stableLightProbability > 1.0) stableLightProbability = 1.0
-                    } else {
-                        newLightValue = BoilerplateLampData.MIN_LIGHT_VALUE
-                        stableLightProbability = 0.0
-                    }
-                } else {
-                    stableLightProbability = 1.0
-                }
-
-                if (newLightValue < BoilerplateLampData.MIN_LIGHT_VALUE) newLightValue = BoilerplateLampData.MIN_LIGHT_VALUE
-                else if (newLightValue > BoilerplateLampData.MAX_LIGHT_VALUE) newLightValue = BoilerplateLampData.MAX_LIGHT_VALUE
-            } else {
-                stableLightProbability = 0.0
-            }
-
-            if (element.coordinate!!.blockExist) {
-                updateNearbyBlocks(lampData.technology.cropGrowthRateFactor, lampData.nominalLightValue, newLightValue, time)
-            }
-
-            /* Only decrease the life of a bulb once a second. This reduces the update rate at which the NBT is changed
-             * to once per second from once per tick, reducing the probability of an NBT mismatch bug occurring when
-             * shift-clicking. When the bug is eventually fixed, the processElapsedTime variable and supporting code can
-             * be deleted. Also update the decreaseLampLife function definition according to the note there.
-             */
-            if (processElapsedTime in -0.001..0.001) {
-                val lampLife = lampDescriptor.decreaseLampLife(lampStack, lampVoltage)
-
-                if (lampLife <= 0.0) {
-                    newLightValue = BoilerplateLampData.MIN_LIGHT_VALUE
-                    element.inventory.setInventorySlotContents(LampSocketContainer.LAMP_SLOT_ID, null)
-                    element.inventory.markDirty()
-                }
-            }
-        } else {
-            stableLightProbability = 0.0
+    private fun findBestSupply(here: Coordinate, forceUpdate: Boolean = false): Pair<Double, PowerSupplyChannelHandle>? {
+        val chanMap = LampSupplyElement.channelMap[lamp.channel] ?: return null
+        val bestChanHand = bestChannelHandle
+        // Here's our cached value. We just check if it's null and if it's still a thing.
+        if (bestChanHand != null && !forceUpdate && chanMap.contains(bestChanHand.second)) {
+            return bestChanHand // we good!
         }
-
-        // Only run raytracing when the lamp socket is actually on.
-        if (newLightValue > BoilerplateLampData.MIN_LIGHT_VALUE) placeSpot(newLightValue)
-
-        updateFastLight(newLightValue)
-        updateInventoryAndPublish(lampStack, cableStack, activeLampSupplyConnection, newLightValue)
-
-        processElapsedTime += time
-        if (processElapsedTime >= 1.0) processElapsedTime = 0.0
+        val list = LampSupplyElement.channelMap[lamp.channel]?.filterNotNull() ?: return null
+        val chanHand = list
+            .map { Pair(it.element.sixNode?.coordinate?.trueDistanceTo(here)?: Double.MAX_VALUE, it) }
+            .filter { it.first < it.second.element.range }
+            .minByOrNull { it.first }
+        bestChannelHandle = chanHand
+        return bestChannelHandle
     }
 
-    private fun findBestLampSupply(coordinate: Coordinate, forceUpdate: Boolean = false) {
-        val channelMap = LampSupplyElement.channelMap[element.lampSupplyChannel]
-
-        if (channelMap != null) {
-            if (channelMap.contains(cachedBestChannelHandle?.second) && !forceUpdate) return
-            else {
-                channelMap.filterNotNull()
-                cachedBestChannelHandle = channelMap
-                    .map { Pair(it.element.sixNode!!.coordinate.trueDistanceTo(coordinate), it) }
-                    .filter { it.first < it.second.element.range }
-                    .minByOrNull { it.first }
-            }
-        } else cachedBestChannelHandle = null
-    }
-
-    private fun updateNearbyBlocks(growRate: Double, nominalLight: Int, actualLight: Int, deltaT: Double) {
-        val randTarget = growRate * deltaT * (actualLight.toDouble() / nominalLight.toDouble())
-
+    private fun updateNearbyBlocks(growRate: Double, nominalLight: Double, actualLight: Int, deltaT: Double) {
+        val randTarget = 1.0 / growRate * deltaT * (1.0 * actualLight / nominalLight / 15.0)
         if (randTarget > Math.random()) {
-            val rotationVector = MutVec3(1.0, 0.0, 0.0)
-            rotationVector.rotateAroundZ((element.projectionRotationAngle * (Math.PI / 180.0)).toFloat())
-            rotationVector.rotateAroundY(((Math.random() - 0.5) * Math.PI / 2.0).toFloat())
-            rotationVector.rotateAroundZ(((Math.random() - 0.5) * Math.PI / 2.0).toFloat())
-            rotationVector.set(element.front.rotateOnXnLeft(rotationVector.toVec3()))
-            rotationVector.set(element.side.rotateFromXN(rotationVector.toVec3()))
-
-            val lbCoordinate = raytrace(rotationVector, actualLight)
-            val world = lbCoordinate.world()
-            if (world is ServerLevel && lbCoordinate.blockExist) {
-                lbCoordinate.state.randomTick(world, lbCoordinate.blockPos, world.random)
-            }
+            val direction = MutVec3(1.0, 0.0, 0.0)
+            direction.rotateAroundZ((alphaZ * Math.PI / 180.0).toFloat())
+            direction.rotateAroundY(((Math.random() - 0.5) * 2 * Math.PI / 4).toFloat())
+            direction.rotateAroundZ(((Math.random() - 0.5) * 2 * Math.PI / 4).toFloat())
+            val c = raytrace(direction, lamp.socketDescriptor.range + actualLight) ?: return
+            val world = c.first.world() as? ServerLevel ?: return
+            if (!c.first.state.isAir) c.first.state.randomTick(world, c.first.blockPos, world.random)
         }
     }
 
-    private fun placeSpot(lightValue: Int) {
-        val rotationVector = MutVec3(1.0, 0.0, 0.0)
-        rotationVector.rotateAroundZ((element.projectionRotationAngle * (Math.PI / 180.0)).toFloat())
-        rotationVector.set(element.front.rotateOnXnLeft(rotationVector.toVec3()))
-        rotationVector.set(element.side.rotateFromXN(rotationVector.toVec3()))
-
-        val lbCoordinate = raytrace(rotationVector, 0)
-
-        // This makes the projected light "flicker" when a fluorescent bulb is turning on. It's not quite in sync with
-        // the bulb, but it's the best that can be done without rewriting the light block handler to allow updating the
-        // light value of an existing light block.
-        val lightTimeout = if (stableLightProbability <= 1.0) 1 else 5
-
-        LightBlockEntity.addLight(lbCoordinate, lightValue, lightTimeout)
-    }
-
-    private fun raytrace(rotationVector: MutVec3, vectorLengthModifier: Int): Coordinate {
-        val lightVector = MutVec3(element.sixNode!!.coordinate.toVec3())
-        val lbCoordinate = Coordinate(lightVector.toVec3(), element.sixNode!!.coordinate.dimension)
-
-        for (idx in 0 until element.descriptor.range + vectorLengthModifier) {
-            lightVector.xCoord += rotationVector.xCoord
-            lightVector.yCoord += rotationVector.yCoord
-            lightVector.zCoord += rotationVector.zCoord
-            lbCoordinate.setPosition(lightVector.toVec3())
-
-            if (!lbCoordinate.blockExist || lbCoordinate.block.isOpaqueCube) {
-                lightVector.xCoord -= rotationVector.xCoord
-                lightVector.yCoord -= rotationVector.yCoord
-                lightVector.zCoord -= rotationVector.zCoord
-                lbCoordinate.setPosition(lightVector.toVec3())
+    /** Where the light gets to and the vector there, or null if that is not loaded. Turns [direction] as the socket is. */
+    private fun raytrace(direction: MutVec3, range: Int): Pair<Coordinate, MutVec3>? {
+        direction.set(lamp.front.rotateOnXnLeft(direction.toVec3()))
+        direction.set(lamp.side.rotateFromXN(direction.toVec3()))
+        val position = MutVec3(Utils.getVec05(lamp.sixNode!!.coordinate))
+        val coord = Coordinate(lamp.sixNode!!.coordinate)
+        for (idx in 0 until range) {
+            move(position, direction, 1)
+            coord.setPosition(position.toVec3())
+            if (!coord.blockExist) return null
+            if (isOpaque(coord)) {
+                move(position, direction, -1)
+                coord.setPosition(position.toVec3())
                 break
             }
         }
-
-        return lbCoordinate
+        return Pair(coord, position)
     }
 
-    /**
-     * Sync "fast" light changes (fluorescent flicker)
-     */
-    private fun updateFastLight(newLightValue: Int) {
-        if (fastLightValue != newLightValue) {
-            fastLightValue = newLightValue
+    private fun move(position: MutVec3, direction: MutVec3, sign: Int) {
+        position.xCoord += sign * direction.xCoord
+        position.yCoord += sign * direction.yCoord
+        position.zCoord += sign * direction.zCoord
+    }
 
+    override fun process(time: Double) {
+        var newLight: Int
+        val lampStack = lamp.inventory!!.getStackInSlot(0)
+        val cableStack = lamp.inventory!!.getStackInSlot(LampSocketContainer.cableSlotId)
+        // LampDescriptor? is *important* here. Otherwise, NPE.
+        val lampDescriptor = Utils.getItemObject(lampStack) as? LampDescriptor
+        if (cableStack == null || lampStack == null) {
+            /*
+            Cable slot and lamp slot are empty. This means no light, and disconnect from lamp supply.
+             */
+            stableProb = 0.0
+            lamp.setIsConnectedToLampSupply(false)
+        } else {
+            /*
+            Cable slot and lamp slot have stuff. This means there can be light.
+             */
+            if (lamp.poweredByLampSupply) {
+                // Powered by a lamp supply.
+                val lampSupplyList = findBestSupply(lamp.sixNode!!.coordinate)
+                val bestLampSupply = lampSupplyList?.second
+                if (bestLampSupply != null && lampDescriptor != null && bestLampSupply.element.getChannelState(bestLampSupply.id)) {
+                    bestLampSupply.element.addToRp(lampDescriptor.r)
+                    lamp.positiveLoad.state = bestLampSupply.element.powerLoad.state
+                } else {
+                    lamp.positiveLoad.state = 0.0
+                }
+
+                lamp.setIsConnectedToLampSupply(bestLampSupply != null)
+            }
+            else
+            {
+                // Not powered by a lamp supply.
+                lamp.setIsConnectedToLampSupply(false)
+            }
+        }
+
+        lamp.computeElectricalLoad()
+        if (lampStack != lampStackLast) {
+            stableProb = 0.0
+        }
+
+        if (stableProb < 0) stableProb = 0.0
+        var lightDouble = 0.0
+
+        if (lampDescriptor != null) {
+            // This code makes the ECO lights blink, and the other lights are just "stable"
+            when (lampDescriptor.type) {
+                LampDescriptor.Type.INCANDESCENT, LampDescriptor.Type.LED, LampDescriptor.Type.HALOGEN -> {
+                    if (lamp.lampResistor.voltage < lampDescriptor.minimalU) {
+                        lightDouble = 0.0
+                    } else {
+                        lightDouble = lampDescriptor.nominalLight * ((Math.abs(lamp.lampResistor.voltage) - lampDescriptor.minimalU) / (lampDescriptor.nominalU - lampDescriptor.minimalU))
+                    }
+                    lightDouble *= 15
+                }
+                LampDescriptor.Type.ECO -> {
+                    val U = Math.abs(lamp.lampResistor.voltage)
+                    if (U < lampDescriptor.minimalU) {
+                        stableProb = 0.0
+                        lightDouble = 0.0
+                    } else {
+                        val powerFactor = U / lampDescriptor.nominalU
+                        stableProb += U / lampDescriptor.stableU * time / lampDescriptor.stableTime * lampDescriptor.stableUNormalised
+                        if (stableProb > U / lampDescriptor.stableU) stableProb = U / lampDescriptor.stableU
+                        if (Math.random() > stableProb) {
+                            lightDouble = 0.0
+                        } else {
+                            lightDouble = lampDescriptor.nominalLight * powerFactor
+                            lightDouble *= 16
+                        }
+                    }
+                }
+            }
+        } else {
+            // there is no light bulb. Light = 0
+            lightDouble = 0.0
+        }
+
+        newLight = lightDouble.toInt()
+        //light.coerceIn(0, 15) // IT F'ING LIES
+        if (newLight > 15) newLight = 15
+        if (newLight < 0) newLight = 0
+
+        if (lampDescriptor != null) {
+            val bulbCanAge = when(lampDescriptor.type) {
+                LampDescriptor.Type.INCANDESCENT -> !Eln.incandescentLampInfiniteLife && !SaveConfig.instance!!.infiniteIncandescentLife
+                LampDescriptor.Type.ECO -> !Eln.ecoLampInfiniteLife && !SaveConfig.instance!!.infiniteEcoBulbLife
+                LampDescriptor.Type.LED -> !Eln.ledLampInfiniteLife && !SaveConfig.instance!!.infiniteLedBulbLife
+                LampDescriptor.Type.HALOGEN -> !Eln.halogenLampInfiniteLife && !SaveConfig.instance!!.infiniteHalogenBulbLife
+            }
+
+            if (bulbCanAge) {
+                ageTime += time
+                // A changed stack has to be sent to all who see it, so not every tick.
+                val currentLife = if (ageTime < 1.0) lampDescriptor.getLifeInTag(lampStack!!) else {
+                    val life = lampDescriptor.ageLamp(lampStack!!, lamp.lampResistor.voltage, ageTime)
+                    ageTime = 0.0
+                    life
+                }
+
+                if (currentLife <= 0.0) {
+                    lamp.inventory!!.setInventorySlotContents(0, null)
+                    lamp.inventory!!.markDirty()
+                    newLight = 0
+                }
+            }
+        } else {
+            newLight = 0
+        }
+
+        if (lamp.coordinate!!.blockExist && lampDescriptor != null && lampDescriptor.vegetableGrowRate != 0.0) {
+            updateNearbyBlocks(lampDescriptor.vegetableGrowRate, lampDescriptor.nominalLight, newLight, time)
+        }
+
+        boot = false
+        lampStackLast = lampStack
+        // A lamp that stays dark has no light to put anywhere.
+        if (newLight != 0 || light != 0) placeSpot(newLight)
+        if (light != newLight)
+            lamp.needPublish()
+    }
+
+    fun placeSpot(newLight: Int) {
+        if (!lbCoord.blockExist) return
+        val direction = MutVec3(1.0, 0.0, 0.0)
+        direction.rotateAroundZ((alphaZ * Math.PI / 180.0).toFloat())
+        val (newCoord, position) = raytrace(direction, lamp.socketDescriptor.range) ?: return
+        var count = 0
+        while (newCoord != lamp.sixNode!!.coordinate) {
+            val block = newCoord.block
+            if (newCoord.state.isAir || block === Eln.lightBlock) {
+                count++
+                if (count == 2) break
+            }
+            move(position, direction, -1)
+            newCoord.setPosition(position.toVec3())
+        }
+        setLightAt(newCoord, newLight)
+    }
+
+    private fun isOpaque(coord: Coordinate): Boolean {
+        val block = coord.block
+        return block.isOpaqueCube && block !== Blocks.FARMLAND
+    }
+
+    fun setLightAt(coord: Coordinate, value: Int) {
+        val oldLbCoord = lbCoord
+        lbCoord = Coordinate(coord)
+        val oldLight = light
+        val same = coord == oldLbCoord
+        light = value
+        if (!same && oldLbCoord == lamp.sixNode!!.coordinate) {
+            lamp.sixNode!!.recalculateLightValue()
+        }
+        if (lbCoord == lamp.sixNode!!.coordinate) {
+            if (light != oldLight || !same) lamp.sixNode!!.recalculateLightValue()
+        } else if (light > 0) {
+            LightBlockEntity.addLight(lbCoord, light, 5)
+        }
+        if (light != oldLight) {
             val bos = ByteArrayOutputStream(64)
             val packet = DataOutputStream(bos)
-
-            element.preparePacketForClient(packet)
-
+            lamp.preparePacketForClient(packet)
             try {
-                packet.writeInt(newLightValue)
+                packet.writeByte(light)
             } catch (e: IOException) {
                 e.printStackTrace()
             }
-
-            element.sendPacketToAllClient(bos)
+            lamp.sendPacketToAllClient(bos)
         }
     }
 
-    /**
-     * Manually update the server-side inventory every time an item is inserted/removed from the GUI.
-     * This should be happening automatically, but it is not.
-     */
-    private fun updateInventoryAndPublish(lampStack: ItemStack?, cableStack: ItemStack?, activeLampSupplyConnection: Boolean, newLightValue: Int) {
-        var inventoryChanged = false
-        var publishChanges = false
-
-        if (lampInInventory != (lampStack != null)) {
-            lampInInventory = (lampStack != null)
-            inventoryChanged = true
-        }
-
-        if (cableInInventory != (cableStack != null)) {
-            cableInInventory = (cableStack != null)
-            inventoryChanged = true
-        }
-
-        if (element.activeLampSupplyConnection != activeLampSupplyConnection) {
-            element.activeLampSupplyConnection = activeLampSupplyConnection
-            publishChanges = true
-        }
-
-        if (element.sixNode!!.lightValue != newLightValue) {
-            element.sixNode!!.lightValue = newLightValue
-            publishChanges = true
-        }
-
-        // Prevent duplicate calls of these functions
-        if (inventoryChanged) element.inventoryChange(element.inventory)
-        else if (publishChanges) element.needPublish()
+    override fun readFromNBT(nbt: CompoundTag, str: String) {
+        stableProb = nbt.getDouble(str + "LSP" + "stableProb")
+        lbCoord.readFromNBT(nbt, str + "lbCoordInst")
+        alphaZ = nbt.getFloat(str + "alphaZ").toDouble()
+        light = nbt.getInt(str + "light")
     }
 
+    override fun writeToNBT(nbt: CompoundTag, str: String) {
+        nbt.putDouble(str + "LSP" + "stableProb", stableProb)
+        lbCoord.writeToNBT(nbt, str + "lbCoordInst")
+        nbt.putFloat(str + "alphaZ", alphaZ.toFloat())
+        nbt.putInt(str + "light", light)
+    }
+
+    val blockLight: Int
+        get() = if (lbCoord == lamp.sixNode!!.coordinate) {
+            light
+        } else {
+            0
+        }
+
+    init {
+        lbCoord = Coordinate(lamp.sixNode!!.coordinate)
+    }
 }

@@ -58,11 +58,8 @@ public class ElectricalFireDetectorElement extends SixNodeElement {
             electricalComponentList.add(outputGateProcess);
         } else {
             powered = false;
-            // Java reports the Kotlin vararg of descriptor classes as an unchecked array creation here.
-            @SuppressWarnings("unchecked")
-            AutoAcceptInventoryProxy configuredInventory = new AutoAcceptInventoryProxy(new SixNodeElementInventory(1, 64, this))
+            inventory = new AutoAcceptInventoryProxy(new SixNodeElementInventory(1, 64, this))
                 .acceptIfEmpty(0, BatteryItem.class);
-            inventory = configuredInventory;
         }
 
         slowProcessList.add(slowProcess);
@@ -105,7 +102,7 @@ public class ElectricalFireDetectorElement extends SixNodeElement {
     public Map<String, String> getWaila() {
         Map<String, String> info = new HashMap<String, String>();
         info.put(tr("Fire present"), firePresent ? tr("Yes") : tr("No"));
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false) && !descriptor.batteryPowered) {
+        if (Eln.wailaEasyMode && !descriptor.batteryPowered) {
             info.put(tr("Output voltage"), Utils.plotVolt("", outputGate.getVoltage()));
         }
         if (descriptor.batteryPowered) {

@@ -9,7 +9,6 @@ import mods.eln.misc.INBTTReady
 import mods.eln.node.NodeBase
 import mods.eln.node.simple.DescriptorManager.get
 import mods.eln.sim.IProcess
-import mods.eln.sim.SignalLoadSupport
 import mods.eln.sim.ThermalConnection
 import mods.eln.sim.mna.component.Component
 import mods.eln.sim.mna.state.State
@@ -58,7 +57,6 @@ abstract class SimpleNode : NodeBase() {
     var electricalProcessList = ArrayList<IProcess>(4)
     @JvmField
     var electricalComponentList = ArrayList<Component>(4)
-    private var signalReadComponentList = ArrayList<Component>(0)
     @JvmField
     var electricalLoadList = ArrayList<State>(4)
     var thermalFastProcessList = ArrayList<IProcess>(4)
@@ -68,9 +66,7 @@ abstract class SimpleNode : NodeBase() {
     override fun connectJob() {
         super.connectJob()
         Eln.simulator.addAllSlowProcess(slowProcessList)
-        signalReadComponentList = SignalLoadSupport.createReadComponents(electricalLoadList)
         Eln.simulator.addAllElectricalComponent(electricalComponentList)
-        Eln.simulator.addAllElectricalComponent(signalReadComponentList)
         for (load in electricalLoadList) Eln.simulator.addElectricalLoad(load)
         Eln.simulator.addAllElectricalProcess(electricalProcessList)
         Eln.simulator.addAllThermalConnection(thermalConnectionList)
@@ -83,8 +79,6 @@ abstract class SimpleNode : NodeBase() {
         super.disconnectJob()
         Eln.simulator.removeAllSlowProcess(slowProcessList)
         Eln.simulator.removeAllElectricalComponent(electricalComponentList)
-        Eln.simulator.removeAllElectricalComponent(signalReadComponentList)
-        signalReadComponentList.clear()
         for (load in electricalLoadList) Eln.simulator.removeElectricalLoad(load)
         Eln.simulator.removeAllElectricalProcess(electricalProcessList)
         Eln.simulator.removeAllThermalConnection(thermalConnectionList)

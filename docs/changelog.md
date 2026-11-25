@@ -1,3 +1,19 @@
+## 2.0.0-alpha.6
+
+Now made from release 1.24.8 of Electrical Age (commit 46ab422d). The earlier alphas were made from newer, unfinished code.
+
+**Back up your worlds:** in worlds from earlier alphas, AWG cables, wire machines, the 12 to 480 V machines and the other parts listed below disappear, and some placed parts may turn into others.
+
+- Not in this version: AWG cables and the wire machines, turbine blades, the 12 to 480 V machines, regulator chips, the Falstad importer and other things from after 1.24.8
+- Has what the alphas brought for 1.21.1: Jade, JEI, CC: Tweaked, fuels and tags of other mods, raw ores, pipes taking tree resin, and the recipes of the fabricator, weather sensor, polarized machines, electric minecart and overhead lines
+- Keeps later fixes: the clutch, meters on blocks without readings, large turbines breaking when a world is loaded
+- Fixes lamps and solar panels at negative coordinates, which looked at the block next to the right one
+- Settings are kept apart from those of the 2.0.0 alphas, in `config/eln/eln-1.24.json`
+- Poles, transmission towers, the grid DC-DC converter, clutch plates and the clutch pin have names in every language
+- Heat watchdogs look the ambient temperature up once a second unless they are close to their limits; with 10,000 parts a tick takes about a third less time
+- Lamps that stay dark no longer look for where their light goes every tick
+- Bulbs wear out once a second instead of every tick, so their stacks are not sent to players all the time
+
 ## 2.0.0-alpha.5
 
 - Adds recipes for the wire roller, insulator and combiner, the roller wheels and wire snips. Without them nothing that needs AWG wire could be made in survival: breakers, fuses, relays, switches, small solar panels, the wind turbine and battery chargers

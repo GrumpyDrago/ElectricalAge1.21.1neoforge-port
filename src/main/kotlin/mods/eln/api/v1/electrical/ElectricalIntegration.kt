@@ -15,7 +15,6 @@ import mods.eln.node.NodeBase
 import mods.eln.sim.ElectricalConnection
 import mods.eln.sim.ElectricalLoad as SimElectricalLoad
 import mods.eln.sim.IProcess
-import mods.eln.sim.SignalLoadSupport
 import mods.eln.sim.Simulator
 import mods.eln.sim.mna.component.Component
 import mods.eln.sim.mna.component.Resistor
@@ -197,11 +196,13 @@ object ElectricalIntegration {
             get() = Eln.SVU
 
         fun clampVoltage(voltage: Double): Double {
-            return SignalLoadSupport.clampSignalVoltage(voltage)
+            if (voltage.isNaN()) return 0.0
+            return Utils.limit(voltage, 0.0, MAX_VOLTAGE)
         }
 
         fun clampNormalized(value: Double): Double {
-            return SignalLoadSupport.clampNormalized(value)
+            if (value.isNaN()) return 0.0
+            return Utils.limit(value, 0.0, 1.0)
         }
 
         fun toVoltage(normalizedValue: Double): Double {
@@ -220,13 +221,13 @@ object ElectricalIntegration {
      * True when ELN debug logging/features are enabled.
      */
     @JvmStatic
-    fun isDebugEnabled(): Boolean = Eln.config.getBooleanOrElse("debug.logging.enabled", false)
+    fun isDebugEnabled(): Boolean = Eln.debugEnabled
 
     /**
      * True when ELN easy Waila mode is enabled.
      */
     @JvmStatic
-    fun isEasyWailaModeEnabled(): Boolean = Eln.config.getBooleanOrElse("ui.waila.easyMode", false)
+    fun isEasyWailaModeEnabled(): Boolean = Eln.wailaEasyMode
 
     /**
      * Lightweight telemetry handle for an electrical load.
@@ -1941,7 +1942,7 @@ object ElectricalIntegration {
     }
 
     private fun apiDebug(message: String, vararg args: Any?) {
-        if (!Eln.config.getBooleanOrElse("debug.logging.enabled", false)) return
+        if (!Eln.debugEnabled) return
         Eln.LOGGER.info("[ElectricalApiV1] $message", *args)
     }
 

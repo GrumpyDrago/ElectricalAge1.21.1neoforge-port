@@ -59,7 +59,7 @@ object ClientProxy {
     @Suppress("UNUSED_PARAMETER")
     private fun setup(event: FMLClientSetupEvent) {
         NeoForge.EVENT_BUS.register(TutorialSignOverlay())
-        if (Eln.config.getBooleanOrElse("updates.versionCheck.enabled", true)) {
+        if (Eln.versionCheckEnabled) {
             VersionCheckerHandler.start()
         }
         FrameTime()
@@ -90,14 +90,13 @@ object ClientProxy {
 
     /** Hides the backgrounds of the icons if they are not wanted. */
     private fun itemColors(event: RegisterColorHandlersEvent.Item) {
-        val option = "ui.icons.noVoltageBackground"
-        if (!Eln.config.getBooleanOrElse(option, false)) return
+        if (!Eln.noVoltageBackground) return
         // The models are made with them.
-        Eln.config.setRuntimeBoolean(option, false)
+        Eln.noVoltageBackground = false
         val items = BuiltInRegistries.ITEM.filterIsInstance<DescriptorItem>().filter {
             FlatIcon.of(it)?.let { icon -> FlatIcon.isBackground(icon.layers.first()) } == true
         }
-        Eln.config.setRuntimeBoolean(option, true)
+        Eln.noVoltageBackground = true
         event.register({ _, layer -> if (layer == 0) 0x00FFFFFF else -1 }, *items.toTypedArray())
     }
 

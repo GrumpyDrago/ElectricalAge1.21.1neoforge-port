@@ -128,6 +128,8 @@ object ElnGameTests {
 
         val source = place("Electrical Source", BlockPos(2, 2, 3)).getElement(Direction.YN) as ElectricalSourceElement
         val cable = place("Low Voltage Cable", BlockPos(3, 2, 3))
+        // More of them, as a line.
+        for (x in 4..6) place("Low Voltage Cable", BlockPos(x, 2, 3))
         source.voltageSource.setVoltage(50.0)
         helper.runAfterDelay(40) {
             val load = Direction.values().firstNotNullOfOrNull { side ->
@@ -135,6 +137,11 @@ object ElnGameTests {
             }
             helper.assertTrue(load != null, "cable has no load")
             helper.assertTrue(load!!.voltage > 49.0, "cable is at ${load.voltage} V")
+            for (x in 3..6) {
+                val at = helper.absolutePos(BlockPos(x, 2, 3))
+                val info = NodeInfo.of(helper.level, BlockHitResult(at.bottomCenter.add(0.0, 0.1, 0.0), net.minecraft.core.Direction.UP, at, false))
+                helper.assertTrue(info.stack.item === Eln.findItemStack("Low Voltage Cable", 1).item && info.lines.size == 3, "cable $x shows ${info.stack} ${info.lines}")
+            }
             helper.succeed()
         }
     }
@@ -284,7 +291,36 @@ object ElnGameTests {
     fun registryIsComplete(helper: GameTestHelper) {
         val items = BuiltInRegistries.ITEM.keySet().count { it.namespace == Eln.MODID }
         Eln.logger.info("{} items", items)
-        helper.assertTrue(items > 500, "only $items items")
+        helper.assertTrue(items > 390, "only $items items")
+        helper.succeed()
+    }
+
+    /** Every command runs, and what /eln aging changes is kept with the world. */
+    @GameTest(template = EMPTY)
+    @JvmStatic
+    fun commandsRun(helper: GameTestHelper) {
+        val server = helper.level.server
+        val source = server.createCommandSourceStack().withPermission(4).withSuppressedOutput()
+        val failures = ArrayList<String>()
+        val commands = listOf(
+            "ls", "about", "version", "aging false", "aging true", "cablePace 1", "lampAging all local false", "lampAging all local true",
+            "batteryAging true", "furnaceFuel true", "newWind", "killMonstersAroundLamps true", "matrix", "man aging", "wailaEasyMode false",
+            "debug false", "explosions false", "watchdog all true", "icons symbols", "zonedump 0 0 0 1 1 1", "poleMap", "reset-ambient-temps"
+        )
+        for (command in commands) {
+            try {
+                server.commands.dispatcher.execute("eln $command", source)
+            } catch (e: Exception) {
+                failures.add("$command: $e")
+            }
+        }
+        val config = mods.eln.server.SaveConfig.instance!!
+        config.batteryAging = false
+        val tag = config.save(net.minecraft.nbt.CompoundTag(), helper.level.registryAccess())
+        helper.assertTrue(!tag.getBoolean("batteryAging") && tag.getBoolean("heatFurnaceFuel"), "the world does not keep $tag")
+        config.batteryAging = true
+        failures.forEach { Eln.logger.error("COMMAND {}", it) }
+        helper.assertTrue(failures.isEmpty(), failures.joinToString())
         helper.succeed()
     }
 }

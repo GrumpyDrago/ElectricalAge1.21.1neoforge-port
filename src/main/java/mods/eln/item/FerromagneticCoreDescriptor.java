@@ -30,7 +30,7 @@ public class FerromagneticCoreDescriptor extends GenericItemUsingDamageDescripto
     }
 
     @Override
-    public void addInformation(ItemStack itemStack, Player entityPlayer, List<String> list, boolean par4) {
+    public void addInformation(ItemStack itemStack, Player entityPlayer, List list, boolean par4) {
         super.addInformation(itemStack, entityPlayer, list, par4);
         list.add(tr("Cable loss factor: %1$", cableMultiplicator));
     }

@@ -8,7 +8,6 @@ import mods.eln.i18n.I18N;
 import mods.eln.item.ConfigCopyToolDescriptor;
 import mods.eln.item.EntitySensorFilterDescriptor;
 import mods.eln.item.IConfigurable;
-import mods.eln.lightblock.LightBlockEntity;
 import mods.eln.misc.Coordinate;
 import mods.eln.misc.Direction;
 import mods.eln.misc.LRDU;
@@ -23,6 +22,7 @@ import mods.eln.sim.ElectricalLoad;
 import mods.eln.sim.ThermalLoad;
 import mods.eln.sim.nbt.NbtElectricalLoad;
 import mods.eln.sim.nbt.NbtResistor;
+import mods.eln.lightblock.LightBlockEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
@@ -55,8 +55,6 @@ public class TurretElement extends TransparentNodeElement implements IConfigurab
     final NbtElectricalLoad load = new NbtElectricalLoad("load");
     final NbtResistor powerResistor = new NbtResistor("powerResistor", load, null);
 
-    // Java reports the Kotlin vararg of descriptor classes as an unchecked array creation here.
-    @SuppressWarnings("unchecked")
     final AutoAcceptInventoryProxy acceptingInventory =
         (new AutoAcceptInventoryProxy(new TransparentNodeElementInventory(1, 64, this)))
             .acceptAlways(0, 1, new AutoAcceptInventoryProxy.SimpleItemDropper(node), EntitySensorFilterDescriptor.class);
@@ -278,7 +276,7 @@ public class TurretElement extends TransparentNodeElement implements IConfigurab
             }
         }
 
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info.put(I18N.tr("Charge level"),
                 Utils.plotPercent("", energyBuffer / descriptor.getProperties().impulseEnergy));
         }

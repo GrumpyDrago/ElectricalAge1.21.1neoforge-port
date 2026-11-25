@@ -37,7 +37,7 @@ class NodeInfo(
                 }
                 is TransparentNode -> {
                     val element = node.element ?: return NONE
-                    NodeInfo(element.transparentNodeDescriptor.newItemStack(1), element.getWailaEntries().flatMap { format(it.label, it.values) })
+                    NodeInfo(element.transparentNodeDescriptor.newItemStack(1), element.getWaila().flatMap { (label, value) -> format(label, value.split('\n')) })
                 }
                 else -> NONE
             }

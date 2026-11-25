@@ -12,12 +12,7 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import mods.eln.compat.client.GL11
 
-class ElectricalFuseDescriptor(
-    name: String,
-    val cableDescriptor: ElectricalCableDescriptor?,
-    obj: Obj3D?,
-    val currentLimit: Double? = null
-) :
+class ElectricalFuseDescriptor(name: String, val cableDescriptor: ElectricalCableDescriptor?, obj: Obj3D?) :
     GenericItemUsingDamageDescriptorUpgrade(name) {
 
     companion object {
@@ -29,29 +24,13 @@ class ElectricalFuseDescriptor(
     private val fuse = obj?.getPart("Fuse")
 
     init {
-        if (isUsable()) {
+        if (cableDescriptor != null) {
             setDefaultIcon("electricalfuse")
             voltageLevelColor = VoltageLevelColor.fromCable(cableDescriptor)
         } else {
             setDefaultIcon("blownelectricalfuse")
             voltageLevelColor = VoltageLevelColor.Neutral
         }
-    }
-
-    fun isUsable(): Boolean = cableDescriptor != null || currentLimit != null
-
-    fun resistanceOhms(): Double = cableDescriptor?.electricalRs?.times(2.0) ?: Eln.getSmallRs() * 2.0
-
-    fun warmLimitCelsius(): Double = cableDescriptor?.thermalWarmLimit ?: Eln.cableWarmLimit
-
-    fun thermalRp(): Double {
-        val limit = currentLimit ?: return cableDescriptor?.thermalRp ?: Double.POSITIVE_INFINITY
-        return warmLimitCelsius() / (limit * limit * resistanceOhms())
-    }
-
-    fun thermalC(): Double {
-        val limit = currentLimit ?: return cableDescriptor?.thermalC ?: Double.POSITIVE_INFINITY
-        return limit * limit * resistanceOhms() * Eln.cableHeatingTime / warmLimitCelsius()
     }
 
     override fun shouldUseRenderHelper(type: IItemRenderer.ItemRenderType?, item: ItemStack?,
@@ -70,7 +49,7 @@ class ElectricalFuseDescriptor(
                         fuseType.draw()
                         GL11.glColor3f(1f, 1f, 1f)
                     }
-                    if (isUsable()) {
+                    if (cableDescriptor != null) {
                         fuseOk?.draw()
                     }
                     fuse?.draw()

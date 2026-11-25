@@ -5,23 +5,13 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import mods.eln.Eln
-import mods.eln.metrics.MetricsSubsystem
-import mods.eln.Other
-import mods.eln.item.TurbineBladeLists
-import mods.eln.item.lampitem.BoilerplateLampData
-import mods.eln.item.lampitem.LampLists
-import mods.eln.mechanical.ClutchPlateItem
-import mods.eln.misc.Utils
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.Locale
-import java.util.UUID
 import java.util.regex.PatternSyntaxException
-import kotlin.math.max
-import kotlin.math.min
 
 private data class LegacyKey(val category: String, val key: String)
 
@@ -42,13 +32,15 @@ private data class ConfigSpec(
  */
 class JsonConfig @JvmOverloads constructor(
     private val legacyCfgFile: File,
-    private val includeDefaultSpecs: Boolean = true
+    private val includeDefaultSpecs: Boolean = true,
+    /** The name of the files, if not that of [legacyCfgFile]. */
+    fileName: String? = null
 ) {
     private val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
     private val configDirectory = legacyCfgFile.parentFile?.let {
         if (it.name.equals("eln", ignoreCase = true)) it else File(it, "eln")
     } ?: File("config/eln")
-    private val baseName = legacyCfgFile.nameWithoutExtension.lowercase(Locale.ROOT)
+    private val baseName = fileName ?: legacyCfgFile.nameWithoutExtension.lowercase(Locale.ROOT)
     private val jsonFile = File(configDirectory, "$baseName.json")
     private val exampleJsonFile = File(configDirectory, "$baseName.example.json")
     private val migratedCfgFile = File(configDirectory, "$baseName.migrated.cfg")
@@ -75,7 +67,7 @@ class JsonConfig @JvmOverloads constructor(
         groupComments["simulation"] = "Electrical, thermal, and room simulation settings."
         groupComments["wireless"] = "Wireless range settings."
         groupComments["ui"] = "HUD and item icon presentation."
-        groupComments["lighting"] = "Lamp technology settings generated from registered lamp types."
+        groupComments["lighting"] = "Lamp settings."
         groupComments["lighting.lamps"] = "Per-lamp-type durability tuning."
     }
 
@@ -83,10 +75,6 @@ class JsonConfig @JvmOverloads constructor(
         spec(path = "integrations.modbus.enabled", defaultValue = false, comment = "Enable Modbus RTU."),
         spec(path = "integrations.modbus.port", defaultValue = 1502, comment = "TCP port for Modbus RTU."),
         spec(path = "integrations.mqtt.enabled", defaultValue = false, comment = "Enable MQTT devices. Server endpoints live in config/eln/mqtt.json."),
-        spec(path = "integrations.mqtt.simMetrics.enabled", defaultValue = false, comment = "Publish simulator MNA metrics to MQTT."),
-        spec(path = "integrations.mqtt.simMetrics.server", defaultValue = "", comment = "MQTT server name in config/eln/mqtt.json used for simulator metrics."),
-        spec(path = "integrations.mqtt.simMetrics.id", defaultValue = "server", comment = "Topic ID used under eln/sim/<id>/... for simulator metrics."),
-        spec(path = "integrations.mqtt.simMetrics.publishIntervalTicks", defaultValue = 20, comment = "Simulator ticks to aggregate before MQTT publish. Higher values reduce overhead."),
         spec(path = "integrations.computerProbe.enabled", defaultValue = true, comment = "Enable the OC/CC to Eln computer probe."),
         spec(path = "integrations.energyExporter.enabled", defaultValue = true, comment = "Enable the Eln energy exporter."),
         spec(path = "integrations.oredict.tungstenEnabled", defaultValue = false, comment = "Use shared ore dictionary entries for tungsten."),
@@ -98,14 +86,8 @@ class JsonConfig @JvmOverloads constructor(
         spec(path = "gameplay.hazards.explosionsEnabled", defaultValue = false, comment = "Make explosions a bit bigger."),
         spec(path = "gameplay.seasonal.enableFestiveItems", defaultValue = true, comment = "Set false to disable festive items."),
         spec(path = "gameplay.crafting.verticalIronCableCrafting", defaultValue = false, comment = "Craft iron cables with vertical ingots instead of horizontal ones."),
-        spec(path = "gameplay.cables.creativeFreeLength", defaultValue = true, comment = "When enabled, creative players do not consume utility cable length when placing cables or connecting poles."),
-        spec(path = "gameplay.qol.rememberLastLampSignalName", defaultValue = false, comment = "Lamp sockets remember the last used wireless channel name."),
-        spec(path = "gameplay.qol.rememberLastLampSocketContents", defaultValue = false, comment = "Lamp sockets are pre filled with last used bulb and cable (creative only)."),
-        spec(path = "gameplay.qol.creativeNoConsumeInsertedItems", defaultValue = false, comment = "Right click insertion does not consume items from creative players."),
-        spec(path = "gameplay.qol.rememberLastFloodlightBulbs", defaultValue = false, comment = "Floodlights are pre filled with last used bulbs (creative only)."),
         spec(path = "simulation.watchdog.destruction.thermal", defaultValue = true, comment = "Allow thermal watchdogs to destroy blocks except resistor heat watchdogs."),
         spec(path = "simulation.watchdog.destruction.resistorHeat", defaultValue = false, comment = "Allow resistor heat watchdogs to destroy blocks."),
-        spec(path = "simulation.watchdog.destruction.current", defaultValue = true, comment = "Allow current watchdogs to destroy blocks."),
         spec(path = "simulation.watchdog.destruction.voltage", defaultValue = true, comment = "Allow voltage watchdogs to destroy blocks."),
         spec(path = "simulation.watchdog.destruction.shaftSpeed", defaultValue = true, comment = "Allow shaft speed watchdogs to destroy blocks."),
         spec(path = "simulation.watchdog.destruction.other", defaultValue = true, comment = "Allow all other watchdog types to destroy blocks."),
@@ -128,8 +110,6 @@ class JsonConfig @JvmOverloads constructor(
         spec(path = "balance.materials.platesPerIngot", defaultValue = 1, comment = "Plates made per ingot."),
         spec(path = "balance.mechanics.shaftEnergyFactor", defaultValue = 0.05),
         spec(path = "items.batteries.standardHalfLifeDays", defaultValue = 2.0, comment = "Number of Minecraft days for a standard battery to decay halfway."),
-        spec(path = "items.batteries.infinite.standard", defaultValue = false, comment = "Disable wear-out for standard batteries."),
-        spec(path = "items.batteries.infinite.portable", defaultValue = false, comment = "Disable wear-out for portable batteries."),
         spec(path = "balance.storage.batteryCapacityFactor", defaultValue = 1.0),
         spec(path = "entities.replicator.enabled", defaultValue = false, comment = "Enable the replicator mob."),
         spec(path = "entities.replicator.thunderSpawnPerSecondPerPlayer", defaultValue = 1.0 / 120.0),
@@ -142,7 +122,6 @@ class JsonConfig @JvmOverloads constructor(
         spec(path = "worldgen.ores.tungsten.enabled", defaultValue = true),
         spec(path = "worldgen.ores.cinnabar.enabled", defaultValue = true),
         spec(path = "machines.fuelGenerator.tankCapacitySecondsAtNominalPower", defaultValue = 20.0 * 60.0),
-        spec(path = "machines.heatFurnace.consumeFuel", defaultValue = true, comment = "Controls whether heat furnaces consume fuel."),
         spec(path = "tools.xrayScanner.autoDiscoverOreDictionaryOres", defaultValue = true, comment = "Auto-discover ores from the Ore Dictionary that are not in oreFactors."),
         spec(path = "tools.xrayScanner.rangeBlocks", defaultValue = 5.0, comment = "X-ray scanner range in blocks. Intended range is 4 to 10."),
         spec(path = "tools.xrayScanner.canBeCrafted", defaultValue = true),
@@ -178,6 +157,16 @@ class JsonConfig @JvmOverloads constructor(
         spec(path = "simulation.thermal.ambient.undergroundBiomeTemperatureMultiplier", defaultValue = 0.2, comment = "Multiplier applied to biome ambient temperature for the Y50 underground baseline."),
         spec(path = "ui.icons.noSymbols", defaultValue = false, comment = "Show the item instead of the electrical symbol as an icon."),
         spec(path = "ui.icons.noVoltageBackground", defaultValue = false, comment = "Disable colored backgrounds for items."),
+        spec(path = "lighting.lamps.incandescent.nominalLifeInHours", defaultValue = 16.0),
+        spec(path = "lighting.lamps.economic.nominalLifeInHours", defaultValue = 64.0),
+        spec(path = "lighting.lamps.carbon.nominalLifeInHours", defaultValue = 6.0),
+        spec(path = "lighting.lamps.led.nominalLifeInHours", defaultValue = 512.0),
+        spec(path = "lighting.lamps.halogen.nominalLifeInHours", defaultValue = 128.0),
+        spec(path = "lighting.lamps.incandescent.infiniteLife", defaultValue = false),
+        spec(path = "lighting.lamps.economic.infiniteLife", defaultValue = false),
+        spec(path = "lighting.lamps.led.infiniteLife", defaultValue = false),
+        spec(path = "lighting.lamps.halogen.infiniteLife", defaultValue = false),
+        spec(path = "lighting.swingingLamps", defaultValue = true),
         spec(path = "balance.mechanics.flywheelMass", defaultValue = 50.0, comment = "Flywheel mass.")
     )
 
@@ -242,73 +231,7 @@ class JsonConfig @JvmOverloads constructor(
 
     fun loadConfig() {
         load()
-
-        LampLists.loadAllLampConfigs()
-        for (bladeData in TurbineBladeLists.bladeConfigList) bladeData.loadConfig()
-        ClutchPlateItem.infiniteLifeEnabled = getBooleanOrElse("items.clutchPlates.infiniteLifeEnabled", false)
-
-        val analyticsEnabled = getBooleanOrElse("analytics.enabled", true)
-        if (analyticsEnabled) {
-            val path = "analytics.playerUuid"
-            if (getStringOrElse(path, "").isEmpty()) {
-                setString(path, UUID.randomUUID().toString())
-            }
-        }
-
-        Other.wattsToEu = getDoubleOrElse("balance.integrationConversion.wattsToEu", 1.0 / 3.0)
-        Other.wattsToOC = getDoubleOrElse("balance.integrationConversion.wattsToOc", 1.0 / 3.0 / 2.5)
-        Other.wattsToRf = getDoubleOrElse("balance.integrationConversion.wattsToRf", 1.0 / 3.0 * 4)
-        Eln.mqttEnabled = getBooleanOrElse("integrations.mqtt.enabled", false)
-        Eln.simMetricsEnabled = getBooleanOrElse("integrations.mqtt.simMetrics.enabled", false)
-        Eln.simMetricsMqttServer = getStringOrElse("integrations.mqtt.simMetrics.server", "")
-        Eln.simMetricsId = getStringOrElse("integrations.mqtt.simMetrics.id", "server")
-        Eln.simMetricsPublishIntervalTicks = max(1, getIntOrElse("integrations.mqtt.simMetrics.publishIntervalTicks", 20))
-        Eln.debugEnabled = getBooleanOrElse("debug.logging.enabled", false)
-        MetricsSubsystem.refreshFromConfig()
-
-        setRuntimeValue(
-            "runtime.items.batteries.standardHalfLifeTicks",
-            getDoubleOrElse("items.batteries.standardHalfLifeDays", 2.0) * Utils.minecraftDay
-        )
-        setRuntimeValue("runtime.worldgen.ores.cinnabar.enabled", false)
-
-        val oredictTungsten = getBooleanOrElse("integrations.oredict.tungstenEnabled", false)
-        val dictTungstenOre: String
-        val dictTungstenDust: String
-        val dictTungstenIngot: String
-        if (oredictTungsten) {
-            dictTungstenOre = "oreTungsten"
-            dictTungstenDust = "dustTungsten"
-            dictTungstenIngot = "ingotTungsten"
-        } else {
-            dictTungstenOre = "oreElnTungsten"
-            dictTungstenDust = "dustElnTungsten"
-            dictTungstenIngot = "ingotElnTungsten"
-        }
-        val oredictChips = getBooleanOrElse("integrations.oredict.chipsEnabled", true)
-        val dictCheapChip: String
-        val dictAdvancedChip: String
-        if (oredictChips) {
-            dictCheapChip = "circuitBasic"
-            dictAdvancedChip = "circuitAdvanced"
-        } else {
-            dictCheapChip = "circuitElnBasic"
-            dictAdvancedChip = "circuitElnAdvanced"
-        }
-        setRuntimeValue("runtime.dictionary.tungstenOre", dictTungstenOre)
-        setRuntimeValue("runtime.dictionary.tungstenDust", dictTungstenDust)
-        setRuntimeValue("runtime.dictionary.tungstenIngot", dictTungstenIngot)
-        setRuntimeValue("runtime.dictionary.cheapChip", dictCheapChip)
-        setRuntimeValue("runtime.dictionary.advancedChip", dictAdvancedChip)
-
-        setRuntimeValue(
-            "runtime.tools.xrayScanner.rangeBlocks.clamped",
-            max(min(getDoubleOrElse("tools.xrayScanner.rangeBlocks", 5.0), 10.0), 4.0).toFloat()
-        )
-        min(max(getDoubleOrElse("balance.mechanics.flywheelMass", 50.0), 1.0), 1000.0).also {
-            setRuntimeValue("runtime.balance.mechanics.flywheelMass.clamped", it)
-        }
-
+        ConfigHandler.apply(this)
         save()
     }
 
@@ -458,11 +381,6 @@ class JsonConfig @JvmOverloads constructor(
         val canonicalPath = path.trim()
         val existing = values[canonicalPath] ?: throw IllegalArgumentException("Unknown config path '$canonicalPath'")
 
-        // Prevent propagation of invalid lamp life values to the config file
-        if (canonicalPath.startsWith("lighting.lamps") && canonicalPath.contains("nominalLifeInHours")) {
-            val formattedValue = parseRawValue(rawValue, 0.0) as Double // Second argument can be any double
-            if (!BoilerplateLampData.isValidNominalLife(formattedValue)) return "lighting.lamps"
-        }
 
         values[canonicalPath] = parseRawValue(rawValue, existing)
         save()
@@ -490,11 +408,6 @@ class JsonConfig @JvmOverloads constructor(
             throw IllegalArgumentException("No config paths matched '$canonicalPattern'")
         }
 
-        // Prevent propagation of invalid lamp life values to the config file
-        if (canonicalPattern.startsWith("lighting.lamps") && canonicalPattern.contains("nominalLifeInHours")) {
-            val formattedValue = parseRawValue(rawValue, 0.0) as Double // Second argument can be any double
-            if (!BoilerplateLampData.isValidNominalLife(formattedValue)) return listOf("lighting.lamps")
-        }
 
         matchedPaths.forEach { path ->
             val existing = values.getValue(path)
@@ -840,17 +753,6 @@ class JsonConfig @JvmOverloads constructor(
         for (spec in specs) {
             defaults[joinPath(spec.path)] = spec.defaultValue
         }
-        if (includeDefaultSpecs) {
-            for (lamp in LampLists.lampTechnologyList) {
-                defaults[lamp.nominalLifePath] = lamp.nominalLifeInHours
-                defaults[lamp.infiniteLifePath] = lamp.infiniteLifeEnabled
-            }
-            for (blade in TurbineBladeLists.bladeConfigList) {
-                defaults["items.turbineBlades.${blade.tierName}.nominalLifeHours"] = blade.nominalLifeInHours
-                defaults["items.turbineBlades.${blade.tierName}.infiniteLifeEnabled"] = blade.infiniteLifeEnabled
-            }
-            defaults["items.clutchPlates.infiniteLifeEnabled"] = ClutchPlateItem.infiniteLifeEnabled
-        }
         return defaults
     }
 
@@ -912,14 +814,6 @@ class JsonConfig @JvmOverloads constructor(
             val path = joinPath(spec.path)
             spec.comment?.let { pathComments[path] = it }
         }
-        for (lamp in LampLists.lampTechnologyList) {
-            pathComments["lighting.lamps.${lamp.lampType}.nominalLifeHours"] = "Nominal lamp lifetime in hours for ${lamp.lampType} bulbs."
-            pathComments["lighting.lamps.${lamp.lampType}.infiniteLifeEnabled"] = "Disable bulb wear-out for ${lamp.lampType} bulbs."
-        }
-        for (blade in TurbineBladeLists.bladeConfigList) {
-            pathComments["items.turbineBlades.${blade.tierName}.nominalLifeHours"] = "Nominal turbine blade lifetime in hours for the ${blade.tierName} tier."
-            pathComments["items.turbineBlades.${blade.tierName}.infiniteLifeEnabled"] = "Disable wear-out for ${blade.tierName} turbine blades."
-        }
         pathComments["items.clutchPlates.infiniteLifeEnabled"] = "Disable clutch plate wear-out."
     }
 
@@ -927,10 +821,6 @@ class JsonConfig @JvmOverloads constructor(
         "integrations.modbus.enabled" -> listOf(LegacyKey("modbus", "enable"))
         "integrations.modbus.port" -> listOf(LegacyKey("modbus", "port"))
         "integrations.mqtt.enabled" -> listOf(LegacyKey("mqtt", "enable"))
-        "integrations.mqtt.simMetrics.enabled" -> listOf(LegacyKey("mqtt", "simMetricsEnable"))
-        "integrations.mqtt.simMetrics.server" -> listOf(LegacyKey("mqtt", "simMetricsServer"))
-        "integrations.mqtt.simMetrics.id" -> listOf(LegacyKey("mqtt", "simMetricsId"))
-        "integrations.mqtt.simMetrics.publishIntervalTicks" -> listOf(LegacyKey("mqtt", "simMetricsPublishIntervalTicks"))
         "integrations.computerProbe.enabled" -> listOf(LegacyKey("compatibility", "ComputerProbeEnable"))
         "integrations.energyExporter.enabled" -> listOf(LegacyKey("compatibility", "ElnToOtherEnergyConverterEnable"))
         "integrations.oredict.tungstenEnabled" -> listOf(LegacyKey("dictionary", "tungsten"))

@@ -1,6 +1,6 @@
 package mods.eln.sim
 
-import mods.eln.Eln
+import mods.eln.server.SaveConfig
 
 abstract class BatterySlowProcess(private var batteryProcess: BatteryProcess, var thermalLoad: ThermalLoad) : IProcess {
 
@@ -17,7 +17,7 @@ abstract class BatterySlowProcess(private var batteryProcess: BatteryProcess, va
             destroy()
             return
         }
-        if (!Eln.config.getBooleanOrElse("items.batteries.infinite.standard", false)) {
+        if (SaveConfig.instance!!.batteryAging) {
             var newLife = batteryProcess.life
             val normalisedCurrent = Math.abs(batteryProcess.dischargeCurrent) / lifeNominalCurrent
             newLife -= normalisedCurrent * normalisedCurrent * lifeNominalLost * time

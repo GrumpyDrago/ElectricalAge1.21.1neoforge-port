@@ -316,7 +316,7 @@ object BiomeClimateService {
             val t = (SURFACE_Y - y).toDouble() / (SURFACE_Y - UPPER_UNDERGROUND_Y).toDouble()
             return interpolateLinear(surfaceTemperatureCelsius, undergroundTemperatureCelsius, t)
         }
-        if (!Eln.config.getBooleanOrElse("simulation.thermal.ambient.lavaRampEnabled", true) || y > LAVA_TRANSITION_START_Y) {
+        if (!Eln.lavaAmbientRampEnabled || y > LAVA_TRANSITION_START_Y) {
             return undergroundTemperatureCelsius
         }
         if (y <= LAVA_TRANSITION_END_Y) {
@@ -329,7 +329,7 @@ object BiomeClimateService {
 
     @JvmStatic
     fun undergroundTemperatureCelsius(surfaceTemperatureCelsius: Double): Double {
-        return UNDERGROUND_BASELINE_C + surfaceTemperatureCelsius * Eln.config.getDoubleOrElse("simulation.thermal.ambient.undergroundBiomeTemperatureMultiplier", 0.2)
+        return UNDERGROUND_BASELINE_C + surfaceTemperatureCelsius * Eln.undergroundBiomeTemperatureMultiplier
     }
 
     private fun ensureLoaded() {

@@ -11,7 +11,6 @@ import mods.eln.node.NodeManager
 import mods.eln.sim.ElectricalConnection
 import mods.eln.sim.mna.misc.MnaConst
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
-import mods.eln.sixnode.electricalcable.UtilityCableDescriptor
 import net.minecraft.world.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 
@@ -191,20 +190,15 @@ class GridLink : INBTTReady {
             }
         }
 
-        fun addLink(a: GridElement, b: GridElement, `as`: Direction, bs: Direction, cable: ElectricalCableDescriptor, cableLength: Int, cableStack: ItemStack? = null) {
+        fun addLink(a: GridElement, b: GridElement, `as`: Direction, bs: Direction, cable: ElectricalCableDescriptor, cableLength: Int) {
             // Check if these two nodes are already linked.
             (a.gridLinkList + b.gridLinkList)
                 .filter { it.links(a, b) }
                 .forEach { throw UserError("Already Connected") }
 
-            val linkStack = cableStack ?: when (cable) {
-                is UtilityCableDescriptor -> cable.newItemStack(1).also { cable.setRemainingLengthMeters(it, cableLength.toDouble()) }
-                else -> cable.newItemStack(cableLength)
-            }
-
             // Makin' a Link. Where'd Zelda go?
             val link = GridLink(
-                    a.coordinate(), b.coordinate(), `as`, bs, linkStack,
+                    a.coordinate(), b.coordinate(), `as`, bs, cable.newItemStack(cableLength),
                     cable.electricalRs * cableLength)
             link.connect()
         }

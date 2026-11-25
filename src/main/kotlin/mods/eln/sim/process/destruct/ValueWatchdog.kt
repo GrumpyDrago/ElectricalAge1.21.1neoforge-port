@@ -8,7 +8,6 @@ import mods.eln.sim.IProcess
 enum class WatchdogType {
     THERMAL,
     RESISTOR_HEAT,
-    CURRENT,
     VOLTAGE,
     SHAFT_SPEED,
     OTHER
@@ -33,6 +32,11 @@ abstract class ValueWatchdog : IProcess {
         }
         val value = getValue()
         var overflow = (value - max).coerceAtLeast(min - value)
+        // Nearly always: within the limits, and has been for long enough.
+        if (overflow <= 0 && timeout >= timeoutReset) {
+            joker = true
+            return
+        }
         if (overflow > 0) {
             if (joker) {
                 joker = false
@@ -66,12 +70,11 @@ abstract class ValueWatchdog : IProcess {
 
     private fun isWatchdogDestructionEnabled(): Boolean {
         return when (watchdogType) {
-            WatchdogType.THERMAL -> Eln.config.getBooleanOrElse("simulation.watchdog.destruction.thermal", true)
-            WatchdogType.RESISTOR_HEAT -> Eln.config.getBooleanOrElse("simulation.watchdog.destruction.resistorHeat", false)
-            WatchdogType.CURRENT -> Eln.config.getBooleanOrElse("simulation.watchdog.destruction.current", true)
-            WatchdogType.VOLTAGE -> Eln.config.getBooleanOrElse("simulation.watchdog.destruction.voltage", true)
-            WatchdogType.SHAFT_SPEED -> Eln.config.getBooleanOrElse("simulation.watchdog.destruction.shaftSpeed", true)
-            WatchdogType.OTHER -> Eln.config.getBooleanOrElse("simulation.watchdog.destruction.other", true)
+            WatchdogType.THERMAL -> Eln.watchdogThermalEnabled
+            WatchdogType.RESISTOR_HEAT -> Eln.watchdogResistorHeatEnabled
+            WatchdogType.VOLTAGE -> Eln.watchdogVoltageEnabled
+            WatchdogType.SHAFT_SPEED -> Eln.watchdogShaftSpeedEnabled
+            WatchdogType.OTHER -> Eln.watchdogOtherEnabled
         }
     }
 

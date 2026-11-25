@@ -5,38 +5,25 @@ import mods.eln.compat.*
 import mods.eln.misc.INBTTReady
 import mods.eln.misc.Utils.readFromNBT
 import mods.eln.misc.Utils.writeToNBT
-import mods.eln.sixnode.electricalcable.IUtilityCableInventory
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 
-class SixNodeElementInventory : IInventory, INBTTReady, IUtilityCableInventory {
-    var sixNodeRender: SixNodeElementRender? = null
+class SixNodeElementInventory : IInventory, INBTTReady {
+    var sixnodeRender: SixNodeElementRender? = null
     var sixNodeElement: SixNodeElement? = null
     var stackLimit: Int
-    override var requiredCableLength = IUtilityCableInventory.DEFAULT_REQUIRED_LENGTH
 
-    constructor(size: Int, stackLimit: Int, sixNodeRender: SixNodeElementRender?) {
+    constructor(size: Int, stackLimit: Int, sixnodeRender: SixNodeElementRender?) {
         inv = arrayOfNulls(size)
         this.stackLimit = stackLimit
-        this.sixNodeRender = sixNodeRender
+        this.sixnodeRender = sixnodeRender
     }
 
     constructor(size: Int, stackLimit: Int, sixNodeElement: SixNodeElement?) {
         inv = arrayOfNulls(size)
         this.stackLimit = stackLimit
         this.sixNodeElement = sixNodeElement
-    }
-
-    /**
-     * Constructor for inventories which require a different length of utility cable than the default.
-     * This is a separate constructor because Java sucks and does not allow for default values in constructors.
-     */
-    constructor(size: Int, stackLimit: Int, sixNodeElement: SixNodeElement?, requiredCableLength: Double) {
-        inv = arrayOfNulls(size)
-        this.stackLimit = stackLimit
-        this.sixNodeElement = sixNodeElement
-        this.requiredCableLength = requiredCableLength
     }
 
     private var inv: Array<ItemStack?>

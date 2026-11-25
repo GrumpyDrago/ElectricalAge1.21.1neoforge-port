@@ -28,7 +28,6 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 
 class EmergencyLampDescriptor(name: String, val cable: ElectricalCableDescriptor, val batteryCapacity: Double,
-                              val nominalVoltage: Double,
                               val chargePower: Double, val consumption: Double, val lightLevel: Int, model: Obj3D)
     : SixNodeDescriptor(name, EmergencyLampElement::class.java, EmergencyLampRender::class.java) {
 
@@ -41,7 +40,7 @@ class EmergencyLampDescriptor(name: String, val cable: ElectricalCableDescriptor
     val lightWall: Obj3D.Obj3DPart = model.getPart("lightWall")
 
     init {
-        voltageLevelColor = VoltageLevelColor.fromVoltage(nominalVoltage)
+        voltageLevelColor = VoltageLevelColor.fromCable(cable)
         setDefaultIcon("emergencylamp")
     }
 
@@ -84,7 +83,7 @@ class EmergencyLampDescriptor(name: String, val cable: ElectricalCableDescriptor
             add(tr("As long as power is provided, the internal battery"))
             add(tr("is charged and the lamp is off. On a power failure,"))
             add(tr("the lamp turns on and runs on batteries."))
-            add(Utils.plotVolt(tr("Nominal voltage:"), nominalVoltage))
+            add(Utils.plotVolt(tr("Nominal voltage:"), cable.electricalNominalVoltage))
             add(Utils.plotEnergy(tr("Battery capacity:"), batteryCapacity))
         }
     }
@@ -138,7 +137,7 @@ class EmergencyLampElement(sixNode: SixNode, side: Direction, descriptor: SixNod
             }
         }
 
-        if (chargingResistor.voltage > 0.5 * desc.nominalVoltage) {
+        if (chargingResistor.voltage > 0.5 * desc.cable.electricalNominalVoltage) {
             on = false
             if (charge < desc.batteryCapacity) {
                 // Use setter to update resistance along with the state.
@@ -160,14 +159,14 @@ class EmergencyLampElement(sixNode: SixNode, side: Direction, descriptor: SixNod
 
     override fun initialize() {
         chargingResistor.resistance =
-            desc.nominalVoltage * desc.nominalVoltage / desc.chargePower
+            desc.cable.electricalNominalVoltage * desc.cable.electricalNominalVoltage / desc.chargePower
         desc.cable.applyTo(load)
 
         electricalLoadList.add(load)
         electricalComponentList.add(chargingResistor)
         slowProcessList.add(process)
         slowProcessList.add(NodePeriodicPublishProcess(sixNode!!, 2.0, 0.5))
-        slowProcessList.add(VoltageStateWatchDog(load).setNominalVoltage(desc.nominalVoltage)
+        slowProcessList.add(VoltageStateWatchDog(load).setNominalVoltage(desc.cable.electricalNominalVoltage)
             .setDestroys(WorldExplosion(this).cableExplosion()))
     }
 

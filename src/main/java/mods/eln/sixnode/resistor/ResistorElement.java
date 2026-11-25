@@ -130,7 +130,7 @@ public class ResistorElement extends SixNodeElement {
         Map<String, String> info = new HashMap<String, String>();
         info.put(I18N.tr("Resistance"), Utils.plotValue(r.getResistance(), "\u2126"));
         info.put(I18N.tr("Voltage drop"), Utils.plotVolt("", Math.abs(r.getVoltage())));
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info.put(I18N.tr("Current"), Utils.plotAmpere("", Math.abs(r.getCurrent())));
 
         }

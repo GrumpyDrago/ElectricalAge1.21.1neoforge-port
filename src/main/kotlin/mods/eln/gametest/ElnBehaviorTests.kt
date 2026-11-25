@@ -14,12 +14,14 @@ import mods.eln.node.six.SixNode
 import mods.eln.node.transparent.TransparentNode
 import mods.eln.node.transparent.TransparentNodeDescriptor
 import mods.eln.sixnode.TreeResinCollector.TreeResinCollectorElement
-import mods.eln.sixnode.electricalcable.UtilityCableDescriptor
 import mods.eln.sixnode.electricalsource.ElectricalSourceElement
 import mods.eln.sixnode.lampsocket.LampSocketContainer
+import mods.eln.sixnode.lampsupply.LampSupplyContainer
+import mods.eln.sixnode.lampsupply.LampSupplyElement
+import mods.eln.item.LampDescriptor
+import mods.eln.misc.Utils
 import mods.eln.sixnode.lampsocket.LampSocketElement
 import mods.eln.transparentnode.FuelGeneratorElement
-import mods.eln.transparentnode.WireMachineElement
 import mods.eln.transparentnode.electricalmachine.ElectricalMachineElement
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
@@ -152,45 +154,13 @@ object ElnBehaviorTests {
     @GameTest(template = EMPTY, timeoutTicks = 1200)
     @JvmStatic
     fun maceratorMacerates(helper: GameTestHelper) {
-        val machine = machine(helper, player(helper), "48V Macerator", BlockPos(5, 1, 5), 48.0)
+        val machine = machine(helper, player(helper), "50V Macerator", BlockPos(5, 1, 5), 50.0)
         val recipe = Eln.instance.maceratorRecipes.recipes.first()
         machine.inventory!!.setInventorySlotContents(machine.inSlotId, recipe.input.copyWithCount(1))
         helper.succeedWhen {
             val out = (machine.outSlotId until machine.inSlotId).mapNotNull { machine.inventory!!.getStackInSlot(it) }
             helper.assertTrue(out.any { it.item === recipe.output[0].item }, "nothing came out")
             helper.assertTrue(machine.inventory!!.getStackInSlot(machine.inSlotId) == null, "the input is still there")
-        }
-    }
-
-    @GameTest(template = EMPTY, timeoutTicks = 1200)
-    @JvmStatic
-    fun wireMachinesMakeCables(helper: GameTestHelper) {
-        val player = player(helper)
-        fun wireMachine(name: String, pos: BlockPos, vararg inputs: ItemStack): WireMachineElement {
-            val machine = powered(helper, player, name, pos, 200.0).element as WireMachineElement
-            inputs.forEachIndexed { slot, stack -> machine.inventory.setInventorySlotContents(slot, stack) }
-            return machine
-        }
-
-        fun wire(name: String) = Eln.findItemStack(name, 1).also {
-            (Eln.sixNodeItem.getDescriptor(it) as UtilityCableDescriptor).setRemainingLengthMeters(it, 20.0)
-        }
-
-        fun wheel() = Eln.findItemStack("Iron Roller Wheel", 1)
-        val roller = wireMachine("Wire Roller", BlockPos(2, 1, 2), ItemStack(Items.COPPER_INGOT, 10), wheel(), wheel())
-        val insulator = wireMachine(
-            "Wire Insulator", BlockPos(8, 1, 2),
-            wire("Copper 14 AWG Cable Bare"), ItemStack(OreDict.getOres("itemRubber").first().item, 64)
-        )
-        // Two and the ground.
-        val wires = Array(3) { wire("Copper 14 AWG Cable 600V") }
-        val combiner = wireMachine("Wire Combiner", BlockPos(5, 1, 8), *wires)
-        helper.succeedWhen {
-            fun made(machine: WireMachineElement, slot: Int) =
-                machine.inventory.getStackInSlot(slot)?.let { BuiltInRegistries.ITEM.getKey(it.item).path }
-            helper.assertTrue(made(roller, 3).orEmpty().endsWith("_cable_bare"), "the roller made ${made(roller, 3)}")
-            helper.assertTrue(made(insulator, 2) == "copper_14_awg_cable_600v", "the insulator made ${made(insulator, 2)}")
-            helper.assertTrue(made(combiner, 5) == "wound_wire_bundle", "the combiner made ${made(combiner, 5)}")
         }
     }
 
@@ -258,7 +228,7 @@ object ElnBehaviorTests {
     @JvmStatic
     fun hopperFeedsMachine(helper: GameTestHelper) {
         val pos = BlockPos(5, 1, 5)
-        val machine = machine(helper, player(helper), "48V Macerator", pos, 0.0)
+        val machine = machine(helper, player(helper), "50V Macerator", pos, 0.0)
         val input = Eln.instance.maceratorRecipes.recipes.first().input.item
         helper.setBlock(pos.above(), Blocks.HOPPER.defaultBlockState().setValue(HopperBlock.FACING, McDirection.DOWN))
         helper.getBlockEntity<HopperBlockEntity>(pos.above()).setItem(0, ItemStack(input, 3))
@@ -414,7 +384,7 @@ object ElnBehaviorTests {
         val fluids = BuiltInRegistries.FLUID.filter { it !== Fluids.EMPTY && it.defaultFluidState().isSource }
         // Those of other mods do not cope with players that have no client.
         val player = FakePlayerFactory.getMinecraft(helper.level)
-        for (name in listOf("48V Fuel Generator", "Gas Turbine", "Radial Motor", "Fuel Heat Furnace", "Steam Turbine")) {
+        for (name in listOf("50V Fuel Generator", "Gas Turbine", "Radial Motor", "Fuel Heat Furnace", "Steam Turbine")) {
             val stack = Eln.findItemStack(name, 1)
             val descriptor = Eln.transparentNodeItem.getDescriptor(stack) as TransparentNodeDescriptor
             // Some stand on something, and others reach below where they stand.
@@ -474,14 +444,14 @@ object ElnBehaviorTests {
     @JvmStatic
     fun brokenMachineDropsItsContents(helper: GameTestHelper) {
         val pos = BlockPos(5, 1, 5)
-        val machine = machine(helper, player(helper), "48V Macerator", pos, 0.0)
+        val machine = machine(helper, player(helper), "50V Macerator", pos, 0.0)
         machine.inventory!!.setInventorySlotContents(machine.inSlotId, ItemStack(Items.DIAMOND, 7))
         val box = AABB(helper.absolutePos(pos)).inflate(3.0)
         helper.level.destroyBlock(helper.absolutePos(pos), true)
         helper.runAfterDelay(2) {
             val drops = helper.level.getEntitiesOfClass(ItemEntity::class.java, box).map { it.item }
             helper.assertTrue(drops.filter { it.`is`(Items.DIAMOND) }.sumOf { it.count } == 7, "contents: $drops")
-            helper.assertTrue(drops.any { it.item === Eln.findItemStack("48V Macerator", 1).item }, "the machine: $drops")
+            helper.assertTrue(drops.any { it.item === Eln.findItemStack("50V Macerator", 1).item }, "the machine: $drops")
             helper.succeed()
         }
     }
@@ -492,7 +462,7 @@ object ElnBehaviorTests {
     fun openGuiClosesWithItsMachine(helper: GameTestHelper) {
         val player = player(helper)
         val pos = BlockPos(5, 1, 5)
-        val machine = machine(helper, player, "48V Macerator", pos, 0.0)
+        val machine = machine(helper, player, "50V Macerator", pos, 0.0)
         val center = helper.absoluteVec(pos.center)
         player.moveTo(center.x, center.y + 1.0, center.z)
         machine.inventory!!.setInventorySlotContents(machine.inSlotId, ItemStack(Items.DIAMOND, 7))
@@ -514,14 +484,86 @@ object ElnBehaviorTests {
         floor(helper)
         val pos = BlockPos(5, 1, 5)
         val socket = placeSix(helper, player, "Simple Lamp Socket", pos).getElement(Direction.YN) as LampSocketElement
-        for (d in McDirection.Plane.HORIZONTAL) source(helper, player, pos.relative(d), 120.0)
-        socket.inventory.setInventorySlotContents(LampSocketContainer.LAMP_SLOT_ID, Eln.findItemStack("120V Incandescent Light Bulb", 1).orNull())
-        socket.inventory.setInventorySlotContents(LampSocketContainer.CABLE_SLOT_ID, Eln.findItemStack("Low Voltage Cable", 1))
+        for (d in McDirection.Plane.HORIZONTAL) source(helper, player, pos.relative(d), 50.0)
+        socket.inventory!!.setInventorySlotContents(LampSocketContainer.lampSlotId, Eln.findItemStack("50V Incandescent Light Bulb", 1).orNull())
+        socket.inventory!!.setInventorySlotContents(LampSocketContainer.cableSlotId, Eln.findItemStack("Low Voltage Cable", 1))
         socket.poweredByLampSupply = false
         socket.sixNode!!.reconnect()
         helper.succeedWhen {
-            val state = helper.getBlockState(pos)
-            helper.assertTrue(state.getLightEmission(helper.level, helper.absolutePos(pos)) > 5, "the lamp is dark")
+            // The light is a few blocks in front of it.
+            val light = (0..8).maxOf { helper.getBlockState(pos.above(it)).getLightEmission(helper.level, helper.absolutePos(pos.above(it))) }
+            helper.assertTrue(light > 5, "the lamp is dark: ${socket.lampResistor.voltage} V, ${socket.lampProcess.light} at ${socket.lampProcess.lbCoord}, socket ${socket.coordinate}")
+        }
+    }
+
+    private fun lampLight(helper: GameTestHelper, pos: BlockPos) =
+        (0..8).maxOf { helper.getBlockState(pos.above(it)).getLightEmission(helper.level, helper.absolutePos(pos.above(it))) }
+
+    private fun socket(helper: GameTestHelper, player: ServerPlayer, name: String, pos: BlockPos, bulb: String): LampSocketElement {
+        val socket = placeSix(helper, player, name, pos).getElement(Direction.YN) as LampSocketElement
+        socket.inventory!!.setInventorySlotContents(LampSocketContainer.lampSlotId, Eln.findItemStack(bulb, 1).orNull())
+        socket.inventory!!.setInventorySlotContents(LampSocketContainer.cableSlotId, Eln.findItemStack("Low Voltage Cable", 1))
+        return socket
+    }
+
+    /** Lamps far from a supply take power from it, by the name of the channel. */
+    @GameTest(template = EMPTY, timeoutTicks = 300)
+    @JvmStatic
+    fun lampSupplyPowersLamps(helper: GameTestHelper) {
+        val player = player(helper)
+        floor(helper)
+        val supplyPos = BlockPos(2, 1, 5)
+        val supply = placeSix(helper, player, "Lamp Supply", supplyPos).getElement(Direction.YN) as LampSupplyElement
+        supply.inventory!!.setInventorySlotContents(LampSupplyContainer.cableSlotId, Eln.findItemStack("Low Voltage Cable", 4))
+        // As slots do.
+        supply.inventory!!.markDirty()
+        for (d in McDirection.Plane.HORIZONTAL) source(helper, player, supplyPos.relative(d), 50.0)
+        supply.sixNode!!.reconnect()
+        val bytes = java.io.ByteArrayOutputStream()
+        java.io.DataOutputStream(bytes).apply {
+            writeByte(LampSupplyElement.setPowerName.toInt())
+            writeByte(0)
+            writeUTF("Default channel")
+        }
+        supply.networkUnserialize(java.io.DataInputStream(bytes.toByteArray().inputStream()))
+        val pos = BlockPos(8, 1, 5)
+        val socket = socket(helper, player, "Simple Lamp Socket", pos, "50V Incandescent Light Bulb")
+        helper.succeedWhen {
+            helper.assertTrue(lampLight(helper, pos) > 5, "the lamp is dark: ${socket.lampResistor.voltage} V, supply at ${supply.powerLoad.voltage} V")
+        }
+    }
+
+    /** Economic bulbs flicker before they light up properly. */
+    @GameTest(template = EMPTY, timeoutTicks = 400)
+    @JvmStatic
+    fun economicBulbsLightUp(helper: GameTestHelper) {
+        val player = player(helper)
+        floor(helper)
+        val pos = BlockPos(5, 1, 5)
+        val socket = socket(helper, player, "Robust Lamp Socket", pos, "50V Economic Light Bulb")
+        for (d in McDirection.Plane.HORIZONTAL) source(helper, player, pos.relative(d), 50.0)
+        socket.poweredByLampSupply = false
+        socket.sixNode!!.reconnect()
+        helper.succeedWhen {
+            helper.assertTrue(lampLight(helper, pos) > 5, "the lamp is dark: ${socket.lampResistor.voltage} V")
+        }
+    }
+
+    @GameTest(template = EMPTY, timeoutTicks = 300)
+    @JvmStatic
+    fun bulbsWearOut(helper: GameTestHelper) {
+        val player = player(helper)
+        floor(helper)
+        val pos = BlockPos(5, 1, 5)
+        val socket = socket(helper, player, "Simple Lamp Socket", pos, "50V Incandescent Light Bulb")
+        val bulb = socket.inventory!!.getStackInSlot(LampSocketContainer.lampSlotId)!!
+        val descriptor = Utils.getItemObject(bulb) as LampDescriptor
+        descriptor.setLifeInTag(bulb, 0.0001)
+        for (d in McDirection.Plane.HORIZONTAL) source(helper, player, pos.relative(d), 50.0)
+        socket.poweredByLampSupply = false
+        socket.sixNode!!.reconnect()
+        helper.succeedWhen {
+            helper.assertTrue(socket.inventory!!.getStackInSlot(LampSocketContainer.lampSlotId) == null, "the bulb lasts forever")
         }
     }
 

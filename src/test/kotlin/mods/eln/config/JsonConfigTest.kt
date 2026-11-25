@@ -216,12 +216,12 @@ class JsonConfigTest {
         Eln.config = config
         config.load()
 
-        val lampPaths = config.readPathsMatching("lighting.lamps.*.infiniteLifeEnabled")
+        val lampPaths = config.readPathsMatching("lighting.lamps.*.infiniteLife")
         assertTrue(lampPaths.isNotEmpty())
         assertTrue(lampPaths.values.all { it is Boolean })
 
         val updatedPaths = config.writePathsMatching(
-            "lighting.lamps.*.infiniteLifeEnabled",
+            "lighting.lamps.*.infiniteLife",
             "true"
         )
         assertEquals(lampPaths.keys.toSet(), updatedPaths.toSet())

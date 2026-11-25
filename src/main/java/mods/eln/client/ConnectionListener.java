@@ -5,9 +5,9 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import mods.eln.Eln;
+import mods.eln.ore.OreScannerManager;
 import mods.eln.compat.client.GL11;
 import mods.eln.misc.Utils;
-import mods.eln.ore.OreScannerManager;
 import mods.eln.misc.UtilsClient;
 import net.minecraft.client.Minecraft;
 

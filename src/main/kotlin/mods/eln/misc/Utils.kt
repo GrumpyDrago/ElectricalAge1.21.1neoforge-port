@@ -77,7 +77,7 @@ object Utils {
 
     @JvmStatic
     fun println(str: String?) {
-        if (Eln.config.getBooleanOrElse("debug.logging.enabled", false)) Eln.logger.info(str)
+        if (Eln.debugEnabled) Eln.logger.info(str)
     }
 
     @JvmStatic
@@ -798,7 +798,7 @@ object Utils {
 
     @JvmStatic
     fun getVec05(c: Coordinate): Vec3 {
-        return Vec3(c.x + (if (c.x < 0) -1 else 1) * 0.5, c.y + (if (c.y < 0) -1 else 1) * 0.5, c.z + (if (c.z < 0) -1 else 1) * 0.5)
+        return c.toVec3()
     }
 
     fun getHeadPosY(e: Entity): Double {

@@ -7,6 +7,7 @@ import mods.eln.misc.Obj3D.Obj3DPart;
 import mods.eln.node.transparent.TransparentNodeDescriptor;
 import mods.eln.sim.ElectricalLoad;
 import mods.eln.wiki.Data;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.item.ItemStack;
@@ -30,8 +31,7 @@ public class SolarPanelDescriptor extends TransparentNodeDescriptor {
             String name,
             Obj3D obj, CableRenderDescriptor cableRender,
             GhostGroup ghostGroup, int solarOffsetX, int solarOffsetY, int solarOffsetZ,
-            Coordinate groundCoordinate, double openCircuitVoltage, double optimumVoltage,
-            double optimumCurrent, double shortCircuitCurrent,
+            Coordinate groundCoordinate, double electricalUmax, double electricalPmax,
             double electricalDropFactor,
             double alphaMin, double alphaMax
 
@@ -40,18 +40,16 @@ public class SolarPanelDescriptor extends TransparentNodeDescriptor {
         this.groundCoordinate = groundCoordinate;
         this.ghostGroup = ghostGroup;
 
-        electricalRs = optimumVoltage * optimumVoltage * electricalDropFactor
-            / (optimumVoltage * optimumCurrent) / 2.0;
+        electricalRs = electricalUmax * electricalUmax * electricalDropFactor
+            / electricalPmax / 2.0;
+        this.electricalPmax = electricalPmax;
         this.solarOffsetX = solarOffsetX;
         this.solarOffsetY = solarOffsetY;
         this.solarOffsetZ = solarOffsetZ;
         this.alphaMax = alphaMax;
         this.alphaMin = alphaMin;
         basicModel = true;
-        this.openCircuitVoltage = openCircuitVoltage;
-        this.optimumVoltage = optimumVoltage;
-        this.optimumCurrent = optimumCurrent;
-        this.shortCircuitCurrent = shortCircuitCurrent;
+        this.electricalUmax = electricalUmax;
 
         this.obj = obj;
         if (obj != null) {
@@ -63,7 +61,7 @@ public class SolarPanelDescriptor extends TransparentNodeDescriptor {
 
         canRotate = alphaMax != alphaMin;
 
-        voltageLevelColor = VoltageLevelColor.fromVoltage(openCircuitVoltage);
+        voltageLevelColor = VoltageLevelColor.fromVoltage(electricalUmax);
     }
 
 
@@ -73,10 +71,8 @@ public class SolarPanelDescriptor extends TransparentNodeDescriptor {
     }
 
     CableRenderDescriptor cableRender;
-    double openCircuitVoltage;
-    double optimumVoltage;
-    double optimumCurrent;
-    double shortCircuitCurrent;
+    double electricalUmax;
+    double electricalPmax;
 
     int solarOffsetX, solarOffsetY, solarOffsetZ;
     double alphaMin, alphaMax;
@@ -89,15 +85,21 @@ public class SolarPanelDescriptor extends TransparentNodeDescriptor {
         load.setSerialResistance(electricalRs);
     }
 
-    public double getStcPower() {
-        return optimumVoltage * optimumCurrent;
-    }
-
 
     public double alphaTrunk(double alpha) {
         if (alpha > alphaMax) return alphaMax;
         if (alpha < alphaMin) return alphaMin;
         return alpha;
+    }
+
+    @Override
+    public Direction getFrontFromPlace(Direction side, LivingEntity entityLiving) {
+        if (canRotate && groundCoordinate != null) {
+            // That is, if this isn't a 1x1 panel.
+            return Direction.ZN;
+        } else {
+            return super.getFrontFromPlace(side, entityLiving);
+        }
     }
 
     void draw(float alpha, Direction front) {
@@ -131,20 +133,17 @@ public class SolarPanelDescriptor extends TransparentNodeDescriptor {
     }
 
     @Override
-    public void addInformation(ItemStack itemStack, Player entityPlayer, List<String> list, boolean par4) {
+    public void addInformation(ItemStack itemStack, Player entityPlayer, List list, boolean par4) {
         super.addInformation(itemStack, entityPlayer, list, par4);
 
         list.add(tr("Produces power from solar radiation."));
-        list.add("  " + tr("Open-circuit voltage: %1$V", Utils.plotValue(openCircuitVoltage)));
-        list.add("  " + tr("Optimum voltage: %1$V", Utils.plotValue(optimumVoltage)));
-        list.add("  " + tr("Optimum current: %1$A", Utils.plotValue(optimumCurrent)));
-        list.add("  " + tr("Short-circuit current: %1$A", Utils.plotValue(shortCircuitCurrent)));
-        list.add("  " + tr("STC power: %1$W", Utils.plotValue(getStcPower())));
+        list.add("  " + tr("Max. voltage: %1$V", Utils.plotValue(electricalUmax)));
+        list.add("  " + tr("Max. power: %1$W", Utils.plotValue(electricalPmax)));
         if (canRotate) list.add(tr("Can be geared towards the sun."));
     }
 
     @Override
-    public void addCollisionBoxesToList(AABB par5AxisAlignedBB, List<AABB> list, Level world, int x, int y, int z) {
+    public void addCollisionBoxesToList(AABB par5AxisAlignedBB, List list, Level world, int x, int y, int z) {
         if (canRotate) {
             super.addCollisionBoxesToList(par5AxisAlignedBB, list, world, x, y, z);
             return;

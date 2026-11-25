@@ -5,8 +5,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import mods.eln.Eln;
 import mods.eln.environment.RoomThermalManager;
-import mods.eln.item.lampitem.LampLists;
-import mods.eln.metrics.MetricsSubsystem;
 import mods.eln.misc.Utils;
 import mods.eln.sim.mna.RootSystem;
 import mods.eln.sim.mna.component.Component;
@@ -24,6 +22,7 @@ public class Simulator /* ,IPacketHandler */ {
     public RootSystem mna;
 
     private ArrayList<IProcess> slowProcessList;
+    private IProcess[] slowProcessSnapshot = new IProcess[0];
     private List<IProcess> slowPreProcessList;
     private List<IProcess> slowPostProcessList;
 
@@ -51,7 +50,6 @@ public class Simulator /* ,IPacketHandler */ {
     double thermalTimeout = 0;
 
     private int printTimeCounter = 0;
-    private int resetLampLifeTimeoutCounter = 0;
 
     public ArrayList<IProcess> getElectricalProcessList() {
         return electricalProcessList;
@@ -412,8 +410,10 @@ public class Simulator /* ,IPacketHandler */ {
 
         stackStart = System.nanoTime();
 
-        for (Object o : slowProcessList.toArray()) {
-            IProcess process = (IProcess) o;
+        // A copy, as processes come and go while they run; the same array every tick.
+        slowProcessSnapshot = slowProcessList.toArray(slowProcessSnapshot);
+        for (IProcess process : slowProcessSnapshot) {
+            if (process == null) break;
             process.process(0.05);
         }
 
@@ -453,24 +453,6 @@ public class Simulator /* ,IPacketHandler */ {
                 + "    " + thermalSlowProcessList.size() + " TSP"
                 + "    " + slowProcessList.size() + " SP"
             );
-            if (MetricsSubsystem.isSimulatorMetricsActive()) {
-                MetricsSubsystem.publishSimulatorRuntimeMetrics(
-                    avgTickMicroseconds,
-                    electricalMicroseconds,
-                    thermalFastMicroseconds,
-                    thermalSlowMicroseconds,
-                    slowMicroseconds,
-                    mna.getSubSystemCount(),
-                    electricalProcessList.size(),
-                    thermalFastLoadList.size(),
-                    thermalFastConnectionList.size(),
-                    thermalFastProcessList.size(),
-                    thermalSlowLoadList.size(),
-                    thermalSlowConnectionList.size(),
-                    thermalSlowProcessList.size(),
-                    slowProcessList.size()
-                );
-            }
 
             avgTickTime = 0;
 
@@ -478,14 +460,6 @@ public class Simulator /* ,IPacketHandler */ {
             thermalFastNsStack = 0;
             slowNsStack = 0;
             thermalSlowNsStack = 0;
-
-            if (LampLists.INSTANCE.getResetLampLifeFlag()) {
-                if (++resetLampLifeTimeoutCounter == 2) { // Ensure that all lamp sockets have time to react to the flag by waiting between 1 and 2 seconds to reset the flag
-                    LampLists.INSTANCE.setResetLampLifeFlag(false);
-                    Utils.println("Reset all lamp lives to nominal.");
-                    resetLampLifeTimeoutCounter = 0;
-                }
-            }
         }
 
         for(IProcess o : slowPostProcessList) {

@@ -54,8 +54,6 @@ public class ElectricalSensorElement extends SixNodeElement implements IConfigur
 
     public Resistor resistor;
 
-    // Java reports the Kotlin vararg of descriptor classes as an unchecked array creation here.
-    @SuppressWarnings("unchecked")
     private AutoAcceptInventoryProxy inventory = (new AutoAcceptInventoryProxy(new SixNodeElementInventory(1, 64, this)))
         .acceptIfEmpty(0, ElectricalCableDescriptor.class, CurrentCableDescriptor.class);
 
@@ -186,7 +184,7 @@ public class ElectricalSensorElement extends SixNodeElement implements IConfigur
     public Map<String, String> getWaila() {
         Map<String, String> info = new HashMap<String, String>();
         info.put(I18N.tr("Output voltage"), Utils.plotVolt("", outputGate.getVoltage()));
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             switch (typeOfSensor) {
                 case voltageType:
                     info.put(I18N.tr("Measured voltage"), Utils.plotVolt("", aLoad.getVoltage()));

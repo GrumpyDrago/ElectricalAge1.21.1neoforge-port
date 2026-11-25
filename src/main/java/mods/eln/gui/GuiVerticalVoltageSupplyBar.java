@@ -1,6 +1,5 @@
 package mods.eln.gui;
 
-import mods.eln.i18n.I18N;
 import mods.eln.misc.Utils;
 
 public class GuiVerticalVoltageSupplyBar extends GuiVerticalWorkingZoneBar {
@@ -24,7 +23,7 @@ public class GuiVerticalVoltageSupplyBar extends GuiVerticalWorkingZoneBar {
 
     public void setVoltage(float value) {
         super.setValue(value / nominalU);
-        setComment(0, Utils.plotVolt(I18N.tr("Voltage Supply :"), value));
+        setComment(0, Utils.plotVolt("Voltage Supply :", value));
     }
 
     @Override
@@ -33,6 +32,6 @@ public class GuiVerticalVoltageSupplyBar extends GuiVerticalWorkingZoneBar {
     }
 
     public void setPower(float f) {
-        setComment(1, Utils.plotPower(I18N.tr("Power Supply :"), f));
+        setComment(1, Utils.plotPower("Power Supply :", f));
     }
 }

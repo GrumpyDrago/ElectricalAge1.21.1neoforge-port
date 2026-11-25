@@ -3,7 +3,6 @@ package mods.eln.client
 import mods.eln.GuiHandler
 import mods.eln.compat.client.GuiContainer
 import mods.eln.compat.getTileEntity
-import mods.eln.item.WireSnipsGui
 import mods.eln.misc.Direction
 import mods.eln.misc.UtilsClient
 import mods.eln.node.INodeEntity
@@ -20,7 +19,6 @@ object ClientGui {
 
     private fun create(id: Int, player: Player, x: Int, y: Int, z: Int): Screen? {
         if (id == GuiHandler.genericOpen) return UtilsClient.guiLastOpen
-        if (id == GuiHandler.wireSnipsOpen) return WireSnipsGui(player)
         if (id >= GuiHandler.nodeBaseOpen && id <= GuiHandler.nodeBaseOpen + 5) {
             val entity = player.level().getTileEntity(x, y, z) as? INodeEntity ?: return null
             return entity.newGuiDraw(Direction.fromInt(id - GuiHandler.nodeBaseOpen)!!, player)

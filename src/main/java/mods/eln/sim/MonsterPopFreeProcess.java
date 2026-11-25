@@ -30,7 +30,7 @@ public class MonsterPopFreeProcess implements IProcess {
     @Override
     public void process(double time) {
         //Monster killing must be active before continuing :
-        if (!Eln.config.getBooleanOrElse("entities.mobSpawning.preventNearLamps", true))
+        if (!Eln.instance.killMonstersAroundLamps)
             return;
 
         timerCounter += time;

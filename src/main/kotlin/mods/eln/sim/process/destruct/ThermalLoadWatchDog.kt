@@ -17,9 +17,26 @@ class ThermalLoadWatchDog(var state: ThermalLoad): ValueWatchdog() {
     private var matrixDumpSupplier: (() -> Any?)? = null
     private var matrixDumpReason: String? = null
     private var ambientTemperatureProvider: (() -> Double)? = null
+    private var ambient = 0.0
+    private var ambientAge = AMBIENT_REFRESH
 
     override fun getValue(): Double {
-        return state.temperature + (ambientTemperatureProvider?.invoke() ?: 0.0)
+        val provider = ambientTemperatureProvider ?: return state.temperature
+        val temperature = state.temperature
+        // The ambient temperature changes over seconds, and looking it up for thousands of cables on every step costs.
+        // Close to the limits it is looked up every time.
+        if (ambientAge >= AMBIENT_REFRESH || temperature + ambient > max - MARGIN || temperature + ambient < min + MARGIN) {
+            ambient = provider()
+            ambientAge = 0
+        } else {
+            ambientAge++
+        }
+        return temperature + ambient
+    }
+
+    private companion object {
+        const val AMBIENT_REFRESH = 20
+        const val MARGIN = 10.0
     }
 
     override fun process(time: Double) {

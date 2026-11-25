@@ -18,15 +18,11 @@ public class GuiTextFieldEln extends GuiTextField implements IGuiObject {
     IGuiObjectObserver iGuiObjectObserver;
 
     public GuiTextFieldEln(Font par1FontRenderer, int x, int y, int w, int h, GuiHelper helper) {
-        this(par1FontRenderer, x, y, w, h, helper, 150);
-    }
-
-    public GuiTextFieldEln(Font par1FontRenderer, int x, int y, int w, int h, GuiHelper helper, int maxLength) {
         super(par1FontRenderer, x, y, w, h);
         setTextColor(-1);
         setDisabledTextColour(-1);
         setEnableBackgroundDrawing(true);
-        setMaxStringLength(maxLength);
+        setMaxStringLength(150);
         xPos = x;
         yPos = y;
         width = w;

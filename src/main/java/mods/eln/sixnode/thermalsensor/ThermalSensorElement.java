@@ -66,17 +66,11 @@ public class ThermalSensorElement extends SixNodeElement implements IConfigurabl
         this.descriptor = (ThermalSensorDescriptor) descriptor;
 
         if (this.descriptor.temperatureOnly) {
-            // Java reports the Kotlin vararg of descriptor classes as an unchecked array creation here.
-            @SuppressWarnings("unchecked")
-            AutoAcceptInventoryProxy configuredInventory = (new AutoAcceptInventoryProxy(new SixNodeElementInventory(1, 64, this)))
+            inventory = (new AutoAcceptInventoryProxy(new SixNodeElementInventory(1, 64, this)))
                 .acceptIfEmpty(0, ThermalCableDescriptor.class, ElectricalCableDescriptor.class, CurrentCableDescriptor.class);
-            inventory = configuredInventory;
         } else {
-            // Java reports the Kotlin vararg of descriptor classes as an unchecked array creation here.
-            @SuppressWarnings("unchecked")
-            AutoAcceptInventoryProxy configuredInventory = (new AutoAcceptInventoryProxy(new SixNodeElementInventory(1, 64, this)))
+            inventory = (new AutoAcceptInventoryProxy(new SixNodeElementInventory(1, 64, this)))
                 .acceptIfEmpty(0, ThermalCableDescriptor.class);
-            inventory = configuredInventory;
         }
     }
 
@@ -160,7 +154,7 @@ public class ThermalSensorElement extends SixNodeElement implements IConfigurabl
     public Map<String, String> getWaila() {
         Map<String, String> info = new HashMap<String, String>();
         info.put(I18N.tr("Output voltage"), Utils.plotVolt("", outputGate.getVoltage()));
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             switch (typeOfSensor) {
                 case temperatureType:
                     info.put(I18N.tr("Measured temperature"), plotAmbientCelsius("", thermalLoad.getTemperature()));

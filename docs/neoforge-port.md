@@ -10,7 +10,7 @@ changed for players and modpack authors.
 - The mod id is now `eln`, in lower case. Every component is an item of its own (`eln:240v_macerator`), so `/give`,
   JEI/EMI, recipes and data packs can refer to each one. The old numeric ids live on inside the mod and in saved nodes;
   see [id-mappings.md](id-mappings.md).
-- Settings are still in `config/Eln.cfg`.
+- Settings are in `config/eln/eln-1.24.json`, fuels in `config/eln/fluids.json`. A `config/Eln.cfg` of 1.7.10 is taken over.
 
 ### Integrations
 

@@ -15,10 +15,8 @@ import mods.eln.misc.Utils.readFromNBT
 import mods.eln.misc.Utils.writeToNBT
 import mods.eln.environment.AmbientTemperature
 import mods.eln.node.INodeElement
-import mods.eln.node.NodeConnectionEndpoint
 import mods.eln.sim.ElectricalLoad
 import mods.eln.sim.IProcess
-import mods.eln.sim.SignalLoadSupport
 import mods.eln.sim.ThermalConnection
 import mods.eln.sim.ThermalLoad
 import mods.eln.sim.mna.component.Component
@@ -50,7 +48,6 @@ abstract class TransparentNodeElement(@JvmField var node: TransparentNode?, @Jvm
     var electricalProcessList = ArrayList<IProcess>(4)
     @JvmField
     var electricalComponentList = ArrayList<Component>(4)
-    private var signalReadComponentList = ArrayList<Component>(0)
     @JvmField
     var electricalLoadList = ArrayList<State>(4)
     @JvmField
@@ -77,8 +74,6 @@ abstract class TransparentNodeElement(@JvmField var node: TransparentNode?, @Jvm
         if (node != null && node!!.isDestructing) return
         val ownerTag = describeSimOwner()
         electricalComponentList.forEach { it.setOwner(ownerTag) }
-        signalReadComponentList = SignalLoadSupport.createReadComponents(electricalLoadList)
-        signalReadComponentList.forEach { it.setOwner(ownerTag) }
         electricalLoadList.forEach { it.setOwner(ownerTag) }
         val coord = node?.coordinate
         if (coord != null) {
@@ -88,7 +83,6 @@ abstract class TransparentNodeElement(@JvmField var node: TransparentNode?, @Jvm
         for (p in slowPreProcessList) Eln.simulator.addSlowPreProcess(p)
         for (p in slowPostProcessList) Eln.simulator.addSlowPostProcess(p)
         Eln.simulator.addAllElectricalComponent(electricalComponentList)
-        Eln.simulator.addAllElectricalComponent(signalReadComponentList)
         for (load in electricalLoadList) Eln.simulator.addElectricalLoad(load)
         Eln.simulator.addAllElectricalProcess(electricalProcessList)
         Eln.simulator.addAllThermalConnection(thermalConnectionList)
@@ -102,8 +96,6 @@ abstract class TransparentNodeElement(@JvmField var node: TransparentNode?, @Jvm
         for (p in slowPreProcessList) Eln.simulator.removeSlowPreProcess(p)
         for (p in slowPostProcessList) Eln.simulator.removeSlowPostProcess(p)
         Eln.simulator.removeAllElectricalComponent(electricalComponentList)
-        Eln.simulator.removeAllElectricalComponent(signalReadComponentList)
-        signalReadComponentList.clear()
         for (load in electricalLoadList) Eln.simulator.removeElectricalLoad(load)
         Eln.simulator.removeAllElectricalProcess(electricalProcessList)
         Eln.simulator.removeAllThermalConnection(thermalConnectionList)
@@ -251,20 +243,8 @@ abstract class TransparentNodeElement(@JvmField var node: TransparentNode?, @Jvm
         }
 
     open fun getElectricalLoad(side: Direction, lrdu: LRDU): ElectricalLoad? = null
-    open fun getElectricalLoad(side: Direction, lrdu: LRDU, remoteEndpoint: NodeConnectionEndpoint): ElectricalLoad? {
-        return getElectricalLoad(side, lrdu)
-    }
     open fun getThermalLoad(side: Direction, lrdu: LRDU): ThermalLoad? = null
     open fun getConnectionMask(side: Direction, lrdu: LRDU): Int = 0
-
-    fun getAdjacentConnectionEndpoint(side: Direction, lrdu: LRDU): NodeConnectionEndpoint? {
-        return node?.findAdjacentConnectionEndpoint(side, lrdu)
-    }
-
-    fun getAdjacentConnectionElement(side: Direction, lrdu: LRDU): Any? {
-        return getAdjacentConnectionEndpoint(side, lrdu)?.element
-    }
-
     open fun multiMeterString(side: Direction): String = ""
     open fun thermoMeterString(side: Direction): String = ""
 
@@ -420,10 +400,6 @@ abstract class TransparentNodeElement(@JvmField var node: TransparentNode?, @Jvm
         val wailaList: MutableMap<String, String> = HashMap()
         wailaList["Info"] = multiMeterString(front)
         return wailaList
-    }
-
-    open fun getWailaEntries(): List<TransparentNodeWailaEntry> = getWaila().map { (label, value) ->
-        TransparentNodeWailaEntry(label, value.split('\n'))
     }
 
     companion object {

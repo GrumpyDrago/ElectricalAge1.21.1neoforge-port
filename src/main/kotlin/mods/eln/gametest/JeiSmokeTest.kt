@@ -42,6 +42,13 @@ class JeiSmokeTest : IModPlugin {
             }
         }
 
+        /** What a search in the list of items finds. */
+        fun search(text: String): List<ItemStack> {
+            val filter = runtime?.ingredientFilter ?: return emptyList()
+            filter.filterText = text
+            return filter.getFilteredIngredients(VanillaTypes.ITEM_STACK)
+        }
+
         fun clickAreas(screen: AbstractContainerScreen<*>): Int {
             val helper = runtime?.screenHelper ?: return 0
             return (0 until screen.xSize).sumOf { x -> (0 until screen.ySize).count { y -> helper.getGuiClickableArea(screen, x.toDouble(), y.toDouble()).findAny().isPresent } }

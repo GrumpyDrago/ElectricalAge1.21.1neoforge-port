@@ -24,18 +24,15 @@ import mods.eln.i18n.I18N
 import mods.eln.i18n.I18N.tr
 import mods.eln.item.*
 import mods.eln.item.electricalitem.*
-import mods.eln.item.lampitem.LampDescriptor
-import mods.eln.item.lampitem.LampLists
-import mods.eln.item.lampitem.SpecificLampData
 import mods.eln.item.regulator.IRegulatorDescriptor
 import mods.eln.item.regulator.RegulatorAnalogDescriptor
 import mods.eln.item.regulator.RegulatorOnOffDescriptor
 import mods.eln.mechanical.ClutchPinItem
 import mods.eln.mechanical.ClutchPlateItem
-import mods.eln.misc.NominalVoltage
 import mods.eln.ore.OreDescriptor
 import mods.eln.railroad.ElectricMinecartItem
 import mods.eln.sixnode.electricaldatalogger.DataLogsPrintDescriptor
+import mods.eln.sixnode.lampsocket.LampSocketType
 import mods.eln.sixnode.wirelesssignal.WirelessSignalAnalyserItemDescriptor
 import mods.eln.wiki.Data
 import net.minecraft.world.entity.monster.Enemy
@@ -81,12 +78,9 @@ object ItemRegistration {
         mapSharedGroup(120, Eln.creativeTabMachines)
         mapSharedGroup(121, Eln.creativeTabToolsArmor)
         mapSharedGroup(122, Eln.creativeTabToolsArmor)
-        mapSharedGroup(123, Eln.creativeTabToolsArmor)
         mapSharedGroup(124, Eln.creativeTabPowerElectronics)
-        mapSharedGroup(18, Eln.creativeTabMachines)
         mapSharedGroup(126, Eln.creativeTabOresMaterials)
         mapSharedGroup(127, Eln.creativeTabToolsArmor)
-        mapSharedGroup(118, Eln.creativeTabMachines)
 
         //ITEM REGISTRATION
         //Sub-UID must be unique in this section only.
@@ -125,12 +119,10 @@ object ItemRegistration {
         registerElectricalTool(121)
         registerPortableItem(122)
         registerFuelBurnerItem(124)
-        registerTurbineBladeItems(18)
+
 
         registerBasicItems(126)
         registerElectricMinecartItems(127)
-        registerWireToolItems(123)
-        registerWireMachineItems(118)
 
         registerArmor()
         registerTool()
@@ -146,208 +138,192 @@ object ItemRegistration {
             subId = 0
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "Small 48V Copper Heating Element"),
-                NominalVoltage.V48,
+                I18N.TR_NAME(I18N.Type.NONE, "Small 50V Copper Heating Element"),
+                Eln.LVU,
                 150.0,
                 190.0,
                 instance.lowVoltageCableDescriptor
             )
-            element.setDefaultIcon("small50vcopperheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 1
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "48V Copper Heating Element"),
-                NominalVoltage.V48,
+                I18N.TR_NAME(I18N.Type.NONE, "50V Copper Heating Element"),
+                Eln.LVU,
                 250.0,
                 320.0,
                 instance.lowVoltageCableDescriptor
             )
-            element.setDefaultIcon("50vcopperheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 2
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "Small 240V Copper Heating Element"),
-                NominalVoltage.V240,
+                I18N.TR_NAME(I18N.Type.NONE, "Small 200V Copper Heating Element"),
+                Eln.MVU,
                 400.0,
                 500.0,
                 instance.meduimVoltageCableDescriptor
             )
-            element.setDefaultIcon("small200vcopperheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 3
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "240V Copper Heating Element"),
-                NominalVoltage.V240,
+                I18N.TR_NAME(I18N.Type.NONE, "200V Copper Heating Element"),
+                Eln.MVU,
                 600.0,
                 750.0,
                 instance.highVoltageCableDescriptor
             )
-            element.setDefaultIcon("200vcopperheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 4
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "Small 48V Iron Heating Element"),
-                NominalVoltage.V48,
+                I18N.TR_NAME(I18N.Type.NONE, "Small 50V Iron Heating Element"),
+                Eln.LVU,
                 180.0,
                 225.0,
                 instance.lowVoltageCableDescriptor
             )
-            element.setDefaultIcon("small50vironheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 5
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "48V Iron Heating Element"),
-                NominalVoltage.V48,
+                I18N.TR_NAME(I18N.Type.NONE, "50V Iron Heating Element"),
+                Eln.LVU,
                 375.0,
                 480.0,
                 instance.lowVoltageCableDescriptor
             )
-            element.setDefaultIcon("50vironheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 6
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "Small 240V Iron Heating Element"),
-                NominalVoltage.V240,
+                I18N.TR_NAME(I18N.Type.NONE, "Small 200V Iron Heating Element"),
+                Eln.MVU,
                 600.0,
                 750.0,
                 instance.meduimVoltageCableDescriptor
             )
-            element.setDefaultIcon("small200vironheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 7
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "240V Iron Heating Element"),
-                NominalVoltage.V240,
+                I18N.TR_NAME(I18N.Type.NONE, "200V Iron Heating Element"),
+                Eln.MVU,
                 900.0,
                 1050.0,
                 instance.highVoltageCableDescriptor
             )
-            element.setDefaultIcon("200vironheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 8
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "Small 48V Tungsten Heating Element"),
-                NominalVoltage.V48,
+                I18N.TR_NAME(I18N.Type.NONE, "Small 50V Tungsten Heating Element"),
+                Eln.LVU,
                 240.0,
                 300.0,
                 instance.lowVoltageCableDescriptor
             )
-            element.setDefaultIcon("small50vtungstenheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 9
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "48V Tungsten Heating Element"),
-                NominalVoltage.V48,
+                I18N.TR_NAME(I18N.Type.NONE, "50V Tungsten Heating Element"),
+                Eln.LVU,
                 500.0,
                 640.0,
                 instance.lowVoltageCableDescriptor
             )
-            element.setDefaultIcon("50vtungstenheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 10
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "Small 240V Tungsten Heating Element"),
-                NominalVoltage.V240,
+                I18N.TR_NAME(I18N.Type.NONE, "Small 200V Tungsten Heating Element"),
+                Eln.MVU,
                 800.0,
                 1000.0,
                 instance.meduimVoltageCableDescriptor
             )
-            element.setDefaultIcon("small200vtungstenheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 11
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "240V Tungsten Heating Element"),
-                NominalVoltage.V240,
+                I18N.TR_NAME(I18N.Type.NONE, "200V Tungsten Heating Element"),
+                Eln.MVU,
                 1200.0,
                 1500.0,
                 instance.highVoltageCableDescriptor
             )
-            element.setDefaultIcon("200vtungstenheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 12
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "Small 480V Tungsten Heating Element"),
-                NominalVoltage.V480,
+                I18N.TR_NAME(I18N.Type.NONE, "Small 800V Tungsten Heating Element"),
+                Eln.HVU,
                 3600.0,
                 4800.0,
                 instance.veryHighVoltageCableDescriptor
             )
-            element.setDefaultIcon("small800vtungstenheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 13
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "480V Tungsten Heating Element"),
-                NominalVoltage.V480,
+                I18N.TR_NAME(I18N.Type.NONE, "800V Tungsten Heating Element"),
+                Eln.HVU,
                 4812.0,
                 6015.0,
                 instance.veryHighVoltageCableDescriptor
             )
-            element.setDefaultIcon("800vtungstenheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 14
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "Small 480V Heavy Tungsten Heating Element"),
-                NominalVoltage.V480,
+                I18N.TR_NAME(I18N.Type.NONE, "Small 3.2kV Tungsten Heating Element"),
+                Eln.VVU,
                 4000.0,
                 6000.0,
                 instance.veryHighVoltageCableDescriptor
             )
-            element.setDefaultIcon("small3.2kvtungstenheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
         run {
             subId = 15
             completId = subId + (id shl 6)
             element = HeatingCorpElement(
-                I18N.TR_NAME(I18N.Type.NONE, "480V Heavy Tungsten Heating Element"),
-                NominalVoltage.V480,
+                I18N.TR_NAME(I18N.Type.NONE, "3.2kV Tungsten Heating Element"),
+                Eln.VVU,
                 12000.0,
                 15000.0,
                 instance.veryHighVoltageCableDescriptor
             )
-            element.setDefaultIcon("3.2kvtungstenheatingelement")
             Eln.sharedItem.addElement(completId, element)
         }
     }
@@ -359,50 +335,6 @@ object ItemRegistration {
             val name = I18N.TR_NAME(I18N.Type.NONE, "Electric Minecart")
             val minecartItem = ElectricMinecartItem(name)
             Eln.sharedItem.addElement(subId + (id shl 6), minecartItem)
-        }
-    }
-
-    private fun registerWireToolItems(id: Int) {
-        run {
-            val subId = 0
-            val name = I18N.TR_NAME(I18N.Type.NONE, "Wire Scraps")
-            val desc = WireScrapDescriptor(name).inOresAndMaterialsTab()
-            instance.wireScrapDescriptor = desc
-            Eln.sharedItem.addElement(subId + (id shl 6), desc)
-        }
-        run {
-            val subId = 1
-            val name = I18N.TR_NAME(I18N.Type.NONE, "Wire Snips")
-            val desc = WireSnipsDescriptor(name).inToolsAndArmorTab()
-            Eln.sharedItem.addElement(subId + (id shl 6), desc)
-        }
-    }
-
-    private fun registerWireMachineItems(id: Int) {
-        run {
-            val subId = 0
-            val name = I18N.TR_NAME(I18N.Type.NONE, "Iron Roller Wheel")
-            val desc = RollerWheelDescriptor(name, "Iron", "ironrollerwheel")
-            Eln.sharedItem.addElement(subId + (id shl 6), desc)
-        }
-        run {
-            val subId = 1
-            val name = I18N.TR_NAME(I18N.Type.NONE, "Steel Roller Wheel")
-            val desc = RollerWheelDescriptor(name, "Steel", "steelrollerwheel")
-            Eln.sharedItem.addElement(subId + (id shl 6), desc)
-        }
-        run {
-            val subId = 2
-            val name = I18N.TR_NAME(I18N.Type.NONE, "Aluminum Roller Wheel")
-            val desc = RollerWheelDescriptor(name, "Aluminum", "aluminumrollerwheel")
-            Eln.sharedItem.addElement(subId + (id shl 6), desc)
-        }
-        run {
-            val subId = 4
-            val name = I18N.TR_NAME(I18N.Type.NONE, "Wound Wire Bundle")
-            val desc = WoundWireBundleDescriptor(name).inOresAndMaterialsTab()
-            instance.woundWireBundleDescriptor = desc
-            Eln.sharedItem.addElement(subId + (id shl 6), desc)
         }
     }
 
@@ -443,216 +375,243 @@ object ItemRegistration {
         }
     }
 
-    /**
-     * The run{} blocks in this function are not called in order of subId. This is done to organize the creative menu
-     * in a more logical way. Thus, take care when adding new bulb types. Current subId associations:
-     * - 0: 12V Incandescent Light Bulb
-     * - 1: 120V Incandescent Light Bulb
-     * - 2: 240V Incandescent Light Bulb
-     * - (3):
-     * - 4: 12V Carbon Light Bulb
-     * - 5: 120V Carbon Light Bulb
-     * - 6: 240V Carbon Light Bulb
-     * - (7-15):
-     * - 16: 12V Fluorescent Light Bulb
-     * - 17: 120V Fluorescent Light Bulb
-     * - 18: 240V Fluorescent Light Bulb
-     * - (19-30):
-     * - 31: 12V Farming Light Bulb
-     * - 32: 120V Farming Light Bulb
-     * - (33-35):
-     * - 36: 240V Farming Light Bulb
-     * - 37: 120V LED Light Bulb
-     * - 38: 240V LED Light Bulb
-     * - 39: 12V LED Light Bulb
-     * - (40-42):
-     * - 43: 12V Halogen Light Bulb
-     * - 44: 120V Halogen Light Bulb
-     * - 45: 240V Halogen Light Bulb
-     */
     private fun registerLampItem(id: Int) {
         var subId: Int
-        var completeId: Int
-        var descriptor: LampDescriptor
-
+        var completId: Int
+        val lightPower =
+            doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 15.0, 20.0, 25.0, 30.0, 40.0)
+        val lightLevel = DoubleArray(16)
+        val economicPowerFactor = 0.5
+        val standardGrowRate = 0.0
+        for (idx in 0..15) {
+            lightLevel[idx] = (idx + 0.49) / 15.0
+        }
+        var element: LampDescriptor
         run {
             subId = 0
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "12V Incandescent Light Bulb"), "incandescentironlamp",
-                SpecificLampData(LampLists.getLampData("incandescent")!!, NominalVoltage.V12)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "Small 50V Incandescent Light Bulb"),
+                "incandescentironlamp",
+                LampDescriptor.Type.INCANDESCENT,
+                LampSocketType.Douille,
+                Eln.LVU,
+                lightPower[12],
+                lightLevel[12],
+                instance.incandescentLampLife,
+                standardGrowRate,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
         run {
             subId = 1
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "120V Incandescent Light Bulb"), "incandescentironlamp",
-                SpecificLampData(LampLists.getLampData("incandescent")!!, NominalVoltage.V120)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "50V Incandescent Light Bulb"),
+                "incandescentironlamp",
+                LampDescriptor.Type.INCANDESCENT,
+                LampSocketType.Douille,
+                Eln.LVU,
+                lightPower[14],
+                lightLevel[14],
+                instance.incandescentLampLife,
+                standardGrowRate,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
         run {
             subId = 2
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "240V Incandescent Light Bulb"), "incandescentironlamp",
-                SpecificLampData(LampLists.getLampData("incandescent")!!, NominalVoltage.V240)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "200V Incandescent Light Bulb"),
+                "incandescentironlamp",
+                LampDescriptor.Type.INCANDESCENT,
+                LampSocketType.Douille,
+                Eln.MVU,
+                lightPower[14],
+                lightLevel[14],
+                instance.incandescentLampLife,
+                standardGrowRate,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
         run {
             subId = 4
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "12V Carbon Light Bulb"), "incandescentcarbonlamp",
-                SpecificLampData(LampLists.getLampData("carbon")!!, NominalVoltage.V12)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "Small 50V Carbon Incandescent Light Bulb"),
+                "incandescentcarbonlamp",
+                LampDescriptor.Type.INCANDESCENT,
+                LampSocketType.Douille,
+                Eln.LVU,
+                lightPower[11],
+                lightLevel[11],
+                instance.carbonLampLife,
+                standardGrowRate,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
         run {
             subId = 5
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "120V Carbon Light Bulb"), "incandescentcarbonlamp",
-                SpecificLampData(LampLists.getLampData("carbon")!!, NominalVoltage.V120)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "50V Carbon Incandescent Light Bulb"),
+                "incandescentcarbonlamp",
+                LampDescriptor.Type.INCANDESCENT,
+                LampSocketType.Douille,
+                Eln.LVU,
+                lightPower[13],
+                lightLevel[13],
+                instance.carbonLampLife,
+                standardGrowRate,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
-        run {
-            subId = 6
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "240V Carbon Light Bulb"), "incandescentcarbonlamp",
-                SpecificLampData(LampLists.getLampData("carbon")!!, NominalVoltage.V240)
-            )
-            Eln.sharedItem.addElement(completeId, descriptor)
-        }
-
         run {
             subId = 16
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "12V Fluorescent Light Bulb"), "fluorescentlamp",
-                SpecificLampData(LampLists.getLampData("fluorescent")!!, NominalVoltage.V12)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "Small 50V Economic Light Bulb"),
+                "fluorescentlamp",
+                LampDescriptor.Type.ECO,
+                LampSocketType.Douille,
+                Eln.LVU,
+                lightPower[12] * economicPowerFactor,
+                lightLevel[12],
+                instance.economicLampLife,
+                standardGrowRate,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
         run {
             subId = 17
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "120V Fluorescent Light Bulb"), "fluorescentlamp",
-                SpecificLampData(LampLists.getLampData("fluorescent")!!, NominalVoltage.V120)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "50V Economic Light Bulb"), "fluorescentlamp",
+                LampDescriptor.Type.ECO, LampSocketType.Douille, Eln.LVU, lightPower[14] * economicPowerFactor,
+                lightLevel[14], instance.economicLampLife, standardGrowRate,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
         run {
             subId = 18
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "240V Fluorescent Light Bulb"), "fluorescentlamp",
-                SpecificLampData(LampLists.getLampData("fluorescent")!!, NominalVoltage.V240)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "200V Economic Light Bulb"), "fluorescentlamp",
+                LampDescriptor.Type.ECO, LampSocketType.Douille, Eln.MVU, lightPower[14] * economicPowerFactor,
+                lightLevel[14], instance.economicLampLife, standardGrowRate,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
-        run {
-            subId = 31
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "12V Farming Light Bulb"), "farminglamp",
-                SpecificLampData(LampLists.getLampData("farming")!!, NominalVoltage.V12)
-            )
-            Eln.sharedItem.addElement(completeId, descriptor)
-        }
-
         run {
             subId = 32
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "120V Farming Light Bulb"), "farminglamp",
-                SpecificLampData(LampLists.getLampData("farming")!!, NominalVoltage.V120)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "50V Farming Lamp"),
+                "farminglamp",
+                LampDescriptor.Type.INCANDESCENT,
+                LampSocketType.Douille,
+                Eln.LVU,
+                120.0,
+                lightLevel[15],
+                instance.incandescentLampLife,
+                0.50,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
         run {
             subId = 36
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "240V Farming Light Bulb"), "farminglamp",
-                SpecificLampData(LampLists.getLampData("farming")!!, NominalVoltage.V240)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "200V Farming Lamp"),
+                "farminglamp",
+                LampDescriptor.Type.INCANDESCENT,
+                LampSocketType.Douille,
+                Eln.MVU,
+                120.0,
+                lightLevel[15],
+                instance.incandescentLampLife,
+                0.50,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
-        run {
-            subId = 39
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "12V LED Light Bulb"), "ledlamp",
-                SpecificLampData(LampLists.getLampData("led")!!, NominalVoltage.V12)
-            )
-            Eln.sharedItem.addElement(completeId, descriptor)
-        }
-
         run {
             subId = 37
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "120V LED Light Bulb"), "ledlamp",
-                SpecificLampData(LampLists.getLampData("led")!!, NominalVoltage.V120)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "50V LED Bulb"),
+                "ledlamp",
+                LampDescriptor.Type.LED,
+                LampSocketType.Douille,
+                Eln.LVU,
+                lightPower[14] / 2,
+                lightLevel[14],
+                instance.ledLampLife,
+                standardGrowRate,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
         run {
             subId = 38
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "240V LED Light Bulb"), "ledlamp",
-                SpecificLampData(LampLists.getLampData("led")!!, NominalVoltage.V240)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "200V LED Bulb"),
+                "ledlamp",
+                LampDescriptor.Type.LED,
+                LampSocketType.Douille,
+                Eln.MVU,
+                lightPower[14] / 2,
+                lightLevel[14],
+                instance.ledLampLife,
+                standardGrowRate,
+                0
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
-        run {
-            subId = 43
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "12V Halogen Light Bulb"), "halogenlamp",
-                SpecificLampData(LampLists.getLampData("halogen")!!, NominalVoltage.V12)
-            )
-            Eln.sharedItem.addElement(completeId, descriptor)
-        }
-
         run {
             subId = 44
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "120V Halogen Light Bulb"), "halogenlamp",
-                SpecificLampData(LampLists.getLampData("halogen")!!, NominalVoltage.V120)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "50V Halogen Bulb"),
+                "halogenlamp",
+                LampDescriptor.Type.HALOGEN,
+                LampSocketType.Tube,
+                Eln.LVU,
+                250.0,
+                lightLevel[15],
+                instance.halogenLampLife,
+                standardGrowRate,
+                8
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
-
         run {
             subId = 45
-            completeId = subId + (id shl 6)
-            descriptor = LampDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "240V Halogen Light Bulb"), "halogenlamp",
-                SpecificLampData(LampLists.getLampData("halogen")!!, NominalVoltage.V240)
+            completId = subId + (id shl 6)
+            element = LampDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "200V Halogen Bulb"),
+                "halogenlamp",
+                LampDescriptor.Type.HALOGEN,
+                LampSocketType.Tube,
+                Eln.MVU,
+                500.0,
+                lightLevel[15],
+                instance.halogenLampLife,
+                standardGrowRate,
+                16
             )
-            Eln.sharedItem.addElement(completeId, descriptor)
+            Eln.sharedItem.addElement(completId, element)
         }
     }
 
@@ -810,7 +769,7 @@ object ItemRegistration {
             element = GenericItemUsingDamageDescriptorWithComment(name, arrayOf())
             Eln.sharedItem.addElement(currentId, element)
             Data.addResource(element.newItemStack())
-            addToOre(Eln.config.getStringOrElse("runtime.dictionary.tungstenDust", "dustElnTungsten"), element.newItemStack())
+            addToOre(Eln.dictTungstenDust, element.newItemStack())
         }
 
         run {
@@ -886,7 +845,7 @@ object ItemRegistration {
             Eln.sharedItem.addElement(completId, element)
             instance.tungstenIngot = element
             Data.addResource(element.newItemStack())
-            addToOre(Eln.config.getStringOrElse("runtime.dictionary.tungstenIngot", "ingotElnTungsten"), element.newItemStack())
+            addToOre(Eln.dictTungstenIngot, element.newItemStack())
         }
 
         run {
@@ -1048,15 +1007,6 @@ object ItemRegistration {
                 ConfigCopyToolDescriptor(I18N.TR_NAME(I18N.Type.NONE, "Config Copy Tool"))
             Eln.sharedItem.addElement(completId, element)
             Eln.configCopyToolElement = element
-        }
-        run {
-            subId = 17
-            completId = subId + (id shl 6)
-            element =
-                FalstadImportToolDescriptor(I18N.TR_NAME(I18N.Type.NONE, "Falstad Import Tool"))
-            element.creativeTab = Eln.creativeTabToolsArmor
-            Eln.sharedItem.addElement(completId, element)
-            Eln.falstadImportToolElement = element
         }
     }
 
@@ -1316,13 +1266,13 @@ object ItemRegistration {
         run {
             subId = 0
             name = I18N.TR_NAME(I18N.Type.NONE, "Small Flashlight")
-            val desc = ElectricalFlashlightItem(name, 10, 6, 20.0, 12, 8, 50.0, 6000.0, 100.0)
+            val desc = ElectricalLampItem(name, 10, 6, 20.0, 12, 8, 50.0, 6000.0, 100.0)
             Eln.sharedItemStackOne.addElement(subId + (id shl 6), desc)
         }
         run {
             subId = 1
             name = I18N.TR_NAME(I18N.Type.NONE, "Improved Flashlight")
-            val desc = ElectricalFlashlightItem(name, 15, 8, 20.0, 15, 12, 50.0, 24000.0, 400.0)
+            val desc = ElectricalLampItem(name, 15, 8, 20.0, 15, 12, 50.0, 24000.0, 400.0)
             Eln.sharedItemStackOne.addElement(subId + (id shl 6), desc)
         }
 
@@ -1338,13 +1288,6 @@ object ItemRegistration {
             subId = 12
             name = I18N.TR_NAME(I18N.Type.NONE, "Portable Electrical Axe")
             val desc = ElectricalAxe(name, 22f, 1f, 40000.0, 200.0, 10000.0)
-            Eln.sharedItemStackOne.addElement(subId + (id shl 6), desc)
-        }
-        run {
-            subId = 16
-            name = I18N.TR_NAME(I18N.Type.NONE, "The Nope Wand")
-            val desc = NopeWandDescriptor(name)
-            desc.creativeTab = Eln.creativeTabToolsArmor
             Eln.sharedItemStackOne.addElement(subId + (id shl 6), desc)
         }
     }
@@ -1385,22 +1328,17 @@ object ItemRegistration {
             name = I18N.TR_NAME(I18N.Type.NONE, "X-Ray Scanner")
             val desc = PortableOreScannerItem(
                 name, Eln.obj.getObj("XRayScanner"), 100000.0, 400.0,
-                300.0,
-                Eln.config.getDoubleOrElse("runtime.tools.xrayScanner.rangeBlocks.clamped", 5.0).toFloat(),
-                (Math.PI / 2).toFloat(),
-                32,
-                20
+                300.0, instance.xRayScannerRange, (Math.PI / 2).toFloat(), 32, 20
             )
             Eln.sharedItemStackOne.addElement(subId + (id shl 6), desc)
         }
     }
 
     private fun registerFuelBurnerItem(id: Int) {
-        val fuelHeatFurnacePowerFactor = Eln.config.getDoubleOrElse("balance.generators.fuelHeatFurnacePowerFactor", 1.0)
         Eln.sharedItemStackOne.addElement(
             0 + (id shl 6), FuelBurnerDescriptor(
                 I18N.TR_NAME(I18N.Type.NONE, "Small Fuel Burner"),
-                5000 * fuelHeatFurnacePowerFactor, 2, 1.6f
+                5000 * instance.fuelHeatFurnacePowerFactor, 2, 1.6f
             )
         )
         Eln.sharedItemStackOne.addElement(
@@ -1408,53 +1346,13 @@ object ItemRegistration {
                 I18N.TR_NAME(
                     I18N.Type.NONE,
                     "Medium Fuel Burner"
-                ), 10000 * fuelHeatFurnacePowerFactor, 1, 1.4f
+                ), 10000 * instance.fuelHeatFurnacePowerFactor, 1, 1.4f
             )
         )
         Eln.sharedItemStackOne.addElement(
             2 + (id shl 6), FuelBurnerDescriptor(
                 I18N.TR_NAME(I18N.Type.NONE, "Big Fuel Burner"),
-                25000 * fuelHeatFurnacePowerFactor, 0, 1f
-            )
-        )
-    }
-
-    private fun registerTurbineBladeItems(id: Int) {
-        // sharedItemStackOne and not sharedItem because blades store durability in NBT, stacking would corrupt it.
-        Eln.sharedItemStackOne.addElement(
-            0 + (id shl 6), mods.eln.item.TurbineBladeDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "Iron Turbine Blade"),
-                tierName = "iron",
-                temperatureResistance = 0.8,
-                corrosionResistance = 0.8,
-                tierDescription = tr("Suitable for mild, clean fuels")
-            )
-        )
-        Eln.sharedItemStackOne.addElement(
-            1 + (id shl 6), mods.eln.item.TurbineBladeDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "Steel Turbine Blade"),
-                tierName = "steel",
-                temperatureResistance = 1.2,
-                corrosionResistance = 1.2,
-                tierDescription = tr("Handles moderate conditions")
-            )
-        )
-        Eln.sharedItemStackOne.addElement(
-            2 + (id shl 6), mods.eln.item.TurbineBladeDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "Alloy Turbine Blade"),
-                tierName = "alloy",
-                temperatureResistance = 2.0,
-                corrosionResistance = 2.0,
-                tierDescription = tr("Suitable for most fuel types")
-            )
-        )
-        Eln.sharedItemStackOne.addElement(
-            3 + (id shl 6), mods.eln.item.TurbineBladeDescriptor(
-                I18N.TR_NAME(I18N.Type.NONE, "Tungsten Turbine Blade"),
-                tierName = "tungsten",
-                temperatureResistance = 3.5,
-                corrosionResistance = 3.5,
-                tierDescription = tr("Handles extreme conditions")
+                25000 * instance.fuelHeatFurnacePowerFactor, 0, 1f
             )
         )
     }
@@ -1471,7 +1369,7 @@ object ItemRegistration {
             ).inOresAndMaterialsTab()
             Eln.sharedItem.addElement(subId + (id shl 6), desc)
             Data.addResource(desc.newItemStack())
-            OreDict.registerOre(Eln.config.getStringOrElse("runtime.dictionary.cheapChip", "circuitElnBasic"), desc.newItemStack())
+            OreDict.registerOre(Eln.dictCheapChip, desc.newItemStack())
         }
         run {
             subId = 1
@@ -1482,7 +1380,7 @@ object ItemRegistration {
             ).inOresAndMaterialsTab()
             Eln.sharedItem.addElement(subId + (id shl 6), desc)
             Data.addResource(desc.newItemStack())
-            OreDict.registerOre(Eln.config.getStringOrElse("runtime.dictionary.advancedChip", "circuitElnAdvanced"), desc.newItemStack())
+            OreDict.registerOre(Eln.dictAdvancedChip, desc.newItemStack())
         }
         run {
             subId = 2
@@ -1868,7 +1766,7 @@ object ItemRegistration {
             val desc =
                 OreDescriptor(name, id)
             Eln.oreItem.addDescriptor(id, desc)
-            addToOre(Eln.config.getStringOrElse("runtime.dictionary.tungstenOre", "oreElnTungsten"), desc.newItemStack())
+            addToOre(Eln.dictTungstenOre, desc.newItemStack())
         }
         run {
             id = 6

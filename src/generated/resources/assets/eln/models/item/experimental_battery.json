@@ -28,7 +28,7 @@
     "gui": {
       "parent": "minecraft:item/generated",
       "textures": {
-        "layer0": "eln:voltages/medium",
+        "layer0": "eln:voltages/low",
         "layer1": "eln:block/experimentalbattery"
       }
     }

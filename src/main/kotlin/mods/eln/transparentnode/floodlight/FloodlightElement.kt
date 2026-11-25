@@ -6,7 +6,7 @@ import mods.eln.Eln
 import mods.eln.i18n.I18N
 import mods.eln.item.ConfigCopyToolDescriptor
 import mods.eln.item.IConfigurable
-import mods.eln.item.lampitem.LampDescriptor
+import mods.eln.item.LampDescriptor
 import mods.eln.misc.*
 import mods.eln.misc.Utils.getItemObject
 import mods.eln.misc.Utils.plotAmpere
@@ -24,27 +24,29 @@ import mods.eln.sim.ElectricalLoad
 import mods.eln.sim.MonsterPopFreeProcess
 import mods.eln.sim.ThermalLoad
 import mods.eln.sim.mna.component.Resistor
-import mods.eln.sim.mna.misc.MnaConst
 import mods.eln.sim.nbt.NbtElectricalGateInput
 import mods.eln.sim.nbt.NbtElectricalLoad
 import mods.eln.sim.process.destruct.VoltageStateWatchDog
 import mods.eln.sim.process.destruct.WorldExplosion
 import net.minecraft.world.entity.player.Player
-import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.world.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
-import kotlin.math.pow
 
-class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescriptor: TransparentNodeDescriptor) :
-    TransparentNodeElement(transparentNode, transparentNodeDescriptor), IConfigurable {
+class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescriptor: TransparentNodeDescriptor) : TransparentNodeElement(transparentNode, transparentNodeDescriptor), IConfigurable {
+
+    companion object {
+        const val HORIZONTAL_ADJUST_EVENT: Byte = 0
+        const val VERTICAL_ADJUST_EVENT: Byte = 1
+        const val BEAM_ADJUST_EVENT: Byte = 2
+    }
 
     override val inventory = TransparentNodeElementInventory(2, 64, this)
 
-    private val inventoryProxy = AutoAcceptInventoryProxy(inventory)
+    private val acceptingInventory = AutoAcceptInventoryProxy(inventory)
         .acceptIfEmpty(FloodlightContainer.LAMP_SLOT_1_ID, LampDescriptor::class.java)
         .acceptIfEmpty(FloodlightContainer.LAMP_SLOT_2_ID, LampDescriptor::class.java)
 
@@ -63,9 +65,11 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
     var headAngle by published(0.0)
     var beamWidth by published(0.0)
 
+    var lightRange = 0
+
     val electricalLoad = NbtElectricalLoad("electricalLoad")
-    private val lamp1Resistor = Resistor(electricalLoad, null)
-    private val lamp2Resistor = Resistor(electricalLoad, null)
+    private val lamp1Resistor: Resistor = Resistor(electricalLoad, null)
+    private val lamp2Resistor: Resistor = Resistor(electricalLoad, null)
 
     val swivelControl = NbtElectricalGateInput("swivelControl")
     val headControl = NbtElectricalGateInput("headControl")
@@ -74,9 +78,8 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
     private val voltageWatchdog = VoltageStateWatchDog(electricalLoad)
 
     private val watchdogProcess = voltageWatchdog.setDestroys(WorldExplosion(this).machineExplosion())
-    private val monsterPopProcess = MonsterPopFreeProcess(transparentNode.coordinate,
-        Eln.config.getIntOrElse("entities.mobSpawning.preventNearLampsRange", 9))
     private val floodlightProcess = FloodlightProcess(this)
+    private val monsterPopProcess = MonsterPopFreeProcess(transparentNode.coordinate, Eln.instance.killMonstersAroundLampsRange)
 
     init {
         if (motorized) {
@@ -85,19 +88,17 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
             electricalLoadList.add(beamControl)
         }
 
-        // Internal cable has no resistance, for simplicity
-        electricalLoad.serialResistance = MnaConst.noImpedance
-
-        if (motorized) voltageWatchdog.setNominalVoltage(NominalVoltage.V240)
-        else voltageWatchdog.setNominalVoltage(NominalVoltage.V120)
+        // NOTE: Power factor (0.005) comes from MV cable registration
+        electricalLoad.serialResistance = ((Eln.MVU * Eln.MVU) / Eln.instance.MVP()) * 0.005
+        voltageWatchdog.setNominalVoltage(Eln.MVU)
 
         slowProcessList.add(watchdogProcess)
-        slowProcessList.add(monsterPopProcess)
         slowProcessList.add(floodlightProcess)
+        slowProcessList.add(monsterPopProcess)
     }
 
     override fun newContainer(side: Direction, player: Player): AbstractContainerMenu {
-        return FloodlightContainer(player, inventory, descriptor)
+        return FloodlightContainer(player, inventory)
     }
 
     override fun hasGui(): Boolean {
@@ -115,15 +116,8 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
         val currentEquippedItem = getItemObject(player.currentEquippedItem)
 
         if (currentEquippedItem is LampDescriptor) {
-            if (currentEquippedItem.lampData.technology in descriptor.acceptedLampTypes) {
-                AutoAcceptInventoryProxy.creativeFreeInsert = Eln.config.getBooleanOrElse("gameplay.qol.creativeNoConsumeInsertedItems", false) && player is ServerPlayer && Utils.isCreative(player)
-                return inventoryProxy.take(player.currentEquippedItem, this, notifyInventoryChange = true).also {
-                    if (it && Eln.config.getBooleanOrElse("gameplay.qol.rememberLastFloodlightBulbs", false)) {
-                        lastLamp1Stack = inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_1_ID)?.copy()
-                        lastLamp2Stack = inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_2_ID)?.copy()
-                    }
-                    AutoAcceptInventoryProxy.creativeFreeInsert = false
-                }
+            if (currentEquippedItem.socket == FloodlightContainer.LAMP_SOCKET_TYPE) {
+                return acceptingInventory.take(player.currentEquippedItem, this, true, true)
             }
         }
 
@@ -143,6 +137,7 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
         swivelAngle = nbt.getDouble("swivelAngle")
         headAngle = nbt.getDouble("headAngle")
         beamWidth = nbt.getDouble("beamWidth")
+        lightRange = nbt.getInt("lightRange")
     }
 
     override fun writeToNBT(nbt: CompoundTag) {
@@ -154,6 +149,7 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
         nbt.putDouble("swivelAngle", swivelAngle)
         nbt.putDouble("headAngle", headAngle)
         nbt.putDouble("beamWidth", beamWidth)
+        nbt.putInt("lightRange", lightRange)
     }
 
     override fun initialize() {
@@ -167,12 +163,6 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
         electricalComponentList.add(lamp2Resistor)
         computeInventory()
         connect()
-        if (Eln.config.getBooleanOrElse("gameplay.qol.rememberLastFloodlightBulbs", false) && placingPlayerIsCreative) {
-            lastLamp1Stack?.let { inventory.setInventorySlotContents(FloodlightContainer.LAMP_SLOT_1_ID, it.copy()) }
-            lastLamp2Stack?.let { inventory.setInventorySlotContents(FloodlightContainer.LAMP_SLOT_2_ID, it.copy()) }
-            computeInventory()
-            placingPlayerIsCreative = false
-        }
     }
 
     override fun connectJob() {
@@ -190,8 +180,9 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
     }
 
     override fun inventoryChange(inventory: IInventory?) {
+        disconnect()
         computeInventory()
-        reconnect()
+        connect()
         needPublish()
     }
 
@@ -201,12 +192,12 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
 
         when (lamp1Stack) {
             null -> lamp1Resistor.highImpedance()
-            else -> (getItemObject(lamp1Stack) as LampDescriptor).applyTo(lamp1Resistor)
+            else -> lamp1Resistor.resistance = (getItemObject(lamp1Stack) as LampDescriptor).r
         }
 
         when (lamp2Stack) {
             null -> lamp2Resistor.highImpedance()
-            else -> (getItemObject(lamp2Stack) as LampDescriptor).applyTo(lamp2Resistor)
+            else -> lamp2Resistor.resistance = (getItemObject(lamp2Stack) as LampDescriptor).r
         }
     }
 
@@ -219,7 +210,8 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
             blockFacing.left(rotationAxis) -> swivelControl
             blockFacing.front() -> beamControl
             else -> null
-        } else when (side.toHybridNodeDirection()) {
+        }
+        else when (side.toHybridNodeDirection()) {
             blockFacing.back() -> electricalLoad
             else -> null
         }
@@ -234,11 +226,12 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
 
         return if (motorized) when (side.toHybridNodeDirection()) {
             blockFacing.back() -> NodeBase.maskElectricalPower
-            blockFacing.right(rotationAxis) -> NodeBase.maskElectricalInputGate
-            blockFacing.left(rotationAxis) -> NodeBase.maskElectricalInputGate
-            blockFacing.front() -> NodeBase.maskElectricalInputGate
+            blockFacing.right(rotationAxis) -> NodeBase.maskElectricalGate
+            blockFacing.left(rotationAxis) -> NodeBase.maskElectricalGate
+            blockFacing.front() -> NodeBase.maskElectricalGate
             else -> 0
-        } else when (side.toHybridNodeDirection()) {
+        }
+        else when (side.toHybridNodeDirection()) {
             blockFacing.back() -> NodeBase.maskElectricalPower
             else -> 0
         }
@@ -256,18 +249,18 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
             stream.writeDouble(beamWidth)
             Utils.serialiseItemStack(stream, inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_1_ID))
             Utils.serialiseItemStack(stream, inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_2_ID))
-        } catch (e: IOException) {
+        }
+        catch (e: IOException) {
             e.printStackTrace()
         }
     }
 
     override fun networkUnserialize(stream: DataInputStream): Byte {
         when (super.networkUnserialize(stream)) {
-            FloodlightGui.ADJUST_HORIZONTAL_ANGLE_EVENT -> swivelAngle = stream.readDouble()
-            FloodlightGui.ADJUST_VERTICAL_ANGLE_EVENT -> headAngle = stream.readDouble()
-            FloodlightGui.ADJUST_BEAM_WIDTH_EVENT -> beamWidth = stream.readDouble()
+            HORIZONTAL_ADJUST_EVENT -> swivelAngle = stream.readDouble()
+            VERTICAL_ADJUST_EVENT -> headAngle = stream.readDouble()
+            BEAM_ADJUST_EVENT -> beamWidth = stream.readDouble()
         }
-        needPublish()
         return unserializeNulldId
     }
 
@@ -282,92 +275,41 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
     override fun getWaila(): Map<String, String> {
         val info: MutableMap<String, String> = LinkedHashMap()
 
-        val parallelResistance = (lamp1Resistor.resistance * lamp2Resistor.resistance) / (lamp1Resistor.resistance + lamp2Resistor.resistance)
-        info[I18N.tr("Power Consumption")] = plotPower("", electricalLoad.voltage.pow(2) / parallelResistance)
+        info[I18N.tr("Power Consumption")] = plotPower("", electricalLoad.voltage * electricalLoad.current)
 
         val lamp1Stack = inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_1_ID)
+        val lamp2Stack = inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_2_ID)
+
         if (lamp1Stack != null) info[I18N.tr("Bulb 1")] = lamp1Stack.plainName
         else info[I18N.tr("Bulb 1")] = I18N.tr("None")
 
-        val lamp2Stack = inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_2_ID)
         if (lamp2Stack != null) info[I18N.tr("Bulb 2")] = lamp2Stack.plainName
         else info[I18N.tr("Bulb 2")] = I18N.tr("None")
 
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info[I18N.tr("Voltage")] = plotVolt("", electricalLoad.voltage)
 
             if (lamp1Stack != null) {
                 val lamp1Descriptor = getItemObject(lamp1Stack) as LampDescriptor
                 info[I18N.tr("Bulb 1 Life Left")] = plotValue(lamp1Descriptor.getLifeInTag(lamp1Stack)) + I18N.tr(" Hours")
             }
-
             if (lamp2Stack != null) {
                 val lamp2Descriptor = getItemObject(lamp2Stack) as LampDescriptor
                 info[I18N.tr("Bulb 2 Life Left")] = plotValue(lamp2Descriptor.getLifeInTag(lamp2Stack)) + I18N.tr(" Hours")
             }
         }
 
-        if (Eln.config.getBooleanOrElse("debug.logging.enabled", false)) {
-            info[I18N.tr("Lamp Brightness")] = plotValue(node!!.lightValue.toDouble())
-        }
-
         return info
     }
 
     override fun readConfigTool(compound: CompoundTag, invoker: Player) {
-        var publishChanges = false
-        var inventoryChanged = false
-
-        if (!motorized) {
-            if (compound.contains("swivelAngle")) {
-                swivelAngle = compound.getDouble("swivelAngle")
-                publishChanges = true
-            }
-
-            if (compound.contains("headAngle")) {
-                headAngle = compound.getDouble("headAngle")
-                publishChanges = true
-            }
-
-            if (compound.contains("beamWidth")) {
-                beamWidth = compound.getDouble("beamWidth")
-                publishChanges = true
-            }
-        }
-
-        if (ConfigCopyToolDescriptor.readLampDescriptor(compound, "lamp1", inventory, FloodlightContainer.LAMP_SLOT_1_ID, invoker, descriptor.acceptedLampTypes)) {
-            inventoryChanged = true
-        }
-
-        if (ConfigCopyToolDescriptor.readLampDescriptor(compound, "lamp2", inventory, FloodlightContainer.LAMP_SLOT_2_ID, invoker, descriptor.acceptedLampTypes)) {
-            inventoryChanged = true
-        }
-
-        // Prevent duplicate calls of these functions
-        if (inventoryChanged) {
-            inventoryChange(inventory)
-            if (Eln.config.getBooleanOrElse("gameplay.qol.rememberLastFloodlightBulbs", false)) {
-                lastLamp1Stack = inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_1_ID)?.copy()
-                lastLamp2Stack = inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_2_ID)?.copy()
-            }
-        }
-        else if (publishChanges) needPublish()
+        if (ConfigCopyToolDescriptor.readGenDescriptor(compound, "lamp1", inventory, FloodlightContainer.LAMP_SLOT_1_ID, invoker)) inventoryChange(inventory)
+        if (ConfigCopyToolDescriptor.readGenDescriptor(compound, "lamp2", inventory, FloodlightContainer.LAMP_SLOT_2_ID, invoker)) inventoryChange(inventory)
     }
 
     override fun writeConfigTool(compound: CompoundTag, invoker: Player) {
-        if (!motorized) {
-            compound.putDouble("swivelAngle", swivelAngle)
-            compound.putDouble("headAngle", headAngle)
-            compound.putDouble("beamWidth", beamWidth)
-        }
-
         ConfigCopyToolDescriptor.writeGenDescriptor(compound, "lamp1", inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_1_ID))
         ConfigCopyToolDescriptor.writeGenDescriptor(compound, "lamp2", inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_2_ID))
     }
 
-    companion object {
-        var lastLamp1Stack: ItemStack? = null
-        var lastLamp2Stack: ItemStack? = null
-        var placingPlayerIsCreative = false
-    }
 }

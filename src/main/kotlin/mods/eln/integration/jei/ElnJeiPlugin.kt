@@ -3,6 +3,7 @@ package mods.eln.integration.jei
 import mezz.jei.api.IModPlugin
 import mezz.jei.api.JeiPlugin
 import mezz.jei.api.constants.RecipeTypes
+import mezz.jei.api.constants.VanillaTypes
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder
 import mezz.jei.api.gui.handlers.IGuiClickableArea
@@ -17,11 +18,13 @@ import mezz.jei.api.registration.IGuiHandlerRegistration
 import mezz.jei.api.registration.IRecipeCatalystRegistration
 import mezz.jei.api.registration.IRecipeCategoryRegistration
 import mezz.jei.api.registration.IRecipeRegistration
+import mezz.jei.api.runtime.IJeiRuntime
 import mods.eln.Eln
 import mods.eln.craft.MachineKind
 import mods.eln.craft.MachineRecipe
 import mods.eln.craft.MachineRecipes
 import mods.eln.i18n.I18N.tr
+import mods.eln.integration.CraftableItems
 import mods.eln.misc.Utils
 import mods.eln.transparentnode.eggincubator.EggIncubatorDescriptor
 import mods.eln.transparentnode.electricalfurnace.ElectricalFurnaceDescriptor
@@ -40,6 +43,15 @@ class ElnJeiPlugin : IModPlugin {
     private var categories = emptyList<MachineCategory>()
 
     override fun getPluginUid(): ResourceLocation = ResourceLocation.fromNamespaceAndPath(Eln.MODID, "jei")
+
+    /** JEI lists what is in the creative tabs, but older cables, relays and the like can be made without being there. */
+    override fun onRuntimeAvailable(jeiRuntime: IJeiRuntime) {
+        val level = Minecraft.getInstance().level ?: return
+        val items = jeiRuntime.ingredientManager
+        val more = CraftableItems.notIn(items.allItemStacks, level.recipeManager, level.registryAccess())
+        if (more.isNotEmpty()) items.addIngredientsAtRuntime(VanillaTypes.ITEM_STACK, more)
+        Eln.logger.info("Listing {} more items in JEI: {}", more.size, more.joinToString { it.hoverName.string })
+    }
 
     override fun registerCategories(registration: IRecipeCategoryRegistration) {
         val helper = registration.jeiHelpers.guiHelper

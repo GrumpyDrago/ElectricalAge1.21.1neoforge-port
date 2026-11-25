@@ -48,7 +48,7 @@ public class GenericItemBlockUsingDamageDescriptor {
     public void setDefaultIcon(String name) {
         String iconName = name.replaceAll(" ", "").toLowerCase();
         //Utils.println("Icon Name: " + iconName);
-        if (Eln.config.getBooleanOrElse("ui.icons.noSymbols", false) &&
+        if (Eln.noSymbols &&
             ElnAssets.exists("textures/block/" + iconName + "-ni.png")) {
             this.iconName = iconName + "-ni";
         } else {

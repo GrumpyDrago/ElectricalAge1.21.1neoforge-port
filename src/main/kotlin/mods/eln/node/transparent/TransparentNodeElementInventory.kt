@@ -5,40 +5,27 @@ import mods.eln.compat.*
 import mods.eln.misc.INBTTReady
 import mods.eln.misc.Utils.readFromNBT
 import mods.eln.misc.Utils.writeToNBT
-import mods.eln.sixnode.electricalcable.IUtilityCableInventory
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 
-open class TransparentNodeElementInventory : ISidedInventory, INBTTReady, IUtilityCableInventory {
+open class TransparentNodeElementInventory : ISidedInventory, INBTTReady {
     @JvmField
     protected var transparentNodeRender: TransparentNodeElementRender? = null
     @JvmField
     protected var transparentNodeElement: TransparentNodeElement? = null
     var stackLimit: Int
-    override var requiredCableLength: Double = IUtilityCableInventory.DEFAULT_REQUIRED_LENGTH
 
-    constructor(size: Int, stackLimit: Int, transparentNodeRender: TransparentNodeElementRender?) {
+    constructor(size: Int, stackLimit: Int, TransparentnodeRender: TransparentNodeElementRender?) {
         inv = arrayOfNulls(size)
         this.stackLimit = stackLimit
-        this.transparentNodeRender = transparentNodeRender
+        transparentNodeRender = TransparentnodeRender
     }
 
-    constructor(size: Int, stackLimit: Int, transparentNodeElement: TransparentNodeElement?) {
+    constructor(size: Int, stackLimit: Int, TransparentNodeElement: TransparentNodeElement?) {
         inv = arrayOfNulls(size)
         this.stackLimit = stackLimit
-        this.transparentNodeElement = transparentNodeElement
-    }
-
-    /**
-     * Constructor for inventories which require a different length of utility cable than the default.
-     * This is a separate constructor because Java sucks and does not allow for default values in constructors.
-     */
-    constructor(size: Int, stackLimit: Int, transparentNodeElement: TransparentNodeElement?, requiredCableLength: Double) {
-        inv = arrayOfNulls(size)
-        this.stackLimit = stackLimit
-        this.transparentNodeElement = transparentNodeElement
-        this.requiredCableLength = requiredCableLength
+        transparentNodeElement = TransparentNodeElement
     }
 
     private var inv: Array<ItemStack?>

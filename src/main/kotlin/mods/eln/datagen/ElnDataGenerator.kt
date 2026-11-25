@@ -105,7 +105,7 @@ private class ElnProvider(private val output: PackOutput) : DataProvider {
 
     private fun itemModels() {
         // The models have to be the same whatever the configuration.
-        Eln.config.setRuntimeBoolean("ui.icons.noVoltageBackground", false)
+        Eln.noVoltageBackground = false
         for (item in BuiltInRegistries.ITEM) {
             val id = BuiltInRegistries.ITEM.getKey(item)
             if (id.namespace != Eln.MODID) continue

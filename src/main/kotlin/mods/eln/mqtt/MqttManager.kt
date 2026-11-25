@@ -20,7 +20,7 @@ object MqttManager {
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val logger = Eln.logger
     private val clients = ConcurrentHashMap<String, SimpleMqttClient>()
-    private val configFile = File("config/eln/mqtt.json")
+    private val configFile = File("config/eln-mqtt.json")
     private var configuration = MqttConfiguration()
     private val listeners = CopyOnWriteArrayList<(MqttConfiguration) -> Unit>()
     private val initialized = AtomicBoolean(false)
@@ -56,7 +56,7 @@ object MqttManager {
 
     @JvmStatic
     fun getConfig(): MqttConfiguration {
-        if (!Eln.config.getBooleanOrElse("integrations.mqtt.enabled", false) && !configuration.disable) {
+        if (!Eln.mqttEnabled && !configuration.disable) {
             configuration = configuration.copy(disable = true)
         }
         return configuration
@@ -124,7 +124,7 @@ object MqttManager {
         MqttSignalControllerRegistry.writeToNbt(controllers)
     }
     private fun applyGlobalToggle(source: MqttConfiguration): MqttConfiguration {
-        if (Eln.config.getBooleanOrElse("integrations.mqtt.enabled", false)) return source
+        if (Eln.mqttEnabled) return source
         return source.copy(disable = true)
     }
 }

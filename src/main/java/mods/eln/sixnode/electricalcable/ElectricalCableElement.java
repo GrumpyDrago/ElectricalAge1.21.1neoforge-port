@@ -125,7 +125,7 @@ public class ElectricalCableElement extends SixNodeElement {
         } else {
             info.put(I18N.tr("Current"), Utils.plotAmpere("", electricalLoad.getCurrent()));
             info.put(I18N.tr("Temperature"), plotAmbientCelsius("", thermalLoad.getTemperature()));
-            if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+            if (Eln.wailaEasyMode) {
                 info.put(I18N.tr("Voltage"), Utils.plotVolt("", electricalLoad.getVoltage()));
             }
         }
@@ -139,7 +139,7 @@ public class ElectricalCableElement extends SixNodeElement {
         if (!descriptor.signalWire)
             return plotAmbientCelsius("T", thermalLoad.temperatureCelsius);
         else
-            return "";
+            return null;
     }
 
     @Override

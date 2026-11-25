@@ -239,7 +239,7 @@ class VariableInductorSixElement(
         info[tr("Inductance")] = Utils.plotValue(inductor.inductance, "H")
         info[tr("Charge")] = Utils.plotEnergy("", inductor.energy)
         info[tr("Control")] = Utils.plotPercent("", controlNormalized())
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info[tr("Voltage drop")] = Utils.plotVolt("", abs(inductor.voltage))
             info[tr("Current")] = Utils.plotAmpere("", abs(inductor.current))
         }

@@ -29,25 +29,29 @@ object ElnConsoleCommands {
     init {
         ElnConsoleCommandList.addAll(listOf(
             ElnLsCommand(),
-            ElnConfigCommand(),
             ElnAboutCommand(),
             ElnVersionCommand(),
+            ElnCablePaceCommand(),
+            ElnAgingCommand(),
+            ElnBatteryAgingCommand(),
+            ElnLampAgingCommand(),
+            ElnHeatFurnaceFuelCommand(),
             ElnNewWindDirectionCommand(),
+            ElnLampsKillMonstersCommand(),
             ElnMatrixCommand(),
             ElnManCommand(),
             ElnWailaEasyModeCommand(),
             ElnDebugCommand(),
             ElnSimSnapshotCommand(),
+            ElnExplosionsCommand(),
             ElnWatchdogCommand(),
             ElnIconsCommand(),
             ElnPoleMapCommand(),
             ElnStopShaftCommand(),
             ElnResetAmbientTempsCommand(),
-            ElnResetLampLifeCommand(),
             ElnZoneDumpCommand(),
             ElnZoneCleanCommand(),
-            ElnZoneRemoveCommand(),
-            ElnZoneDestroyCommand()
+            ElnZoneRemoveCommand()
         ))
     }
 

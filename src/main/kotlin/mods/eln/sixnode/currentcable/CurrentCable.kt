@@ -75,8 +75,8 @@ class CurrentCableDescriptor(
         thermalRp = thermalWarmLimit / thermalMaximalPowerDissipated
         thermalRs = 0.5 / thermalC / 2
         thermalSelfHeatingRateLimit =
-            if (Eln.config.getBooleanOrElse("simulation.thermal.cableSpikeLimiter.enabled", true) && Eln.cableHeatingTime > 0)
-                thermalWarmLimit / Eln.cableHeatingTime * Eln.config.getDoubleOrElse("simulation.thermal.cableSpikeLimiter.factor", 20.0)
+            if (Eln.cableThermalSpikeLimiterEnabled && Eln.cableHeatingTime > 0)
+                thermalWarmLimit / Eln.cableHeatingTime * Eln.cableThermalSpikeLimitFactor
             else
                 Double.POSITIVE_INFINITY
         voltageLevelColor = VoltageLevelColor.Neutral
@@ -106,7 +106,6 @@ class CurrentCableDescriptor(
 
     override fun addInformation(itemStack: ItemStack, entityPlayer: Player, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
-        list.add(tr("Deprecated legacy cable. Prefer AWG/mm utility cables for new builds."))
         list.add(tr("Nominal Ratings:"))
         list.add("  " + tr("Voltage: %1\$V", plotValue(electricalNominalVoltage)))
         list.add("  " + tr("Current: %1\$A", plotValue(electricalNominalPower / electricalNominalVoltage)))
@@ -115,7 +114,6 @@ class CurrentCableDescriptor(
     }
 
     override fun addRealismContext(list: MutableList<String>): RealisticEnum? {
-        list.add(tr("This current-tier cable family is deprecated in the rebalance."))
         list.add(tr("Has some caveats:"))
         list.add(tr("  * Wire resistance is much higher than normal"))
         list.add(tr("  * Wire resistance is not impacted by temperature"))
@@ -202,7 +200,7 @@ open class CurrentCableElement(sixNode: SixNode?, side: Direction?, descriptor: 
         val info: MutableMap<String, String> = HashMap()
         info[tr("Current")] = plotAmpere("", electricalLoad.current)
         info[tr("Temperature")] = plotAmbientCelsius("", thermalLoad.temperature)
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info[tr("Voltage")] = plotVolt("", electricalLoad.voltage)
         }
         info[tr("Subsystem Matrix Size")] = renderSubSystemWaila(electricalLoad.subSystem)

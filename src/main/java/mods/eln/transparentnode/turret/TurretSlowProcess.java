@@ -153,7 +153,7 @@ public class TurretSlowProcess extends StateMachine {
             if (lastScanWasBefore < element.getDescriptor().getProperties().entityDetectionInterval) return null;
             lastScanWasBefore = 0;
 
-            Class<?> filterClass = null;
+            Class filterClass = null;
             ItemStack filterStack = element.getInventory().getStackInSlot(TurretContainer.filterId);
             if (filterStack != null) {
                 GenericItemUsingDamageDescriptor gen = EntitySensorFilterDescriptor.getDescriptor(filterStack);
@@ -249,7 +249,7 @@ public class TurretSlowProcess extends StateMachine {
         public State state(double time) {
             if (target.getHealth()<=0) return new SeekingState();
 
-            Class<?> filterClass = null;
+            Class filterClass = null;
             ItemStack filterStack = element.getInventory().getStackInSlot(TurretContainer.filterId);
             if (filterStack != null) {
                 GenericItemUsingDamageDescriptor gen = EntitySensorFilterDescriptor.getDescriptor(filterStack);

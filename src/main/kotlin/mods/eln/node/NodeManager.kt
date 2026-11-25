@@ -33,14 +33,14 @@ class NodeManager {
         if (node == null) return
         nodeArray.remove(node.coordinate)
         nodes.remove(node)
-        // println("NodeManager has " + nodeArray.size + "node")
+        println("NodeManager has " + nodeArray.size + "node")
     }
 
     fun removeCoordonate(c: Coordinate?) {
         // nodeArray.remove(node);
         val n = nodeArray.remove(c)
         if (n != null) nodes.remove(n)
-        // println("NodeManager has " + nodeArray.size + "node")
+        println("NodeManager has " + nodeArray.size + "node")
     }
 
     fun getNodeFromCoordonate(nodeCoordinate: Coordinate?): NodeBase? {

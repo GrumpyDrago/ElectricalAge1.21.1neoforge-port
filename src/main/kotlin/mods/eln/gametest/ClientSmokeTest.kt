@@ -162,14 +162,24 @@ object ClientSmokeTest {
         }
         later(100) { mc.options.tutorialStep = net.minecraft.client.tutorial.TutorialSteps.NONE }
         for (name in listOf(
-            "48V Macerator", "240V Macerator", "48V Plate Machine", "Rolling Shaft Machine", "48V Compressor", "48V Magnetizer",
-            "Old 480V Arc Furnace", "Fabricator", "Wire Roller", "Wire Insulator", "Wire Combiner", "Electrical Furnace",
-            "Stone Heat Furnace", "24V Egg Incubator"
+            "50V Macerator", "200V Macerator", "50V Plate Machine", "Rolling Shaft Machine", "50V Compressor", "50V Magnetizer",
+            "Old 800V Arc Furnace", "Fabricator", "Electrical Furnace",
+            "Stone Heat Furnace", "50V Egg Incubator"
         )) look(name, Eln.findItemStack(name, 1), true)
         look("Sand", ItemStack(Items.SAND), true)
+        // Not in the creative tabs.
+        for (name in listOf("Low Voltage Cable", "Medium Voltage Relay")) look(name, Eln.findItemStack(name, 1), false)
+        for (text in listOf("voltage cable", "current cable", "voltage relay", "signal")) {
+            later(10) {
+                mc.setScreen(InventoryScreen(mc.player!!))
+                Eln.logger.info("SMOKE JEI finds for {}: {}", text, JeiSmokeTest.search(text).joinToString { it.hoverName.string })
+            }
+            later(5) { shot("jei_search_" + text.replace(' ', '_')) }
+        }
+        later { JeiSmokeTest.search("") }
         look("Silicon Dust", Eln.findItemStack("Silicon Dust", 1), false)
         later(5) {
-            for (name in listOf("48V Macerator", "240V Compressor", "Electrical Furnace")) {
+            for (name in listOf("50V Macerator", "200V Compressor", "Electrical Furnace")) {
                 val (_, pos) = transparentPositions.first { it.first == name }
                 gui("transparent", name, pos, Direction.YP) {
                     Eln.logger.info("SMOKE JEI {} pixels of the {} GUI show recipes", JeiSmokeTest.clickAreas(it), name)
@@ -209,7 +219,7 @@ object ClientSmokeTest {
                         wrong++
                         Eln.logger.error("SMOKE Jade shows '{}' at {} instead of '{}' at {}: {}", JadeSmokeTest.name, JadeSmokeTest.pos, expected, pos, text)
                     }
-                    if (name in setOf("Tree Resin Collector", "Low Voltage Cable", "48V Macerator", "Large Steam Turbine")) {
+                    if (name in setOf("Tree Resin Collector", "Low Voltage Cable", "50V Macerator", "Large Steam Turbine")) {
                         shot("jade_" + name.lowercase().replace(' ', '_'))
                     }
                 }
@@ -279,8 +289,8 @@ object ClientSmokeTest {
         // Inventory icons.
         later(10) { mc.options.hideGui = false }
         val tabs = listOf(
-            "cables" to { Eln.creativeTabCables }, "power" to { Eln.creativeTabPowerElectronics },
-            "distribution" to { Eln.creativeTabPowerDistribution }, "signal" to { Eln.creativeTabSignalProcessing },
+            "power" to { Eln.creativeTabPowerElectronics },
+            "signal" to { Eln.creativeTabSignalProcessing },
             "lighting" to { Eln.creativeTabLighting }, "machines" to { Eln.creativeTabMachines },
             "tools" to { Eln.creativeTabToolsArmor }, "ores" to { Eln.creativeTabOresMaterials }, "creative" to { Eln.creativeTabCreative }
         )
@@ -332,7 +342,7 @@ object ClientSmokeTest {
         // Things in the hand.
         for (name in listOf(
             "Portable Electrical Mining Drill", "X-Ray Scanner", "MultiMeter", "Small Flashlight", "Copper Plate",
-            "Data Logger", "Steam Turbine", "Battery Charger", "Cost Oriented Battery", "Small Solar Panel", "Stone Heat Furnace", "Autominer", "Wind Turbine", "Large Steam Turbine", "Low Voltage Cable", "Portable Battery", "240V Macerator"
+            "Data Logger", "Steam Turbine", "Battery Charger", "Cost Oriented Battery", "Small Solar Panel", "Stone Heat Furnace", "Autominer", "Wind Turbine", "Large Steam Turbine", "Low Voltage Cable", "Portable Battery", "200V Macerator"
         )) {
             later(20) {
                 onServer { _, player ->
@@ -346,7 +356,7 @@ object ClientSmokeTest {
         later(10) { mc.options.cameraType = net.minecraft.client.CameraType.THIRD_PERSON_FRONT }
         later { shot("hand_third_person") }
         later { mc.options.cameraType = net.minecraft.client.CameraType.FIRST_PERSON }
-        for (name in listOf("240V Macerator", "Copper Plate", "Portable Electrical Mining Drill")) {
+        for (name in listOf("200V Macerator", "Copper Plate", "Portable Electrical Mining Drill")) {
             later(10) { mc.setScreen(TooltipScreen(Eln.findItemStack(name, 1))) }
             later { shot("tooltip_" + name.lowercase().replace(Regex("[^a-z0-9]+"), "_")) }
         }

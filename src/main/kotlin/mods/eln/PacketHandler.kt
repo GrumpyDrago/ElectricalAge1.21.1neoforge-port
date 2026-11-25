@@ -4,7 +4,6 @@ import mods.eln.compat.*
 
 import net.neoforged.bus.api.SubscribeEvent
 import mods.eln.client.ClientKeyHandler
-import mods.eln.item.FalstadImportPacketHandler
 import mods.eln.misc.Coordinate
 import mods.eln.misc.Utils.println
 import mods.eln.misc.Utils.sendPacketToClient
@@ -28,7 +27,6 @@ class PacketHandler {
                 Eln.packetPlayerKey -> packetPlayerKey(stream)
                 Eln.packetPublishForNode -> packetForNode(stream, player)
                 Eln.packetClientToServerConnection -> packetNewClient(player)
-                Eln.packetFalstadImport -> packetFalstadImport(stream, player)
             }
         } catch (e: IOException) {
             e.printStackTrace()
@@ -181,18 +179,6 @@ class PacketHandler {
             val name = stream.readUTF()
             val state = stream.readBoolean()
             ServerKeyHandler.set(name, state)
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun packetFalstadImport(stream: DataInputStream, player: Player) {
-        try {
-            val length = stream.readInt()
-            if (length < 0 || length > stream.available()) return
-            val bytes = ByteArray(length)
-            stream.readFully(bytes)
-            FalstadImportPacketHandler.handle(player as ServerPlayer, bytes)
         } catch (e: IOException) {
             e.printStackTrace()
         }

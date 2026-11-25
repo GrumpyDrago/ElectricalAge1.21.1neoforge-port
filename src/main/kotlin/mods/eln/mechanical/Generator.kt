@@ -21,7 +21,7 @@ import mods.eln.sim.nbt.NbtElectricalLoad
 import mods.eln.sim.nbt.NbtThermalLoad
 import mods.eln.sim.process.destruct.ThermalLoadWatchDog
 import mods.eln.sim.process.destruct.WorldExplosion
-import mods.eln.sim.process.heater.ResistorHeatThermalLoad
+import mods.eln.sim.process.heater.ElectricalLoadHeatThermalLoad
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
@@ -29,9 +29,6 @@ import mods.eln.compat.client.GL11
 import java.awt.Color
 import java.io.DataInputStream
 import java.io.DataOutputStream
-
-private const val MACHINE_INTERNAL_RESISTANCE_FACTOR = 0.1
-private const val GENERATOR_COOLING_HEADROOM = 4.0
 
 
 class GeneratorDescriptor(
@@ -54,20 +51,10 @@ class GeneratorDescriptor(
     val nominalP = nominalP
     val nominalU = nominalU
     val generationEfficiency = 0.95
-    val nominalCurrent = nominalP / nominalU
-    val regulatorRampTime = 0.75
-    val regulatorCurrentLimit = nominalCurrent * 1.5
-    val regulatorDroopResistance = nominalU * 0.05 / nominalCurrent
-    val regulatorVoltageFilterTime = 0.15
     override val sound = "eln:generator"
 
     init {
-        // Generators should shed heat to ambient much better than the generic
-        // six-node thermal profile. Increase the modeled cooling capacity
-        // without changing the actual operating temperature limit.
-        thermalLoadInitializer.setMaximalPower(
-            nominalP.toDouble() * (1 - generationEfficiency) * GENERATOR_COOLING_HEADROOM
-        )
+        thermalLoadInitializer.setMaximalPower(nominalP.toDouble() * (1 - generationEfficiency))
 
         voltageLevelColor = VoltageLevelColor.VeryHighVoltage
     }
@@ -90,12 +77,10 @@ class GeneratorDescriptor(
 
     override fun addInformation(stack: ItemStack, player: Player, list: MutableList<String>, par4: Boolean) {
         list.add(tr("Converts mechanical energy into electricity, or (badly) vice versa."))
-        list.add(tr("Integrated regulator: ramps field and limits output current."))
         list.add(tr("Nominal usage ->"))
         list.add(Utils.plotVolt(tr("  Voltage out: "), nominalU.toDouble()))
         list.add(Utils.plotPower(tr("  Power out: "), nominalP.toDouble()))
         list.add(Utils.plotRads(tr("  Rads: "), nominalRads.toDouble()))
-        list.add(Utils.plotAmpere(tr("Regulator current limit: "), regulatorCurrentLimit.toDouble()))
         list.add(Utils.plotRads(tr("Max rads:  "), absoluteMaximumShaftSpeed))
     }
 }
@@ -103,8 +88,8 @@ class GeneratorDescriptor(
 class GeneratorRender(entity: TransparentNodeEntity, desc_: TransparentNodeDescriptor) : ShaftRender(entity, desc_) {
     val entity = entity
 
+    override val cableRender = Eln.instance.stdCableRender3200V
     val desc = desc_ as GeneratorDescriptor
-    override val cableRender get() = desc.cable.render
 
     val ledColors: Array<Color> = arrayOf(
         java.awt.Color.black,
@@ -157,7 +142,7 @@ class GeneratorRender(entity: TransparentNodeEntity, desc_: TransparentNodeDescr
     override fun getCableRenderSide(side: Direction, lrdu: LRDU): CableRenderDescriptor? {
         val f = front ?: return null
         if (lrdu == LRDU.Down && (side == f || (desc.bipolarTerminals && side == f.back()))) {
-            return desc.cable.render
+            return Eln.instance.stdCableRender3200V
         }
         return null
     }
@@ -173,9 +158,6 @@ class GeneratorRender(entity: TransparentNodeEntity, desc_: TransparentNodeDescr
 class GeneratorElement(node: TransparentNode, desc_: TransparentNodeDescriptor) :
     SimpleShaftElement(node, desc_) {
     val desc = desc_ as GeneratorDescriptor
-    private var regulatorVoltageTarget = 0.0
-    private var regulatorCurrentLimitRequest = 0.0
-    private var regulatorFilteredOutputVoltage = 0.0
 
     internal val inputLoad = NbtElectricalLoad("inputLoad")
     internal val negativeLoad = NbtElectricalLoad("negativeLoad")
@@ -186,7 +168,7 @@ class GeneratorElement(node: TransparentNode, desc_: TransparentNodeDescriptor) 
     internal val shaftProcess = GeneratorShaftProcess()
 
     internal val thermal = NbtThermalLoad("thermal")
-    internal val heater: IProcess
+    internal val heater: ElectricalLoadHeatThermalLoad
     internal val thermalLoadWatchDog = ambientAwareThermalWatchdog(ThermalLoadWatchDog(thermal))
 
     init {
@@ -201,7 +183,7 @@ class GeneratorElement(node: TransparentNode, desc_: TransparentNodeDescriptor) 
 
         electricalProcessList.add(shaftProcess)
         desc.cable.applyTo(inputLoad)
-        desc.cable.applyTo(inputToPositiveResistor, MACHINE_INTERNAL_RESISTANCE_FACTOR)
+        desc.cable.applyTo(inputToPositiveResistor)
         desc.cable.applyTo(positiveLoad)
 
         desc.thermalLoadInitializer.applyTo(thermal)
@@ -211,7 +193,7 @@ class GeneratorElement(node: TransparentNode, desc_: TransparentNodeDescriptor) 
         thermalLoadWatchDog.setDestroys(WorldExplosion(this as ShaftElement).machineExplosion())
         slowProcessList.add(thermalLoadWatchDog)
 
-        heater = ResistorHeatThermalLoad(inputToPositiveResistor, thermal)
+        heater = ElectricalLoadHeatThermalLoad(inputLoad, thermal)
         thermalFastProcessList.add(heater)
 
         // TODO: Add running lights. (More. Electrical sparks, perhaps?)
@@ -220,35 +202,23 @@ class GeneratorElement(node: TransparentNode, desc_: TransparentNodeDescriptor) 
 
     inner class GeneratorElectricalProcess : IProcess, IRootSystemPreStepProcess {
         override fun process(time: Double) {
-            val targetU = desc.RtoU.getValue(shaft.rads).coerceAtLeast(0.0)
-            val dt = if (time > 0.0) time else Eln.simulator.electricalPeriod
+            val targetU = desc.RtoU.getValue(shaft.rads)
+
+            // Most things below were copied from TurbineElectricalProcess.
+            // Some comments on what math is going on would be great.
             val th = positiveLoad.getSubSystem().getTh(positiveLoad, electricalPowerSource)
-            val rampRate = desc.nominalU / desc.regulatorRampTime
-            regulatorVoltageTarget = when {
-                regulatorVoltageTarget < targetU ->
-                    (regulatorVoltageTarget + rampRate * dt).coerceAtMost(targetU)
-                else ->
-                    (regulatorVoltageTarget - rampRate * dt).coerceAtLeast(targetU)
-            }
-
-            val droopedTarget = (regulatorVoltageTarget -
-                Math.abs(electricalPowerSource.current) * desc.regulatorDroopResistance).coerceAtLeast(0.0)
-
-            val commandedVoltage = if (th.isHighImpedance()) {
-                regulatorCurrentLimitRequest = 0.0
-                droopedTarget
+            var Ut: Double
+            if (targetU < th.voltage) {
+                Ut = th.voltage * 0.999 + targetU * 0.001
+            } else if (th.isHighImpedance()) {
+                Ut = targetU
             } else {
-                regulatorCurrentLimitRequest = desc.regulatorCurrentLimit.toDouble()
-                val currentLimitedVoltage = th.voltage + regulatorCurrentLimitRequest * th.resistance
-                minOf(droopedTarget, currentLimitedVoltage)
+                val a = 1 / th.resistance
+                val b = desc.powerOutPerDeltaU - th.voltage / th.resistance
+                val c = -desc.powerOutPerDeltaU * targetU
+                Ut = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a)
             }
-            regulatorFilteredOutputVoltage = if (regulatorFilteredOutputVoltage <= 0.0) {
-                commandedVoltage
-            } else {
-                val alpha = (dt / desc.regulatorVoltageFilterTime).coerceIn(0.0, 1.0)
-                regulatorFilteredOutputVoltage + (commandedVoltage - regulatorFilteredOutputVoltage) * alpha
-            }
-            electricalPowerSource.setVoltage(regulatorFilteredOutputVoltage)
+            electricalPowerSource.setVoltage(Ut)
         }
 
         override fun rootSystemPreStepProcess() {
@@ -260,24 +230,18 @@ class GeneratorElement(node: TransparentNode, desc_: TransparentNodeDescriptor) 
         private var powerFraction = 0.0f
 
         override fun process(time: Double) {
-            val electricalPower = electricalPowerSource.power
-            powerFraction = (electricalPower / desc.nominalP).toFloat()
-            maybePublishE(electricalPower)
-
-            val dragPower = defaultDrag * Math.max(shaft.rads, 1.0)
-            val shaftPower = if (electricalPower >= 0.0) {
-                electricalPower / desc.generationEfficiency
-            } else {
-                electricalPower * desc.generationEfficiency
-            }
-            val conversionLossPower = if (electricalPower >= 0.0) {
-                electricalPower * (1.0 / desc.generationEfficiency - 1.0)
-            } else {
-                -electricalPower * (1.0 - desc.generationEfficiency)
-            }
-
-            shaft.energy -= (shaftPower + dragPower) * time
-            thermal.movePowerTo(conversionLossPower + dragPower)
+            val p = electricalPowerSource.power
+            powerFraction = (p / desc.nominalP).toFloat()
+            var E = p * time
+            if (E.isNaN())
+                E = 0.0
+            if (E < 0)
+                E *= 0.75  // Not a very efficient motor.
+            maybePublishE(E / time)
+            // The Math.max makes the shaft harder to spin up without an auxilliary power source.
+            E += defaultDrag * Math.max(shaft.rads, 1.0)
+            shaft.energy -= (E * desc.generationEfficiency)
+            thermal.movePowerTo(E * (1 - desc.generationEfficiency))
         }
     }
 
@@ -334,11 +298,9 @@ class GeneratorElement(node: TransparentNode, desc_: TransparentNodeDescriptor) 
         var info = mutableMapOf<String, String>()
         info.put(tr("Energy"), Utils.plotEnergy("", shaft.energy))
         info.put(tr("Speed"), Utils.plotRads("", shaft.rads))
-        if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
+        if (Eln.wailaEasyMode) {
             info.put(tr("Voltage"), Utils.plotVolt("", electricalPowerSource.getVoltage()))
             info.put(tr("Current"), Utils.plotAmpere("", electricalPowerSource.getCurrent()))
-            info.put(tr("Regulator target"), Utils.plotVolt("", regulatorVoltageTarget))
-            info.put(tr("Regulator current limit"), Utils.plotAmpere("", regulatorCurrentLimitRequest))
             info.put(tr("Temperature"), plotAmbientCelsius("", thermal.temperature))
         }
         return info
