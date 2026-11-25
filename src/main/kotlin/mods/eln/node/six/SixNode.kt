@@ -27,11 +27,13 @@ import mods.eln.sixnode.lampsocket.LampSocketElement
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.world.item.ItemStack
 import net.minecraft.nbt.CompoundTag
+import net.neoforged.neoforge.items.IItemHandler
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -90,6 +92,7 @@ class SixNode : Node() {
             connect()
             println("createSubBlock " + sideElementIdList[direction.int] + " " + direction)
             needPublish = true
+            itemSourcesChanged(sideElementList[direction.int])
             return true
         } catch (e: InstantiationException) {
             e.printStackTrace()
@@ -127,7 +130,20 @@ class SixNode : Node() {
         connect()
         recalculateLightValue()
         needPublish = true
+        itemSourcesChanged(e)
         return true
+    }
+
+    /** For hoppers and pipes, if there is something for them to take. */
+    val itemHandler: IItemHandler?
+        get() = if (sideElementList.any { it is ItemSource }) ItemSourceHandler(this) else null
+
+    private fun itemSourcesChanged(element: SixNodeElement?) {
+        if (element !is ItemSource) return
+        val level = coordinate.world() as? ServerLevel ?: return
+        level.invalidateCapabilities(coordinate.blockPos)
+        // Pipes look again for what is next to them.
+        level.updateNeighborsAt(coordinate.blockPos, Eln.sixNodeBlock)
     }
 
     val ifSideRemain: Boolean

@@ -59,6 +59,7 @@ class SixNodeBlock : NodeBlock(baseProperties().strength(0.3f, 1.0f).dynamicShap
                 findClosestMatchingHotbarStack(player, render.sixNodeDescriptor)?.let { return it.copy() }
                 return render.sixNodeDescriptor.newCreativeTabStack()
             }
+            if (entity.isCovered) return ItemStack(entity.sixNodeCacheBlock)
         }
         return ItemStack.EMPTY
     }

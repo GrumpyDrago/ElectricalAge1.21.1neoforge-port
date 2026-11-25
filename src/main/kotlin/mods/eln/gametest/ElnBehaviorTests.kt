@@ -1,6 +1,7 @@
 package mods.eln.gametest
 
 import mods.eln.Eln
+import mods.eln.compat.OreDict
 import mods.eln.compat.orNull
 import mods.eln.craft.MachineRecipes
 import mods.eln.fluid.FluidNames
@@ -12,10 +13,13 @@ import mods.eln.node.NodeManager
 import mods.eln.node.six.SixNode
 import mods.eln.node.transparent.TransparentNode
 import mods.eln.node.transparent.TransparentNodeDescriptor
+import mods.eln.sixnode.TreeResinCollector.TreeResinCollectorElement
+import mods.eln.sixnode.electricalcable.UtilityCableDescriptor
 import mods.eln.sixnode.electricalsource.ElectricalSourceElement
 import mods.eln.sixnode.lampsocket.LampSocketContainer
 import mods.eln.sixnode.lampsocket.LampSocketElement
 import mods.eln.transparentnode.FuelGeneratorElement
+import mods.eln.transparentnode.WireMachineElement
 import mods.eln.transparentnode.electricalmachine.ElectricalMachineElement
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
@@ -37,6 +41,7 @@ import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache
 import net.neoforged.neoforge.capabilities.Capabilities
 import net.neoforged.neoforge.common.util.FakePlayerFactory
 import net.neoforged.neoforge.fluids.FluidStack
@@ -83,11 +88,14 @@ object ElnBehaviorTests {
     }
 
     /** A machine with power on all sides. */
-    private fun machine(helper: GameTestHelper, player: ServerPlayer, name: String, pos: BlockPos, voltage: Double): ElectricalMachineElement {
+    private fun machine(helper: GameTestHelper, player: ServerPlayer, name: String, pos: BlockPos, voltage: Double) =
+        powered(helper, player, name, pos, voltage).element as ElectricalMachineElement
+
+    private fun powered(helper: GameTestHelper, player: ServerPlayer, name: String, pos: BlockPos, voltage: Double): TransparentNode {
         floor(helper)
         val node = placeTransparent(helper, player, name, pos)
         for (d in McDirection.Plane.HORIZONTAL) source(helper, player, pos.relative(d), voltage)
-        return node.element as ElectricalMachineElement
+        return node
     }
 
     /** Items as `/give` makes them, without any data. */
@@ -151,6 +159,38 @@ object ElnBehaviorTests {
             val out = (machine.outSlotId until machine.inSlotId).mapNotNull { machine.inventory!!.getStackInSlot(it) }
             helper.assertTrue(out.any { it.item === recipe.output[0].item }, "nothing came out")
             helper.assertTrue(machine.inventory!!.getStackInSlot(machine.inSlotId) == null, "the input is still there")
+        }
+    }
+
+    @GameTest(template = EMPTY, timeoutTicks = 1200)
+    @JvmStatic
+    fun wireMachinesMakeCables(helper: GameTestHelper) {
+        val player = player(helper)
+        fun wireMachine(name: String, pos: BlockPos, vararg inputs: ItemStack): WireMachineElement {
+            val machine = powered(helper, player, name, pos, 200.0).element as WireMachineElement
+            inputs.forEachIndexed { slot, stack -> machine.inventory.setInventorySlotContents(slot, stack) }
+            return machine
+        }
+
+        fun wire(name: String) = Eln.findItemStack(name, 1).also {
+            (Eln.sixNodeItem.getDescriptor(it) as UtilityCableDescriptor).setRemainingLengthMeters(it, 20.0)
+        }
+
+        fun wheel() = Eln.findItemStack("Iron Roller Wheel", 1)
+        val roller = wireMachine("Wire Roller", BlockPos(2, 1, 2), ItemStack(Items.COPPER_INGOT, 10), wheel(), wheel())
+        val insulator = wireMachine(
+            "Wire Insulator", BlockPos(8, 1, 2),
+            wire("Copper 14 AWG Cable Bare"), ItemStack(OreDict.getOres("itemRubber").first().item, 64)
+        )
+        // Two and the ground.
+        val wires = Array(3) { wire("Copper 14 AWG Cable 600V") }
+        val combiner = wireMachine("Wire Combiner", BlockPos(5, 1, 8), *wires)
+        helper.succeedWhen {
+            fun made(machine: WireMachineElement, slot: Int) =
+                machine.inventory.getStackInSlot(slot)?.let { BuiltInRegistries.ITEM.getKey(it.item).path }
+            helper.assertTrue(made(roller, 3).orEmpty().endsWith("_cable_bare"), "the roller made ${made(roller, 3)}")
+            helper.assertTrue(made(insulator, 2) == "copper_14_awg_cable_600v", "the insulator made ${made(insulator, 2)}")
+            helper.assertTrue(made(combiner, 5) == "wound_wire_bundle", "the combiner made ${made(combiner, 5)}")
         }
     }
 
@@ -228,6 +268,97 @@ object ElnBehaviorTests {
             val hopper = helper.getBlockEntity<HopperBlockEntity>(pos.above())
             HopperBlockEntity.pushItemsTick(helper.level, hopperPos, helper.level.getBlockState(hopperPos), hopper)
             helper.assertTrue(machine.inventory!!.getStackInSlot(machine.inSlotId)?.count == 3, "the hopper did not feed the machine")
+        }
+    }
+
+    /** As importers and item pipes do it. */
+    @GameTest(template = EMPTY)
+    @JvmStatic
+    fun pipesTakeTreeResin(helper: GameTestHelper) {
+        val player = player(helper)
+        val level = helper.level
+        floor(helper)
+        val tree = BlockPos(5, 1, 5)
+        val pos = tree.north().above()
+        val p = helper.absolutePos(pos)
+        for (y in 0..3) helper.setBlock(tree.above(y), Blocks.OAK_LOG)
+        helper.setBlock(pos.above(2), Blocks.OAK_LEAVES)
+        fun handler(side: McDirection?) = level.getCapability(Capabilities.ItemHandler.BLOCK, p, side)
+        // Some pipes look once and then wait to be told.
+        val cache = BlockCapabilityCache.create(Capabilities.ItemHandler.BLOCK, level, p, McDirection.NORTH)
+        helper.assertTrue(cache.capability == null, "there are items in the air")
+
+        // A cable has no items, the block gets them along with the collector.
+        helper.setBlock(pos.below(), Blocks.STONE)
+        fun place(name: String, face: Int) = helper.assertTrue(
+            Eln.sixNodeItem.placeBlockAt(Eln.findItemStack(name, 1), player, level, p.x, p.y, p.z, face), "$name was not placed"
+        )
+        place("Low Voltage Cable", 1)
+        helper.assertTrue(cache.capability == null && handler(null) == null, "a cable has items")
+        place("Tree Resin Collector", McDirection.NORTH.get3DDataValue())
+        for (side in McDirection.entries + null) helper.assertTrue(handler(side) != null, "pipes do not find the collector from $side")
+        helper.assertTrue(cache.capability != null, "the pipe was not told of the collector")
+
+        val node = NodeManager.instance!!.getNodeFromCoordonate(Coordinate(p.x, p.y, p.z, level)) as SixNode
+        val element = node.sideElementList.filterIsInstance<TreeResinCollectorElement>().single()
+        fun fill(amount: Double) {
+            val tag = CompoundTag()
+            element.writeToNBT(tag)
+            tag.putDouble("timeFromLastActivated", amount / element.productPerSecond)
+            element.readFromNBT(tag)
+        }
+
+        fun left(): Double {
+            val tag = CompoundTag()
+            element.writeToNBT(tag)
+            return tag.getDouble("timeFromLastActivated") * element.productPerSecond
+        }
+
+        fun take(amount: Int, simulate: Boolean = false): Int {
+            val items = cache.capability!!
+            return (0 until items.slots).sumOf { slot ->
+                items.extractItem(slot, amount, simulate).also {
+                    helper.assertTrue(it.isEmpty || it.item === Eln.treeResin.newItemStack(1).item, "there is $it in the collector")
+                }.count
+            }
+        }
+
+        fun expect(filled: Double, amount: Int, taken: Int, rest: Double) {
+            fill(filled)
+            helper.assertTrue(take(amount, true) == taken, "$amount of $filled should give $taken")
+            helper.assertTrue(abs(left() - filled) < 1e-6, "looking took resin")
+            helper.assertTrue(take(amount) == taken, "$amount of $filled did not give $taken")
+            helper.assertTrue(abs(left() - rest) < 1e-6, "$filled left ${left()} instead of $rest")
+        }
+        helper.assertTrue(element.productPerSecond > 1e-6, "the tree makes no resin")
+        expect(0.0, 64, 0, 0.0)
+        expect(0.99, 64, 0, 0.99)
+        expect(1.0, 64, 1, 0.0)
+        expect(1.7, 64, 1, 0.7)
+        expect(2.0, 1, 1, 1.0)
+        helper.assertTrue(take(1) == 1 && take(1) == 0, "the second piece was not there")
+        // It holds two, however long it is left alone.
+        expect(50.0, 64, 2, 0.0)
+        expect(50.0, 1, 1, 1.0)
+        val items = cache.capability!!
+        val resin = Eln.treeResin.newItemStack(1)
+        helper.assertTrue((0 until items.slots).all { items.insertItem(it, resin, false).count == 1 }, "resin went into the collector")
+
+        // A right click does the same.
+        fill(1.7)
+        element.onBlockActivated(player, element.side, 0f, 0f, 0f)
+        helper.assertTrue(abs(left() - 0.7) < 1e-6, "a click left ${left()}")
+
+        fill(2.0)
+        helper.setBlock(pos.below(), Blocks.HOPPER)
+        val hopper = helper.getBlockEntity<HopperBlockEntity>(pos.below())
+        repeat(3) { HopperBlockEntity.suckInItems(level, hopper) }
+        helper.assertTrue((0 until hopper.containerSize).sumOf { hopper.getItem(it).count } == 2, "the hopper did not take the resin")
+
+        helper.setBlock(tree.above(), Blocks.AIR)
+        helper.runAfterDelay(2) {
+            helper.assertTrue(cache.capability == null, "the collector is gone, but not its items")
+            helper.succeed()
         }
     }
 

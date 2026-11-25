@@ -55,6 +55,7 @@ object ClientSmokeTest {
         frames++
     }
 
+    private val JADE = java.lang.Boolean.getBoolean("eln.clientSmokeTest.jade")
     private val JEI = java.lang.Boolean.getBoolean("eln.clientSmokeTest.jei")
     private val ORES = java.lang.Boolean.getBoolean("eln.clientSmokeTest.ores")
     private val sixPositions = ArrayList<Triple<String, BlockPos, Direction>>()
@@ -181,6 +182,56 @@ object ClientSmokeTest {
         }
     }
 
+    /** Looks at everything; Jade has to be in the mods folder. */
+    private fun planJade() {
+        var seen = 0
+        var wrong = 0
+        val items = (Eln.sixNodeItem.subItemList.values + Eln.transparentNodeItem.subItemList.values).associate { it.name to it.newItemStack(1) }
+        fun at(name: String, pos: BlockPos, side: Direction) {
+            // Elements on the floor and machines from above, others from the north.
+            fun look() = if (side == Direction.YN) look(pos.x + 0.5, pos.y + 0.8, pos.z + 0.5, 0f, 90f)
+            else look(pos.x + 0.5, pos.y + (if (side == Direction.YP) 0.95 else 0.5) - 1.62, pos.z - 1.5, 0f, 0f)
+            later(9) { look() }
+            later(0) {
+                val expected = items.getValue(name).hoverName.string
+                fun check(last: Boolean) {
+                    val text = JadeSmokeTest.text.trim().replace(Regex("\\s*[\\r\\n]+"), " | ")
+                    val right = JadeSmokeTest.name == expected
+                    if (!right && !last) {
+                        steps.addFirst { check(true) }
+                        look()
+                        wait = 40
+                        return
+                    }
+                    seen++
+                    if (right) Eln.logger.info("SMOKE Jade at {}: {}", JadeSmokeTest.pos, text)
+                    else {
+                        wrong++
+                        Eln.logger.error("SMOKE Jade shows '{}' at {} instead of '{}' at {}: {}", JadeSmokeTest.name, JadeSmokeTest.pos, expected, pos, text)
+                    }
+                    if (name in setOf("Tree Resin Collector", "Low Voltage Cable", "48V Macerator", "Large Steam Turbine")) {
+                        shot("jade_" + name.lowercase().replace(' ', '_'))
+                    }
+                }
+                check(false)
+            }
+        }
+        later(60) { mc.options.hideGui = false }
+        later(5) {
+            for ((name, pos, side) in sixPositions) at(name, pos, side)
+            for ((name, pos) in transparentPositions) {
+                at(name, pos, Direction.YN)
+                // The other blocks of large machines.
+                Eln.ghostManager.ghostTable.values.filter { it.observatorCoordonate!!.blockPos == pos }.maxByOrNull { it.elementCoordinate!!.blockPos.distSqr(pos) }
+                    ?.let { at(name, it.elementCoordinate!!.blockPos, Direction.YN) }
+            }
+            later {
+                Eln.logger.info("SMOKE Jade showed {}, {} wrong", seen, wrong)
+                mc.stop()
+            }
+        }
+    }
+
     private fun plan() {
         if (ORES) return planOres()
         later(40) {
@@ -198,6 +249,7 @@ object ClientSmokeTest {
             }
         }
         if (JEI) return planJei()
+        if (JADE) return planJade()
         // Rows of six nodes on the floor.
         val columns = 20
         val rows = (Eln.sixNodeItem.subItemList.size + columns - 1) / columns

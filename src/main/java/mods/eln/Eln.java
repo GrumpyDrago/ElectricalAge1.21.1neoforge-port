@@ -437,6 +437,8 @@ public class Eln {
             (entity, side) -> new SidedInvWrapper(entity, side));
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ElnBlockEntities.getTransparentNodeWithFluid(),
             (entity, side) -> new SidedInvWrapper(entity, side));
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ElnBlockEntities.getSixNode(),
+            (entity, side) -> entity.itemHandler());
         event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, SingleNodeRegistration.getEnergyConverter(),
             (entity, side) -> entity.getEnergyStorage());
         if (Other.getCcLoaded()) ComputerCraftIntegration.INSTANCE.register(event);

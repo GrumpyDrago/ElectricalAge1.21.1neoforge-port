@@ -2,21 +2,17 @@ package mods.eln.integration.jade
 
 import mods.eln.Eln
 import mods.eln.ghost.GhostBlock
-import mods.eln.misc.Coordinate
-import mods.eln.misc.Direction
-import mods.eln.node.NodeManager
-import mods.eln.node.six.SixNode
+import mods.eln.integration.NodeInfo
 import mods.eln.node.six.SixNodeBlock
-import mods.eln.node.six.SixNodeElement
-import mods.eln.node.six.SixNodeEntity
-import mods.eln.node.transparent.TransparentNode
 import mods.eln.node.transparent.TransparentNodeBlock
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
 import net.minecraft.nbt.Tag
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.item.ItemStack
 import snownee.jade.api.BlockAccessor
 import snownee.jade.api.IBlockComponentProvider
 import snownee.jade.api.IServerDataProvider
@@ -24,60 +20,79 @@ import snownee.jade.api.ITooltip
 import snownee.jade.api.IWailaClientRegistration
 import snownee.jade.api.IWailaCommonRegistration
 import snownee.jade.api.IWailaPlugin
+import snownee.jade.api.JadeIds
 import snownee.jade.api.WailaPlugin
 import snownee.jade.api.config.IPluginConfig
-import net.minecraft.world.level.block.Block
+import snownee.jade.api.theme.IThemeHelper
+import snownee.jade.api.ui.IElement
+import snownee.jade.api.ui.IElementHelper
 
-/** Shows what a multimeter would, in Jade's overlay. */
+/** Shows what something is, and what a multimeter would, in Jade's overlay. */
 @WailaPlugin
 class ElnJadePlugin : IWailaPlugin {
+    private val blocks = listOf(SixNodeBlock::class.java, TransparentNodeBlock::class.java, GhostBlock::class.java)
+
     override fun register(registration: IWailaCommonRegistration) {
-        registration.registerBlockDataProvider(NodeProvider, Block::class.java)
+        for (block in blocks) registration.registerBlockDataProvider(NodeProvider, block)
     }
 
     override fun registerClient(registration: IWailaClientRegistration) {
-        registration.registerBlockComponent(NodeProvider, SixNodeBlock::class.java)
-        registration.registerBlockComponent(NodeProvider, TransparentNodeBlock::class.java)
-        registration.registerBlockComponent(NodeProvider, GhostBlock::class.java)
+        for (block in blocks) {
+            registration.registerBlockComponent(NodeProvider, block)
+            registration.registerBlockComponent(NodeNameProvider, block)
+            registration.registerBlockIcon(NodeNameProvider, block)
+        }
     }
 }
 
+private const val LINES = "elnLines"
+private const val ITEM = "elnItem"
+
 object NodeProvider : IBlockComponentProvider, IServerDataProvider<BlockAccessor> {
-    private const val KEY = "elnLines"
-    private val UID: ResourceLocation = ResourceLocation.fromNamespaceAndPath("eln", "node")
+    private val UID: ResourceLocation = ResourceLocation.fromNamespaceAndPath(Eln.MODID, "node")
 
     override fun getUid(): ResourceLocation = UID
 
-    private fun format(map: Map<String, String>?): List<String> = map?.map { (k, v) -> "$k: §f$v" } ?: emptyList()
-
-    private fun linesFor(accessor: BlockAccessor): List<String> {
-        val pos = accessor.position
-        var coord = Coordinate(pos.x, pos.y, pos.z, accessor.level)
-        var side: Direction? = (accessor.blockEntity as? SixNodeEntity)?.let { Eln.sixNodeBlock.hitSide(it, accessor.hitResult) }
-        Eln.ghostManager.getGhost(coord)?.observatorCoordonate?.let { real ->
-            coord = real
-            side = (Eln.ghostManager.getObserver(real) as? SixNodeElement)?.side
-        }
-        return when (val node = NodeManager.instance!!.getNodeFromCoordonate(coord)) {
-            is SixNode -> side?.let { format(node.getElement(it)?.getWaila()) } ?: emptyList()
-            is TransparentNode -> node.element?.getWailaEntries()?.flatMap { entry ->
-                if (entry.values.size == 1) listOf("${entry.label}: §f${entry.values.single()}")
-                else listOf("${entry.label}:") + entry.values.map { "§f$it" }
-            } ?: emptyList()
-            else -> emptyList()
-        }
-    }
-
     override fun appendServerData(data: CompoundTag, accessor: BlockAccessor) {
-        val block = accessor.block
-        if (block !is SixNodeBlock && block !is TransparentNodeBlock && block !is GhostBlock) return
-        val list = ListTag()
-        for (line in linesFor(accessor)) list.add(StringTag.valueOf(line))
-        if (!list.isEmpty()) data.put(KEY, list)
+        val info = NodeInfo.of(accessor.level, accessor.hitResult)
+        if (!info.stack.isEmpty) data.putString(ITEM, BuiltInRegistries.ITEM.getKey(info.stack.item).toString())
+        if (info.lines.isNotEmpty()) data.put(LINES, info.lines.mapTo(ListTag()) { StringTag.valueOf(it) })
     }
 
     override fun appendTooltip(tooltip: ITooltip, accessor: BlockAccessor, config: IPluginConfig) {
-        val list = accessor.serverData.getList(KEY, Tag.TAG_STRING.toInt())
+        val list = accessor.serverData.getList(LINES, Tag.TAG_STRING.toInt())
         for (i in 0 until list.size) tooltip.add(Component.literal(list.getString(i)))
+    }
+}
+
+/** All components are the same block to the game, and so are all machines; only what is in them has a name. */
+object NodeNameProvider : IBlockComponentProvider {
+    private val UID: ResourceLocation = ResourceLocation.fromNamespaceAndPath(Eln.MODID, "node_name")
+
+    override fun getUid(): ResourceLocation = UID
+
+    override fun isRequired() = true
+
+    // Soon after Jade's own name.
+    override fun getDefaultPriority() = -10000
+
+    /** Clients know what is in a block by themselves, but not what ghost blocks are a part of. */
+    private fun stack(accessor: BlockAccessor): ItemStack {
+        val picked = accessor.pickedResult
+        // What was picked can be from the player's inventory, with a count and a name of its own.
+        if (!picked.isEmpty) return ItemStack(picked.item)
+        if (!accessor.serverData.contains(ITEM)) return ItemStack.EMPTY
+        val id = ResourceLocation.tryParse(accessor.serverData.getString(ITEM)) ?: return ItemStack.EMPTY
+        return ItemStack(BuiltInRegistries.ITEM.get(id))
+    }
+
+    override fun appendTooltip(tooltip: ITooltip, accessor: BlockAccessor, config: IPluginConfig) {
+        val stack = stack(accessor)
+        if (!stack.isEmpty) tooltip.replace(JadeIds.CORE_OBJECT_NAME, IThemeHelper.get().title(stack.hoverName))
+    }
+
+    override fun getIcon(accessor: BlockAccessor, config: IPluginConfig, currentIcon: IElement?): IElement? {
+        val stack = stack(accessor)
+        return if (stack.isEmpty) currentIcon else IElementHelper.get().item(stack)
     }
 }

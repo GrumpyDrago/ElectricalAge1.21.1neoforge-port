@@ -1,3 +1,12 @@
+## 2.0.0-alpha.5
+
+- Adds recipes for the wire roller, insulator and combiner, the roller wheels and wire snips. Without them nothing that needs AWG wire could be made in survival: breakers, fuses, relays, switches, small solar panels, the wind turbine and battery chargers
+- Adds recipes for the fabricator, silicon wafers, the electrical weather sensor, the polarized shaft motor and generator, the electric minecart and overhead lines
+- Hoppers, item pipes and importers of other mods take tree resin out of the collector, in whole pieces as a right click does
+- Jade shows what components and machines are, instead of "Electrical Component", "Electrical Machine" and "Machine Part"
+- Jade shows how much tree resin is in the collector, and no more lines without a value
+- Picking a covered component picks the cover where there is nothing behind it
+
 ## 2.0.0-alpha.4
 
 - Engines, turbines and the fuel heat furnace take the fuels of all mods: the same fuel from several mods, and fuels known by tags such as `c:diesel` or by other names

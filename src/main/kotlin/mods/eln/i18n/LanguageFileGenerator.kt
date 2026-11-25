@@ -9,8 +9,8 @@ import java.nio.charset.StandardCharsets
 internal object LanguageFileGenerator {
     private val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
 
-    /** Keys Minecraft itself derives from registry names; they do not appear in the source code. */
-    private val registryKey = Regex("^(item|block|entity|fluid_type|death\\.attack|key)\\.eln.*|^ElectricalAge$|^Wrench$|^Wiki$")
+    /** Keys Minecraft itself and Jade derive from registry names; they do not appear in the source code. */
+    private val registryKey = Regex("^(item|block|entity|fluid_type|death\\.attack|key)\\.eln.*|^config\\.jade\\.plugin_eln\\..*|^ElectricalAge$|^Wrench$|^Wiki$")
 
     @Throws(IOException::class)
     @JvmStatic

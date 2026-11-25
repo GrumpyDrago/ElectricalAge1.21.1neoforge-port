@@ -3,6 +3,7 @@ package mods.eln.gametest
 import mods.eln.Eln
 import mods.eln.compat.orNull
 import mods.eln.craft.CraftingRecipes
+import mods.eln.integration.NodeInfo
 import mods.eln.misc.Coordinate
 import mods.eln.misc.Direction
 import mods.eln.misc.LRDU
@@ -19,10 +20,12 @@ import net.minecraft.gametest.framework.GameTestHelper
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.CraftingRecipe
 import net.minecraft.world.item.crafting.RecipeHolder
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.phys.BlockHitResult
 import net.neoforged.neoforge.gametest.GameTestHolder
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate
 import net.neoforged.neoforge.network.connection.ConnectionType
@@ -73,6 +76,17 @@ object ElnGameTests {
         val copy = node.javaClass.getConstructor().newInstance()
         copy.readFromNBT(tag)
         copy.unload()
+    }
+
+    /** What overlays show, also for the other blocks of large machines. */
+    private fun checkInfo(helper: GameTestHelper, pos: BlockPos, stack: ItemStack, failures: MutableList<String>) {
+        for (p in BlockPos.betweenClosed(pos.offset(-4, -4, -4), pos.offset(4, 4, 4))) {
+            if (p != pos && !helper.getBlockState(p).`is`(Eln.ghostBlock)) continue
+            val at = helper.absolutePos(p)
+            val info = NodeInfo.of(helper.level, BlockHitResult(at.center, net.minecraft.core.Direction.UP, at, false))
+            if (info.stack.item !== stack.item) failures.add("${stack.hoverName.string} at ${p.subtract(pos)} seems to be ${info.stack}")
+            info.lines.filter { it.substringAfter("§f").isBlank() || "::" in it || ": :" in it }.forEach { failures.add("${stack.hoverName.string}: $it") }
+        }
     }
 
     @GameTest(template = EMPTY)
@@ -158,7 +172,7 @@ object ElnGameTests {
                 exercise(node)
                 for (side in Direction.values()) {
                     val element = node.getElement(side) ?: continue
-                    element.getWaila()
+                    checkInfo(helper, pos, descriptor.newItemStack(1), failures)
                     if (element.hasGui()) element.newContainer(side, player)
                     element.dropItemStack.orNull() ?: failures.add("${descriptor.name}: no drop")
                 }
@@ -206,7 +220,7 @@ object ElnGameTests {
                 val node = ownNode(helper, id)
                 exercise(node)
                 val element = node.element!!
-                element.getWaila()
+                checkInfo(helper, pos.offset(node.coordinate.blockPos.subtract(abs)), descriptor.newItemStack(1), failures)
                 if (element.hasGui()) for (side in Direction.values()) element.newContainer(side, player)
                 element.dropItemStack.orNull() ?: failures.add("${descriptor.name}: no drop")
                 helper.level.removeBlock(BlockPos(node.coordinate.x, node.coordinate.y, node.coordinate.z), false)

@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.level.Level
+import net.neoforged.neoforge.items.IItemHandler
 import java.io.DataInputStream
 import java.io.IOException
 
@@ -174,6 +175,9 @@ class SixNodeEntity(pos: BlockPos, state: BlockState) : NodeBlockEntity(ElnBlock
             node.hasVolume()
         }
     }
+
+    /** Only servers have nodes. */
+    fun itemHandler(): IItemHandler? = if (level?.isClientSide != false) null else (node as? SixNode)?.itemHandler
 
     override fun tileEntityNeighborSpawn() {
         for (e in elementRenderList) {

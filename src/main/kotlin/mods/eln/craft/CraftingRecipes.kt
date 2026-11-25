@@ -142,6 +142,9 @@ object CraftingRecipes {
 
         recipeTurret()
         recipeMachine()
+        recipeWireMachine()
+        recipeFabricator()
+        recipeRailroad()
         recipeChips()
         recipeTransformer()
         recipeHeatFurnace()
@@ -762,6 +765,8 @@ object CraftingRecipes {
                         "Block"
             ), 'm', findItemStack("Advanced Electrical Motor"), 'E', findItemStack("Very High Voltage Cable")
         )
+        addShapelessRecipe(findItemStack("Polarized Shaft Generator"), findItemStack("Generator"), findItemStack("High Voltage Cable"))
+        addShapelessRecipe(findItemStack("Polarized Shaft Motor"), findItemStack("Shaft Motor"), findItemStack("High Voltage Cable"))
         addRecipe(
             findItemStack("Steam Turbine"), " a ", "aAa", " M ", 'a', firstExistingOre(
                 "ingotAluminum",
@@ -2442,6 +2447,49 @@ object CraftingRecipes {
         )
     }
 
+    private fun recipeWireMachine() {
+        addRecipe(
+            findItemStack("Wire Roller"), "PRP", "IMI", "cIc", 'P', "plateIron", 'R', ItemStack(Items.REDSTONE),
+            'I', findItemStack("Iron Cable"), 'M', findItemStack("Machine Block"), 'c', findItemStack("Electrical Motor")
+        )
+        addRecipe(
+            findItemStack("Wire Insulator"), "rRr", "IMI", "rcr", 'r', "itemRubber", 'R', ItemStack(Items.REDSTONE),
+            'I', findItemStack("Iron Cable"), 'M', findItemStack("Machine Block"), 'c', findItemStack("Electrical Motor")
+        )
+        addRecipe(
+            findItemStack("Wire Combiner"), "cRc", "IMI", "IcI", 'R', ItemStack(Items.REDSTONE),
+            'I', findItemStack("Iron Cable"), 'M', findItemStack("Machine Block"), 'c', findItemStack("Electrical Motor")
+        )
+        for ((wheel, ingot) in listOf(
+            "Iron Roller Wheel" to "ingotIron", "Steel Roller Wheel" to "ingotSteel", "Aluminum Roller Wheel" to "ingotAluminum"
+        )) {
+            addRecipe(findItemStack(wheel), "iii", "iIi", "iii", 'i', ingot, 'I', findItemStack("Iron Cable"))
+        }
+        addRecipe(
+            findItemStack("Wire Snips"), "P P", " I ", "r r", 'P', "plateIron", 'I', findItemStack("Iron Cable"), 'r', "itemRubber"
+        )
+    }
+
+    private fun recipeFabricator() {
+        addRecipe(
+            findItemStack("Fabricator"), "PCP", "GMG", "PcP", 'P', "plateAlloy",
+            'C', Eln.config.getStringOrElse("runtime.dictionary.advancedChip", "circuitElnAdvanced"), 'G', "blockGlass",
+            'M', findItemStack("Advanced Machine Block"), 'c', findItemStack("Advanced Electrical Motor")
+        )
+        addShapelessRecipe(Eln.findItemStack("Silicon Wafer", 4), "plateSilicon")
+    }
+
+    private fun recipeRailroad() {
+        addRecipe(
+            findItemStack("Electric Minecart"), " c ", "PVP", "PmP", 'c', findItemStack("Copper Cable"), 'P', "plateIron",
+            'V', ItemStack(Items.MINECART), 'm', findItemStack("Advanced Electrical Motor")
+        )
+        addRecipe(
+            Eln.findItemStack("Overhead Lines", 4), "III", "I I", "CCC", 'I', findItemStack("Iron Cable"),
+            'C', findItemStack("Copper Cable")
+        )
+    }
+
     private fun recipeElectricalGate() {
         addShapelessRecipe(findItemStack("Electrical Timer"), ItemStack(Items.REPEATER), Eln.config.getStringOrElse("runtime.dictionary.cheapChip", "circuitElnBasic"))
         addRecipe(
@@ -2477,6 +2525,10 @@ object CraftingRecipes {
         addRecipe(
             findItemStack("Thermometer Sensor"), " q ", "rRr", " r ", 'R', ItemStack(Items.REDSTONE),
             'r', "itemRubber", 'q', ItemStack(Items.QUARTZ)
+        )
+        addShapelessRecipe(
+            findItemStack("Electrical Weather Sensor"), findItemStack("Humidity Sensor"), ItemStack(Blocks.DAYLIGHT_DETECTOR),
+            Eln.config.getStringOrElse("runtime.dictionary.cheapChip", "circuitElnBasic")
         )
         addRecipe(
             findItemStack("Electrical Anemometer Sensor"), " I ", " R ", "I I", 'R',

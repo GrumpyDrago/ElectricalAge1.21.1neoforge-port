@@ -10,6 +10,7 @@ import mods.eln.misc.Utils;
 import mods.eln.node.NodeBase;
 import mods.eln.node.NodeManager;
 import mods.eln.node.NodePeriodicPublishProcess;
+import mods.eln.node.six.ItemSource;
 import mods.eln.node.six.SixNode;
 import mods.eln.node.six.SixNodeDescriptor;
 import mods.eln.node.six.SixNodeElement;
@@ -17,6 +18,7 @@ import mods.eln.sim.ElectricalLoad;
 import mods.eln.sim.IProcess;
 import mods.eln.sim.ThermalLoad;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
@@ -24,8 +26,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-public class TreeResinCollectorElement extends SixNodeElement {
+import static mods.eln.i18n.I18N.tr;
+
+public class TreeResinCollectorElement extends SixNodeElement implements ItemSource {
 
     TreeResinCollectorSlowProcess slowProcess = new TreeResinCollectorSlowProcess(this);
 
@@ -60,7 +66,7 @@ public class TreeResinCollectorElement extends SixNodeElement {
     public void initialize() {
     }
 
-    double getProductPerSecond() {
+    public double getProductPerSecond() {
         Coordinate coord = sixNode.coordinate;
         Level worldObj = coord.world();
         int[] posWood = new int[3];
@@ -121,25 +127,49 @@ public class TreeResinCollectorElement extends SixNodeElement {
     @Override
     public boolean onBlockActivated(Player entityPlayer, Direction side,
                                     float vx, float vy, float vz) {
-        double productPerSeconde = getProductPerSecond();
-        double product = getProduct(productPerSeconde);
-
-        int productI;
-        if (product > occupancyMax) {
-            productI = (int) occupancyMax;
-            timeFromLastActivated = 0;
-        } else {
-            productI = (int) product;
-            timeFromLastActivated -= (productI) / productPerSeconde;
-        }
-
-        for (int idx = 0; idx < productI; idx++) {
+        int count = getWholeProduct(getProductPerSecond());
+        takeItems(count);
+        for (int idx = 0; idx < count; idx++) {
             sixNode.dropItem(Eln.treeResin.newItemStack(1));
         }
 
-        Utils.addChatMessage(entityPlayer, "Tree Resin in pot : " + String.format("%1.2f", productPerSeconde * timeFromLastActivated));
-        needPublish();
+        Utils.addChatMessage(entityPlayer, "Tree Resin in pot : " + String.format("%1.2f", getProduct(getProductPerSecond())));
         return true;
+    }
+
+    /** How many pieces of resin can be taken out; what is left of a piece has to wait. */
+    private int getWholeProduct(double productPerSecond) {
+        // Taking a piece may leave a tiny bit less than the next.
+        return (int) (Math.min(getProduct(productPerSecond), occupancyMax) + 1e-6);
+    }
+
+    /** Pipes ask often, and must not load the chunk of the tree. */
+    private boolean isTreeLoaded() {
+        return getCoordinate().getBlockExist() && getCoordinate().moved(side).getBlockExist();
+    }
+
+    @NotNull
+    @Override
+    public ItemStack availableItems() {
+        int count = isTreeLoaded() ? getWholeProduct(getProductPerSecond()) : 0;
+        return count > 0 ? Eln.treeResin.newItemStack(count) : ItemStack.EMPTY;
+    }
+
+    @Override
+    public void takeItems(int count) {
+        double productPerSecond = getProductPerSecond();
+        // The pot holds no more, however long it was left alone.
+        double product = Math.min(getProduct(productPerSecond), occupancyMax);
+        timeFromLastActivated = Math.max(0, (product - count) / productPerSecond);
+        needPublish();
+    }
+
+    @NotNull
+    @Override
+    public Map<String, String> getWaila() {
+        Map<String, String> info = new LinkedHashMap<>();
+        info.put(tr("Tree Resin in pot"), String.format("%1.2f", Math.min(getProduct(getProductPerSecond()), occupancyMax)));
+        return info;
     }
 
     @Override
