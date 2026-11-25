@@ -41,6 +41,11 @@ object ElnBehaviorTests {
     @Suppress("DEPRECATION")
     private fun player(helper: GameTestHelper): ServerPlayer = helper.makeMockServerPlayerInLevel()
 
+    /** The machine this test has placed; others run next to it. */
+    private fun ownNode(helper: GameTestHelper, id: Int): TransparentNode =
+        NodeManager.instance!!.nodeList.filterIsInstance<TransparentNode>()
+            .first { it.elementId == id && helper.bounds.contains(it.coordinate.toVec3()) }
+
     private fun floor(helper: GameTestHelper) {
         for (x in 0..10) for (z in 0..10) helper.setBlock(BlockPos(x, 0, z), Blocks.STONE)
     }
@@ -144,6 +149,10 @@ object ElnBehaviorTests {
         helper.setBlock(pos.above(), Blocks.HOPPER.defaultBlockState().setValue(HopperBlock.FACING, McDirection.DOWN))
         helper.getBlockEntity<HopperBlockEntity>(pos.above()).setItem(0, ItemStack(input, 3))
         helper.succeedWhen {
+            // Ticks are over in no time here, while the chunks of a new world take a moment until they tick blocks.
+            val hopperPos = helper.absolutePos(pos.above())
+            val hopper = helper.getBlockEntity<HopperBlockEntity>(pos.above())
+            HopperBlockEntity.pushItemsTick(helper.level, hopperPos, helper.level.getBlockState(hopperPos), hopper)
             helper.assertTrue(machine.inventory!!.getStackInSlot(machine.inSlotId)?.count == 3, "the hopper did not feed the machine")
         }
     }
@@ -159,7 +168,7 @@ object ElnBehaviorTests {
             val p = helper.absolutePos(pos)
             try {
                 if (!Eln.transparentNodeItem.placeBlockAt(descriptor.newItemStack(1), player, helper.level, p.x, p.y, p.z, 1)) continue
-                val node = NodeManager.instance!!.nodeList.filterIsInstance<TransparentNode>().first { it.elementId == id }
+                val node = ownNode(helper, id)
                 for (side in McDirection.entries + null) {
                     val handler = helper.level.getCapability(Capabilities.ItemHandler.BLOCK, node.coordinate.blockPos, side) ?: continue
                     for (slot in 0 until handler.slots) {

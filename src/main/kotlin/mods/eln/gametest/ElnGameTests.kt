@@ -44,6 +44,11 @@ object ElnGameTests {
     @Suppress("DEPRECATION")
     private fun player(helper: GameTestHelper): ServerPlayer = helper.makeMockServerPlayerInLevel()
 
+    /** The machine this test has placed; others run next to it. */
+    private fun ownNode(helper: GameTestHelper, id: Int): TransparentNode =
+        NodeManager.instance!!.nodeList.filterIsInstance<TransparentNode>()
+            .first { it.elementId == id && helper.bounds.contains(it.coordinate.toVec3()) }
+
     private fun walls(helper: GameTestHelper, pos: BlockPos) {
         for (d in net.minecraft.core.Direction.entries) helper.setBlock(pos.relative(d), Blocks.STONE)
     }
@@ -198,7 +203,7 @@ object ElnGameTests {
                     continue
                 }
                 placed++
-                val node = NodeManager.instance!!.nodeList.filterIsInstance<TransparentNode>().first { it.elementId == id }
+                val node = ownNode(helper, id)
                 exercise(node)
                 val element = node.element!!
                 element.getWaila()
