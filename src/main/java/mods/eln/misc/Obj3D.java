@@ -92,7 +92,8 @@ public class Obj3D {
                             f.normal.x, f.normal.y, f.normal.z, 1f, 1f, 1f, 1f, false);
                     }
                 }
-                mesh = m;
+                mesh = m.mergeTriangles();
+                mesh.setFinished(true);
             }
             return mesh;
         }

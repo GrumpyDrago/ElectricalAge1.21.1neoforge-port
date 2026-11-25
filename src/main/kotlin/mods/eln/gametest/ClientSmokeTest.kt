@@ -42,6 +42,15 @@ object ClientSmokeTest {
     private var started = false
 
     private const val GROUND = -60
+    private val FPS = java.lang.Boolean.getBoolean("eln.clientSmokeTest.fps")
+    private var frames = 0
+    private var since = 0L
+
+    @SubscribeEvent
+    fun onFrame(@Suppress("UNUSED_PARAMETER") event: net.neoforged.neoforge.client.event.RenderFrameEvent.Post) {
+        frames++
+    }
+
     private val ORES = java.lang.Boolean.getBoolean("eln.clientSmokeTest.ores")
     private val sixPositions = ArrayList<Triple<String, BlockPos, Direction>>()
     private val transparentPositions = ArrayList<Pair<String, BlockPos>>()
@@ -163,6 +172,20 @@ object ClientSmokeTest {
             later(30) { look(150.0, GROUND + 7.0, row * 14.0 - 12.0, 0f, 25f) }
             later { shot("transparent_%02d".format(row)) }
         }
+        if (FPS) {
+            for ((name, x, z) in listOf(Triple("six", 20.0, -6.0), Triple("transparent", 150.0, -14.0), Triple("sky", 20.0, -60.0))) {
+                later(60) {
+                    mc.options.enableVsync().set(false)
+                    mc.options.framerateLimit().set(260)
+                    look(x, GROUND + 7.0, z, if (name == "sky") 180f else 0f, if (name == "sky") -60f else 25f)
+                }
+                later(160) { frames = 0; since = System.nanoTime() }
+                later { shot("fps_$name") }
+                later { Eln.logger.info("SMOKE fps {}: {}", name, frames * 1000000000L / (System.nanoTime() - since)) }
+            }
+            later { mc.stop() }
+            return
+        }
         // Inventory icons.
         later(10) { mc.options.hideGui = false }
         val tabs = listOf(
@@ -189,6 +212,9 @@ object ClientSmokeTest {
             shot("creative")
             mc.setScreen(null)
         }
+        // Items as /give makes them: without data.
+        later(5) { mc.setScreen(PlainItemScreen()) }
+        later { mc.setScreen(null) }
         // Things in the hand.
         for (name in listOf(
             "Portable Electrical Mining Drill", "X-Ray Scanner", "MultiMeter", "Small Flashlight", "Copper Plate",
@@ -316,6 +342,43 @@ object ClientSmokeTest {
             transparentPositions.add(descriptor.name to BlockPos(node.coordinate.x, node.coordinate.y, node.coordinate.z))
         }
         Eln.logger.info("SMOKE placed {} six nodes, {} transparent nodes", sixPositions.size, transparentPositions.size)
+    }
+}
+
+/** Tooltips and all the ways to draw each item. */
+private class PlainItemScreen : GuiScreen() {
+    private var done = false
+
+    override fun drawScreen(x: Int, y: Int, partialTick: Float) {
+        if (done) return
+        done = true
+        val g = mods.eln.compat.client.GL11.guiGraphics ?: return
+        val mc = Minecraft.getInstance()
+        var failures = 0
+        var count = 0
+        for (item in net.minecraft.core.registries.BuiltInRegistries.ITEM) {
+            val id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item)
+            if (id.namespace != Eln.MODID) continue
+            count++
+            val stack = net.minecraft.world.item.ItemStack(item)
+            try {
+                for (flag in listOf(net.minecraft.world.item.TooltipFlag.NORMAL, net.minecraft.world.item.TooltipFlag.ADVANCED)) {
+                    stack.getTooltipLines(net.minecraft.world.item.Item.TooltipContext.of(mc.level), mc.player, flag)
+                }
+                for (context in net.minecraft.world.item.ItemDisplayContext.entries) {
+                    g.pose().pushPose()
+                    mc.itemRenderer.renderStatic(
+                        stack, context, 0xF000F0, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, g.pose(), g.bufferSource(), mc.level, 0
+                    )
+                    g.pose().popPose()
+                }
+                g.flush()
+            } catch (e: Throwable) {
+                failures++
+                Eln.logger.error("SMOKE plain item {}", id, e)
+            }
+        }
+        Eln.logger.info("SMOKE {} plain items, {} failures", count, failures)
     }
 }
 

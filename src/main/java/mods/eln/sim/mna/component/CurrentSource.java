@@ -32,6 +32,7 @@ public class CurrentSource extends Bipole implements ISubSystemProcessI, INBTTRe
 
     @Override
     public void addToSubsystem(SubSystem s) {
+        super.addToSubsystem(s);
         s.addProcess(this);
     }
 
@@ -40,6 +41,7 @@ public class CurrentSource extends Bipole implements ISubSystemProcessI, INBTTRe
         SubSystem localSubSystem = getLocalSubSystem();
         if (localSubSystem != null)
             localSubSystem.removeProcess(this);
+        super.quitSubSystem();
     }
 
     @Override

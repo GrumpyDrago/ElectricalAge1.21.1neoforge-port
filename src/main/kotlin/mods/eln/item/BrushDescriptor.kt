@@ -37,7 +37,7 @@ class BrushDescriptor(name: String): GenericItemUsingDamageDescriptor(name) {
     private fun getLife(stack: ItemStack?) = if (stack == null || stack.tagCompound == null)
         32
     else
-        stack.tagCompound!!.getInt("life")
+        getNbt(stack).getInt("life")
 
     fun setLife(stack: ItemStack, life: Int) {
         stack.updateTag { it.putInt("life", life) }
@@ -54,14 +54,14 @@ class BrushDescriptor(name: String): GenericItemUsingDamageDescriptor(name) {
 
         if (itemStack != null) {
             val creative = Minecraft.getInstance().player!!.isCreativeMode
-            list.add(tr("Can paint %1$ blocks", if (creative) "infinite" else itemStack.tagCompound!!.getInt("life")))
+            list.add(tr("Can paint %1$ blocks", if (creative) "infinite" else getLife(itemStack)))
         }
     }
 
     fun use(stack: ItemStack, entityPlayer: Player): Boolean {
 
         val creative = entityPlayer.isCreativeMode
-        var life = stack.tagCompound!!.getInt("life")
+        var life = getLife(stack)
         return if (creative || life != 0) {
             if (!creative) {
                 --life

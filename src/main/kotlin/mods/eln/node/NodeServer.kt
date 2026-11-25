@@ -23,22 +23,13 @@ class NodeServer {
         val server = FMLCommonHandler.instance().minecraftServerInstance
         if (server != null) {
             RoomThermalManager.tick(server)
-            for (node in NodeManager.instance!!.nodeList) {
-                if (node.needPublish) {
-                    node.publishToAllPlayer()
-                }
-            }
+            val manager = NodeManager.instance!!
+            manager.publishChanges()
             for (player in server.players) {
-                var openContainerNode: NodeBase? = null
-                var container: INodeContainer? = null
-                if (player.containerMenu is INodeContainer) {
-                    container = player.containerMenu as INodeContainer
-                    openContainerNode = container.node
-                }
-                for (node in NodeManager.instance!!.nodeList) {
-                    if (node === openContainerNode) {
-                        if (counter % (1 + container!!.refreshRateDivider) == 0) node.publishToPlayer(player)
-                    }
+                val container = player.containerMenu as? INodeContainer ?: continue
+                val node = container.node ?: continue
+                if (counter % (1 + container.refreshRateDivider) == 0 && manager.getNodeFromCoordonate(node.coordinate) === node) {
+                    node.publishToPlayer(player)
                 }
             }
             counter++

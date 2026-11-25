@@ -48,6 +48,8 @@ class ServerEventListener {
 
     fun clear() {
         lightningList.clear()
+        lightningListNext.clear()
+        loadedWorlds.clear()
     }
 
     fun getLightningClosestTo(c: Coordinate): Double {

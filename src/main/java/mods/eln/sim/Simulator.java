@@ -417,10 +417,14 @@ public class Simulator /* ,IPacketHandler */ {
             process.process(0.05);
         }
 
-        for (IDestructible d : destructableSet) {
-            d.destructImpl();
+        if (!destructableSet.isEmpty()) {
+            // Destruction can lead to more destruction.
+            List<IDestructible> destructed = new ArrayList<>(destructableSet);
+            destructableSet.clear();
+            for (IDestructible d : destructed) {
+                d.destructImpl();
+            }
         }
-        destructableSet.clear();
 
         slowNsStack += System.nanoTime() - stackStart;
         avgTickTime += 1.0 / 20 * ((int) (System.nanoTime() - startTime) / 1000);

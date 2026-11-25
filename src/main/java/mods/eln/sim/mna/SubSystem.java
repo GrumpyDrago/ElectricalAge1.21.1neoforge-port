@@ -10,7 +10,6 @@ import mods.eln.sim.mna.misc.ISubSystemProcessI;
 import mods.eln.sim.mna.misc.MnaConst;
 import mods.eln.sim.mna.state.State;
 import mods.eln.sim.mna.state.VoltageState;
-import org.apache.commons.numbers.core.DD;
 
 import mods.eln.Eln;
 import java.util.ArrayList;
@@ -38,7 +37,7 @@ public class SubSystem {
     private long inversionTotalNanosecondsSinceLastDrain = 0L;
     private long inversionMaximumNanosecondsSinceLastDrain = 0L;
 
-    DD[][] AInvdata;
+    private DdInverse inverse;
     double[] Idata;
 
     double[] XtempData;
@@ -130,7 +129,7 @@ public class SubSystem {
         boolean captureMetrics = MetricsSubsystem.isSimulatorMetricsActive();
         long inversionStartNanoseconds = captureMetrics ? System.nanoTime() : 0L;
         try {
-            AInvdata = invertMatrix(A);
+            inverse = DdInverse.of(A);
             singularMatrix = false;
             if (captureMetrics) {
                 long inversionTimeNanoseconds = System.nanoTime() - inversionStartNanoseconds;
@@ -142,7 +141,7 @@ public class SubSystem {
             }
         } catch (Exception e) {
             singularMatrix = true;
-            AInvdata = null;
+            inverse = null;
             if (stateCount > 1) {
                 singularMatrixCountSinceLastDrain++;
                 Utils.println("//////////SingularMatrix////////////");
@@ -242,7 +241,7 @@ public class SubSystem {
 
     public void addToI(State s, double v) {
         if (s == null) return;
-        Idata[s.getId()] = v;
+        Idata[s.getId()] += v;
     }
 
     public void step() {
@@ -280,14 +279,7 @@ public class SubSystem {
                 p.simProcessI(this);
             }
 
-            for (int idx2 = 0; idx2 < stateCount; idx2++) {
-                DD stack = DD.ZERO;
-                DD[] inverseRow = AInvdata[idx2];
-                for (int idx = 0; idx < stateCount; idx++) {
-                    stack = stack.add(inverseRow[idx].multiply(Idata[idx]));
-                }
-                XtempData[idx2] = stack.doubleValue();
-            }
+            inverse.multiply(Idata, XtempData);
         }
     }
 
@@ -304,13 +296,7 @@ public class SubSystem {
                 p.simProcessI(this);
             }
 
-            int idx2 = pin.getId();
-            DD stack = DD.ZERO;
-            DD[] inverseRow = AInvdata[idx2];
-            for (int idx = 0; idx < stateCount; idx++) {
-                stack = stack.add(inverseRow[idx].multiply(Idata[idx]));
-            }
-            return stack.doubleValue();
+            return inverse.multiplyRow(pin.getId(), Idata);
         }
         return 0;
     }
@@ -324,68 +310,6 @@ public class SubSystem {
             copy[idx] = source[idx].clone();
         }
         return copy;
-    }
-
-    private static DD[][] invertMatrix(double[][] matrix) {
-        int size = matrix.length;
-        DD[][] augmented = new DD[size][size * 2];
-
-        for (int row = 0; row < size; row++) {
-            for (int col = 0; col < size; col++) {
-                augmented[row][col] = DD.of(matrix[row][col]);
-                augmented[row][size + col] = row == col ? DD.ONE : DD.ZERO;
-            }
-        }
-
-        for (int pivotColumn = 0; pivotColumn < size; pivotColumn++) {
-            int pivotRow = pivotColumn;
-            double pivotMagnitude = 0.0;
-            for (int row = pivotColumn; row < size; row++) {
-                double magnitude = augmented[row][pivotColumn].abs().doubleValue();
-                if (magnitude > pivotMagnitude) {
-                    pivotMagnitude = magnitude;
-                    pivotRow = row;
-                }
-            }
-
-            if (pivotMagnitude == 0.0) {
-                throw new IllegalStateException("Matrix is singular");
-            }
-
-            if (pivotRow != pivotColumn) {
-                DD[] swap = augmented[pivotColumn];
-                augmented[pivotColumn] = augmented[pivotRow];
-                augmented[pivotRow] = swap;
-            }
-
-            DD pivot = augmented[pivotColumn][pivotColumn];
-            for (int col = pivotColumn; col < size * 2; col++) {
-                augmented[pivotColumn][col] = augmented[pivotColumn][col].divide(pivot);
-            }
-            augmented[pivotColumn][pivotColumn] = DD.ONE;
-
-            for (int row = 0; row < size; row++) {
-                if (row == pivotColumn) {
-                    continue;
-                }
-
-                DD factor = augmented[row][pivotColumn];
-                if (factor.isZero()) {
-                    continue;
-                }
-
-                for (int col = pivotColumn; col < size * 2; col++) {
-                    augmented[row][col] = augmented[row][col].subtract(factor.multiply(augmented[pivotColumn][col]));
-                }
-                augmented[row][pivotColumn] = DD.ZERO;
-            }
-        }
-
-        DD[][] inverse = new DD[size][size];
-        for (int row = 0; row < size; row++) {
-            System.arraycopy(augmented[row], size, inverse[row], 0, size);
-        }
-        return inverse;
     }
 
     public void stepFlush() {
@@ -507,22 +431,20 @@ public class SubSystem {
         Thevenin thevenin = new Thevenin();
         double originalVoltage = d.state;
 
-        double testVoltage = originalVoltage + 5;
-        voltageSource.setVoltage(testVoltage);
-        double testCurrent = solve(voltageSource.getCurrentState());
-
+        // The circuit is linear: the current changes with the voltage by an element of the inverse.
         voltageSource.setVoltage(originalVoltage);
-        double originalCurrent = solve(voltageSource.getCurrentState());
+        State currentState = voltageSource.getCurrentState();
+        double originalCurrent = solve(currentState);
+        double conductance = singularMatrix ? 0 : -inverse.get(currentState.getId(), currentState.getId());
 
-        double theveninResistance = (testVoltage - originalVoltage) / (originalCurrent - testCurrent);
+        double theveninResistance = Double.isNaN(originalVoltage) ? Double.NaN : 1 / conductance;
         double theveninVoltage;
         if (theveninResistance > 10000000000000000000.0 || theveninResistance < 0) {
             theveninVoltage = 0;
             theveninResistance = 10000000000000000000.0;
         } else {
-            theveninVoltage = testVoltage + theveninResistance * testCurrent;
+            theveninVoltage = originalVoltage + theveninResistance * originalCurrent;
         }
-        voltageSource.setVoltage(originalVoltage);
 
         thevenin.resistance = theveninResistance;
         thevenin.voltage = theveninVoltage;

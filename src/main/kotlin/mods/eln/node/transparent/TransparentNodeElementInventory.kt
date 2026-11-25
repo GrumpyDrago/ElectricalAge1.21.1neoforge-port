@@ -89,7 +89,8 @@ open class TransparentNodeElementInventory : ISidedInventory, INBTTReady, IUtili
     }
 
     override fun isUseableByPlayer(player: Player): Boolean {
-        return true
+        val element = transparentNodeElement ?: return true
+        return element.node?.isUsableBy(player) ?: false
     }
 
     override fun openInventory() {}

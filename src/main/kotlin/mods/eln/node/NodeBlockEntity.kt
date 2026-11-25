@@ -36,7 +36,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
 import java.util.*
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ConcurrentHashMap
 
 abstract class NodeBlockEntity(type: BlockEntityType<*>, pos: BlockPos, state: BlockState) : BlockEntity(type, pos, state), ITileEntitySpawnClient, INodeEntity {
     val block: NodeBlock
@@ -132,7 +132,7 @@ abstract class NodeBlockEntity(type: BlockEntityType<*>, pos: BlockPos, state: B
 
     override fun onLoad() {
         super.onLoad()
-        if (worldObj.isClientSide && this !in clientList) clientList.add(this)
+        if (worldObj.isClientSide) clientList.add(this)
     }
 
     fun onBlockAdded() {
@@ -291,8 +291,7 @@ abstract class NodeBlockEntity(type: BlockEntityType<*>, pos: BlockPos, state: B
         }
 
         @JvmField
-        //val clientList = LinkedList<NodeBlockEntity>()
-        val clientList = LinkedBlockingQueue<NodeBlockEntity>()
+        val clientList: MutableSet<NodeBlockEntity> = ConcurrentHashMap.newKeySet()
         fun getEntity(x: Int, y: Int, z: Int): NodeBlockEntity? = ClientHooks.level()?.getTileEntity(x, y, z) as? NodeBlockEntity
     }
 }

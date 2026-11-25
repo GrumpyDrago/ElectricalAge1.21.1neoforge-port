@@ -97,8 +97,10 @@ fun dimensionId(key: ResourceKey<Level>): Int = when (key) {
     Level.OVERWORLD -> 0
     Level.NETHER -> -1
     Level.END -> 1
-    else -> (key.location().toString().hashCode() and 0x3FFFFFFF) or 0x40000000
+    else -> dimensionIds.computeIfAbsent(key) { (it.location().toString().hashCode() and 0x3FFFFFFF) or 0x40000000 }
 }
+
+private val dimensionIds = java.util.concurrent.ConcurrentHashMap<ResourceKey<Level>, Int>()
 
 val Level.dimensionId: Int
     @JvmName("dimensionId") get() = dimensionId(dimension())

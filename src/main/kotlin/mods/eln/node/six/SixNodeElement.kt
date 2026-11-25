@@ -14,7 +14,7 @@ import mods.eln.misc.Utils.isPlayerUsingWrench
 import mods.eln.misc.Utils.mustDropItem
 import mods.eln.misc.Utils.readFromNBT
 import mods.eln.misc.Utils.writeToNBT
-import mods.eln.environment.BiomeClimateService
+import mods.eln.environment.AmbientTemperature
 import mods.eln.node.INodeElement
 import mods.eln.node.NodeConnectionEndpoint
 import mods.eln.node.NodeConnection
@@ -191,14 +191,12 @@ abstract class SixNodeElement(sixNode: SixNode, @JvmField var side: Direction, d
     open fun multiMeterString(): String = ""
     open fun thermoMeterString(): String = ""
 
+    private val ambientTemperature = AmbientTemperature()
+
     fun getAmbientTemperatureCelsius(): Double {
         val coord = coordinate
             ?: throw IllegalStateException("Missing coordinate for ${javaClass.name} while sampling ambient temperature.")
-        if (!coord.worldExist) {
-            throw IllegalStateException("World not loaded for coordinate $coord in ${javaClass.name} while sampling ambient temperature.")
-        }
-        val world = coord.world()
-        return BiomeClimateService.sample(world, coord.x, coord.y, coord.z).temperatureCelsius
+        return ambientTemperature.get(coord)
     }
 
     fun plotAmbientCelsius(header: String, thermalDeltaCelsius: Double): String {

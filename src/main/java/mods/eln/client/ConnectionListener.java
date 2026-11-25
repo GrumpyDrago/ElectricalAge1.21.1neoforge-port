@@ -5,6 +5,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import mods.eln.Eln;
+import mods.eln.compat.client.GL11;
 import mods.eln.misc.Utils;
 import mods.eln.ore.OreScannerManager;
 import mods.eln.misc.UtilsClient;
@@ -37,6 +38,7 @@ public class ConnectionListener {
         newConnection = false;
         Utils.println("Disconnected from server " + FMLCommonHandler.instance().getEffectiveSide());
         Minecraft.getInstance().execute(UtilsClient::glDeleteListsAllSafe);
+        Minecraft.getInstance().execute(GL11::forgetMeshes);
     }
 
     @SubscribeEvent

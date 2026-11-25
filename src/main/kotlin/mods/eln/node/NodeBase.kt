@@ -53,6 +53,10 @@ abstract class NodeBase {
     private var initialized = false
     private var isAdded = false
     var needPublish = false
+        set(value) {
+            if (value && !field) NodeManager.instance?.publishLater(this)
+            field = value
+        }
 
     // public static boolean canBePlacedOn(ItemStack itemStack,Direction side)
     open fun mustBeSaved(): Boolean {
@@ -92,8 +96,12 @@ abstract class NodeBase {
     }
 
     open fun onNeighborBlockChange() {
+        val opaqueBefore = neighborOpaque
+        val wrapableBefore = neighborWrapable
         neighborBlockRead()
-        if (isAdded) {
+        // Nodes that come and go connect and disconnect by themselves. Rebuilding the circuit is expensive, do not do it
+        // whenever something nearby blinks.
+        if (isAdded && (neighborOpaque != opaqueBefore || neighborWrapable != wrapableBefore)) {
             reconnect()
         }
     }
@@ -446,6 +454,13 @@ abstract class NodeBase {
         Utils.sendPacketToClient(publishPacket!!, player!!)
     }
 
+    /** Whether the node is still there, with the player next to it. */
+    fun isUsableBy(player: Player): Boolean {
+        if (isDestructing || NodeManager.instance!!.getNodeFromCoordonate(coordinate) !== this) return false
+        if (player.dimension != coordinate.dimension) return false
+        return player.distanceToSqr(coordinate.x + 0.5, coordinate.y + 0.5, coordinate.z + 0.5) < MAX_USE_DISTANCE * MAX_USE_DISTANCE
+    }
+
     fun dropItem(itemStack: ItemStack?) {
         if (itemStack == null) return
         Utils.dropItem(itemStack, coordinate)
@@ -454,7 +469,10 @@ abstract class NodeBase {
     fun dropInventory(inventory: IInventory?) {
         if (inventory == null) return
         for (idx in 0 until inventory.sizeInventory) {
-            dropItem(inventory.getStackInSlot(idx))
+            val stack = inventory.getStackInSlot(idx) ?: continue
+            // Someone may still be looking at it.
+            inventory.setInventorySlotContents(idx, null)
+            dropItem(stack)
         }
     }
 
@@ -469,6 +487,8 @@ abstract class NodeBase {
     }
 
     companion object {
+        /** Machines can be several blocks big. */
+        private const val MAX_USE_DISTANCE = 16.0
         const val maskElectricalPower = 1 shl 0
         const val maskThermal = 1 shl 1
         const val maskElectricalGate = 1 shl 2

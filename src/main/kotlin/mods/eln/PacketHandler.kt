@@ -106,7 +106,9 @@ class PacketHandler {
         try {
             val coordinate = Coordinate(stream.readInt(), stream.readInt(), stream.readInt(), stream.readInt())
             val node = NodeManager.instance!!.getNodeFromCoordonate(coordinate)
-            if (node != null && node.nodeUuid == stream.readUTF()) {
+            if (node != null && player != null && !node.isUsableBy(player)) {
+                println("packetForNode out of reach")
+            } else if (node != null && node.nodeUuid == stream.readUTF()) {
                 node.networkUnserialize(stream, player as ServerPlayer?)
             } else {
                 println("packetForNode node found")
@@ -187,6 +189,7 @@ class PacketHandler {
     private fun packetFalstadImport(stream: DataInputStream, player: Player) {
         try {
             val length = stream.readInt()
+            if (length < 0 || length > stream.available()) return
             val bytes = ByteArray(length)
             stream.readFully(bytes)
             FalstadImportPacketHandler.handle(player as ServerPlayer, bytes)

@@ -43,6 +43,12 @@ for example `data/eln/recipe/crafting/wrench.json`.
 | `./gradlew runClientSmokeTest` | Builds a world with everything, opens every GUI, takes screenshots into `run/screenshots`, reloads the world and quits |
 | `./gradlew generateLangFiles` | Updates the language files |
 
+Two of them take a system property through `JAVA_TOOL_OPTIONS`:
+
+- `-Deln.stress=200` makes `runGameTestServer` also build 200 circuits and every component, and report what a tick costs.
+- `-Deln.clientSmokeTest.fps=true` makes `runClientSmokeTest` only measure the frame rate, with everything in view.
+  `-Deln.clientSmokeTest.noGuis=true` leaves out the GUIs, `-Deln.clientSmokeTest.ores=true` only counts ores.
+
 Run `runData` after adding a component, so that it gets an item model.
 
 ### Layout
@@ -52,7 +58,7 @@ Run `runData` after adding a component, so that it gets an item model.
   over tags.
 - `mods.eln.compat.client.GL11` is an immediate mode drawing API with the calls of the old OpenGL, drawing through
   Minecraft's buffers. It only works within `GL11.inWorld` and `GL11.inGui`; anything else is ignored. Display lists
-  record meshes.
+  record meshes. Big meshes that stay the same for a few frames are kept on the graphics card (`GlBake`).
 - `mods.eln.registration.ElnRegistry` collects what the mod registers. `Eln.createContent()` runs once, when the first
   registry opens. Do not call `Block.asItem()` or make stacks from blocks before that is over.
 - A descriptor (`SixNodeDescriptor`, `TransparentNodeDescriptor`, `GenericItemUsingDamageDescriptor`) is one item. Six

@@ -73,6 +73,21 @@ object BiomeClimateService {
         )
     }
 
+    /** The profile of the biome at this place. */
+    internal fun profileAt(world: Level, x: Int, y: Int, z: Int): BiomeClimateProfile {
+        ensureLoaded()
+        return resolveProfileForBiome(world.getBiome(BlockPos(x, y, z)))
+    }
+
+    /** The temperature part of [sample]. */
+    internal fun temperatureCelsius(world: Level, y: Int, profile: BiomeClimateProfile): Double {
+        val weather = getWeatherSnapshot(world)
+        val dayBlend = dayBlendForWorldTicks(world.worldTime)
+        val biomeTemperatureC = interpolateTemperature(profile.dayHighCelsius, profile.nightLowCelsius, dayBlend)
+        val temperatureC = applyCloudTemperatureDelta(biomeTemperatureC, weather.raining, weather.thundering)
+        return applyDepthTemperatureProfile(temperatureC, y)
+    }
+
     private fun supportsPrecipitation(profile: BiomeClimateProfile): Boolean {
         return profile.precipitationType != "none"
     }
@@ -473,7 +488,7 @@ private data class WeatherSnapshot(
     val thundering: Boolean
 )
 
-private data class BiomeClimateProfile(
+internal data class BiomeClimateProfile(
     val dayHighCelsius: Double,
     val nightLowCelsius: Double,
     val dayHumidityPercent: Double,

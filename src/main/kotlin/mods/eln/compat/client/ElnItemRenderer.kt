@@ -5,11 +5,11 @@ import mods.eln.compat.IItemRenderer.ItemRenderType
 import mods.eln.compat.IItemRenderer.ItemRendererHelper
 import mods.eln.compat.rl
 import mods.eln.generic.DescriptorItem
+import mods.eln.generic.SharedDescriptorItem
 import mods.eln.misc.UtilsClient
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer
 import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.ItemDisplayContext
 import net.minecraft.world.item.ItemStack
 
@@ -56,7 +56,7 @@ class ElnItemRenderer : BlockEntityWithoutLevelRenderer(Minecraft.getInstance().
                 ItemRenderType.ENTITY -> {
                     GL11.glTranslatef(0.5f, 0.5f, 0.5f)
                     if (context == ItemDisplayContext.GROUND) {
-                        val scale = if (item.shouldUseRenderHelper(type, stack, ItemRendererHelper.BLOCK_3D) && item is BlockItem) 0.25f else 0.5f
+                        val scale = if (item.shouldUseRenderHelper(type, stack, ItemRendererHelper.BLOCK_3D) && item !is SharedDescriptorItem) 0.25f else 0.5f
                         GL11.glScalef(scale, scale, scale)
                     }
                 }

@@ -48,7 +48,6 @@ public class PowerSource extends VoltageSource implements IRootSystemPreStepProc
     public void addToSubsystem(SubSystem s) {
         super.addToSubsystem(s);
         getSubSystem().getRoot().addProcess(this);
-        s.addProcess(this);
     }
 
     @Override

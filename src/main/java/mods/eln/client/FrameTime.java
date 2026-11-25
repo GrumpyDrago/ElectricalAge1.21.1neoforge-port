@@ -4,6 +4,7 @@ import mods.eln.compat.FMLCommonHandler;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import mods.eln.misc.Utils;
+import mods.eln.compat.client.GL11;
 import mods.eln.node.NodeBlockEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.Level;
@@ -44,6 +45,7 @@ public class FrameTime {
     @SubscribeEvent
     public void tick(RenderFrameEvent.Pre event) {
 
+        GL11.nextFrame();
         long nanoTime = System.nanoTime();
 
         if (boot) {

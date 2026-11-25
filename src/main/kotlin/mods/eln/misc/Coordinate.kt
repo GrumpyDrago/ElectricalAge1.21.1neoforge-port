@@ -52,7 +52,11 @@ class Coordinate : INBTTReady {
     }
 
     override fun hashCode(): Int {
-        return (x + y) * 0x10101010 + z
+        // Bases are flat and regular; make sure that neighbors do not end up in the same buckets.
+        var h = x * -0x61c88647 + z
+        h = h * -0x61c88647 + y
+        h = h * -0x61c88647 + dimension
+        return h xor (h ushr 15)
     }
 
     fun worldDimension(): Int {

@@ -188,6 +188,7 @@ object RoomThermalManager {
         loadRp: Double,
         dt: Double
     ): Double? {
+        if (roomsById.isEmpty()) return null
         if (loadRp <= 0.0 || loadRp.isNaN() || loadRp.isInfinite()) return null
         val query = CellPos(x, y, z)
         val roomId = roomByInteriorCellByDimension[dimension]?.get(query)

@@ -13,7 +13,7 @@ import mods.eln.misc.LRDU
 import mods.eln.misc.Utils
 import mods.eln.misc.Utils.readFromNBT
 import mods.eln.misc.Utils.writeToNBT
-import mods.eln.environment.BiomeClimateService
+import mods.eln.environment.AmbientTemperature
 import mods.eln.node.INodeElement
 import mods.eln.node.NodeConnectionEndpoint
 import mods.eln.sim.ElectricalLoad
@@ -268,14 +268,12 @@ abstract class TransparentNodeElement(@JvmField var node: TransparentNode?, @Jvm
     open fun multiMeterString(side: Direction): String = ""
     open fun thermoMeterString(side: Direction): String = ""
 
+    private val ambientTemperature = AmbientTemperature()
+
     fun getAmbientTemperatureCelsius(): Double {
         val coord = node?.coordinate
             ?: throw IllegalStateException("Missing coordinate for ${javaClass.name} while sampling ambient temperature.")
-        if (!coord.worldExist) {
-            throw IllegalStateException("World not loaded for coordinate $coord in ${javaClass.name} while sampling ambient temperature.")
-        }
-        val world = coord.world()
-        return BiomeClimateService.sample(world, coord.x, coord.y, coord.z).temperatureCelsius
+        return ambientTemperature.get(coord)
     }
 
     fun plotAmbientCelsius(header: String, thermalDeltaCelsius: Double): String {

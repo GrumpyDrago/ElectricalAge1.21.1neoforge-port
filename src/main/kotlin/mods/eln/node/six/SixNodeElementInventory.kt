@@ -91,7 +91,9 @@ class SixNodeElementInventory : IInventory, INBTTReady, IUtilityCableInventory {
     }
 
     override fun isUseableByPlayer(player: Player): Boolean {
-        return true
+        val element = sixNodeElement ?: return true
+        val node = element.sixNode ?: return false
+        return node.getElement(element.side) === element && node.isUsableBy(player)
     }
 
     override fun openInventory() {}

@@ -49,6 +49,67 @@ class GlMesh {
         vertexCount++
     }
 
+    /** Set once the mesh does not change any more. */
+    var finished = false
+    internal val variants = ArrayList<GlBake.Variant>(0)
+
+    private fun sameVertex(a: Int, b: Int): Boolean {
+        for (k in 0 until STRIDE) if (data[a * STRIDE + k] != data[b * STRIDE + k]) return false
+        return ownColor[a] == ownColor[b]
+    }
+
+    /**
+     * This mesh, with pairs of triangles that share an edge made into one quad. Triangles are quads that end with the
+     * same corner twice.
+     */
+    fun mergeTriangles(): GlMesh {
+        val quads = vertexCount / 4
+        val triangles = (0 until quads).filter { sameVertex(it * 4 + 2, it * 4 + 3) }
+        if (triangles.size < 2) return this
+
+        fun hash(vertex: Int): Int {
+            var h = 1
+            for (k in 0 until STRIDE) h = h * 31 + (data[vertex * STRIDE + k] + 0f).hashCode()
+            return h
+        }
+
+        // Directed edges; the neighbor has the same edge the other way round.
+        val edges = HashMap<Long, MutableList<Int>>()
+        fun key(from: Int, to: Int) = (hash(from).toLong() shl 32) or (hash(to).toLong() and 0xFFFFFFFFL)
+        for (t in triangles) for (e in 0..2) edges.getOrPut(key(t * 4 + e, t * 4 + (e + 1) % 3)) { ArrayList(1) }.add(t * 4 + e)
+
+        val out = GlMesh()
+        val isTriangle = BooleanArray(quads).also { for (t in triangles) it[t] = true }
+        val used = BooleanArray(quads)
+        for (q in 0 until quads) {
+            if (used[q]) continue
+            used[q] = true
+            var merged = false
+            if (isTriangle[q]) {
+                for (e in 0..2) {
+                    val a = q * 4 + e
+                    val b = q * 4 + (e + 1) % 3
+                    val c = q * 4 + (e + 2) % 3
+                    // Triangle b, c, a and its neighbor a, d, b across the edge a-b make up the quad b, c, a, d.
+                    val other = edges[key(b, a)]?.firstOrNull { edge ->
+                        !used[edge / 4] && sameVertex(edge, b) && sameVertex(edge / 4 * 4 + (edge % 4 + 1) % 3, a)
+                    } ?: continue
+                    val triangle = other / 4
+                    used[triangle] = true
+                    val d = triangle * 4 + (other % 4 + 2) % 3
+                    out.copyVertex(this, b)
+                    out.copyVertex(this, c)
+                    out.copyVertex(this, a)
+                    out.copyVertex(this, d)
+                    merged = true
+                    break
+                }
+            }
+            if (!merged) for (k in 0..3) out.copyVertex(this, q * 4 + k)
+        }
+        return out
+    }
+
     fun copyVertex(from: GlMesh, index: Int) {
         val i = index * STRIDE
         val d = from.data
@@ -123,7 +184,10 @@ object GL11 {
         val light: Int,
         val overlay: Int,
         val forceNoCull: Boolean
-    )
+    ) {
+        /** Blocks drawn the usual way. Shader packs and effects bring their own buffers, and need to see the vertices. */
+        val keepable = gui == null && !forceNoCull && buffers.javaClass == MultiBufferSource.BufferSource::class.java
+    }
 
     private val contexts = ArrayList<Context>()
     private val idlePose = PoseStack()
@@ -437,7 +501,12 @@ object GL11 {
         if (m == GL_POINTS) return
         val quads = toQuads(scratch, m)
         val rec = recording
-        if (rec != null) rec.add { drawMesh(quads) } else drawMesh(quads)
+        if (rec != null) {
+            quads.finished = true
+            rec.add { drawMesh(quads) }
+        } else {
+            drawMesh(quads)
+        }
     }
 
     private fun toQuads(src: GlMesh, mode: Int): GlMesh {
@@ -501,7 +570,7 @@ object GL11 {
         val c = ctx ?: return
         if (mesh.vertexCount == 0) return
         val texture = currentTexture()
-        val linear = texture in linearTextures
+        val linear = linearTextures.isNotEmpty() && texture in linearTextures
         val last = c.pose.last()
         val matrix = last.pose()
         val d = mesh.data
@@ -525,15 +594,71 @@ object GL11 {
             }
             return
         }
-        val vc = c.buffers.getBuffer(ElnRenderTypes.world(texture, state.blend, cull, linear, state.depthTest))
+        val type = ElnRenderTypes.world(texture, state.blend, cull, linear, state.depthTest)
+        val color = packColor(state.r, state.g, state.b, state.a)
+        if (c.keepable && !state.blend && GlBake.draw(mesh, type, last, color, c.light, c.overlay, uOffset, vOffset)) return
+        val vc = c.buffers.getBuffer(type)
+        // Models can have thousands of vertices, so everything is spelled out here: passing a vertex at once is several
+        // times faster than one attribute after the other.
+        val m00 = matrix.m00(); val m01 = matrix.m01(); val m02 = matrix.m02()
+        val m10 = matrix.m10(); val m11 = matrix.m11(); val m12 = matrix.m12()
+        val m20 = matrix.m20(); val m21 = matrix.m21(); val m22 = matrix.m22()
+        val m30 = matrix.m30(); val m31 = matrix.m31(); val m32 = matrix.m32()
+        val normals = last.normal()
+        val n00 = normals.m00(); val n01 = normals.m01(); val n02 = normals.m02()
+        val n10 = normals.m10(); val n11 = normals.m11(); val n12 = normals.m12()
+        val n20 = normals.m20(); val n21 = normals.m21(); val n22 = normals.m22()
+        val own = mesh.ownColor
+        val overlay = c.overlay
+        val light = c.light
+        var lastNx = Float.NaN
+        var lastNy = Float.NaN
+        var lastNz = Float.NaN
+        var nx = 0f
+        var ny = 0f
+        var nz = 0f
+        var o = 0
         for (i in 0 until mesh.vertexCount) {
-            val o = i * GlMesh.STRIDE
-            vc.addVertex(matrix, d[o], d[o + 1], d[o + 2])
-            color(vc, mesh, i, o)
-            vc.setUv(d[o + 3] + uOffset, d[o + 4] + vOffset).setOverlay(c.overlay).setLight(c.light)
-            vc.setNormal(last, d[o + 5], d[o + 6], d[o + 7])
+            val x = d[o]
+            val y = d[o + 1]
+            val z = d[o + 2]
+            val inX = d[o + 5]
+            val inY = d[o + 6]
+            val inZ = d[o + 7]
+            if (inX != lastNx || inY != lastNy || inZ != lastNz) {
+                lastNx = inX
+                lastNy = inY
+                lastNz = inZ
+                nx = n00 * inX + n10 * inY + n20 * inZ
+                ny = n01 * inX + n11 * inY + n21 * inZ
+                nz = n02 * inX + n12 * inY + n22 * inZ
+                val length = sqrt(nx * nx + ny * ny + nz * nz)
+                if (length > 1e-6f) {
+                    nx /= length
+                    ny /= length
+                    nz /= length
+                }
+            }
+            vc.addVertex(
+                m00 * x + m10 * y + m20 * z + m30,
+                m01 * x + m11 * y + m21 * z + m31,
+                m02 * x + m12 * y + m22 * z + m32,
+                if (own[i]) packColor(d[o + 8], d[o + 9], d[o + 10], d[o + 11]) else color,
+                d[o + 3] + uOffset, d[o + 4] + vOffset, overlay, light, nx, ny, nz
+            )
+            o += GlMesh.STRIDE
         }
     }
+
+    internal fun packColor(r: Float, g: Float, b: Float, a: Float): Int =
+        ((a * 255f).toInt() shl 24) or ((r * 255f).toInt() shl 16) or ((g * 255f).toInt() shl 8) or (b * 255f).toInt()
+
+    @JvmStatic
+    fun nextFrame() = GlBake.nextFrame()
+
+    /** Frees the models kept on the graphics card. */
+    @JvmStatic
+    fun forgetMeshes() = GlBake.clear()
 
     private fun color(vc: VertexConsumer, mesh: GlMesh, index: Int, o: Int) {
         if (mesh.ownColor[index]) {

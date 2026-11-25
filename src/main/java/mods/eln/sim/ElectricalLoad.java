@@ -1,5 +1,6 @@
 package mods.eln.sim;
 
+import java.util.ArrayList;
 import mods.eln.sim.mna.component.Bipole;
 import mods.eln.sim.mna.component.Component;
 import mods.eln.sim.mna.component.Line;
@@ -37,7 +38,9 @@ public class ElectricalLoad extends VoltageStateLineReady {
 
     public double getCurrent() {
         double current = 0;
-        for (Component c : getConnectedComponents()) {
+        ArrayList<Component> components = getConnectedComponents();
+        for (int i = 0, n = components.size(); i < n; i++) {
+            Component c = components.get(i);
             if (c instanceof Bipole && (!(c instanceof Line)))
                 current += Math.abs(((Bipole) c).getCurrent());
         }

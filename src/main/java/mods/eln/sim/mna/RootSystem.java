@@ -23,8 +23,9 @@ public class RootSystem {
 
     public ArrayList<SubSystem> systems = new ArrayList<SubSystem>();
 
-    public Set<Component> addComponents = new HashSet<Component>();
-    public HashSet<State> addStates = new HashSet<State>();
+    // In order of insertion, so that the same circuit always gets built the same way.
+    public Set<Component> addComponents = new LinkedHashSet<Component>();
+    public Set<State> addStates = new LinkedHashSet<State>();
 
     static final int maxSubSystemSize = 100;
 
@@ -109,7 +110,7 @@ public class RootSystem {
     }
 
     private void generateLine() {
-        Set<State> stateScope = new HashSet<State>();
+        Set<State> stateScope = new LinkedHashSet<State>();
         for (State s : addStates) {
             if (isValidForLine(s)) {
                 stateScope.add(s);
@@ -274,15 +275,15 @@ public class RootSystem {
     }
 
     private void buildSubSystem(State root) {
-        Set<Component> componentSet = new HashSet<Component>();
-        Set<State> stateSet = new HashSet<State>();
+        Set<Component> componentSet = new LinkedHashSet<Component>();
+        Set<State> stateSet = new LinkedHashSet<State>();
 
         LinkedList<State> roots = new LinkedList<State>();
         roots.push(root);
         buildSubSystem(roots, componentSet, stateSet);
 
-        addComponents.removeAll(componentSet);
-        addStates.removeAll(stateSet);
+        componentSet.forEach(addComponents::remove);
+        stateSet.forEach(addStates::remove);
 
         SubSystem subSystem = new SubSystem(this, dt);
         subSystem.addState(stateSet);
@@ -336,10 +337,11 @@ public class RootSystem {
     }
 
     public void breakSystems(SubSystem sub) {
-        if (sub.breakSystem()) {
-            for (SubSystem s : sub.interSystemConnectivity) {
-                breakSystems(s);
-            }
+        ArrayDeque<SubSystem> pending = new ArrayDeque<SubSystem>();
+        pending.add(sub);
+        while (!pending.isEmpty()) {
+            SubSystem next = pending.poll();
+            if (next.breakSystem()) pending.addAll(next.interSystemConnectivity);
         }
     }
 

@@ -56,8 +56,8 @@ public class Line extends Resistor implements ISubSystemProcessFlush, IAbstracto
             line.resistors = resistors;
             line.states = states;
             line.recalculateResistance();
-            root.addComponents.removeAll(resistors);
-            root.addStates.removeAll(states);
+            resistors.forEach(root.addComponents::remove);
+            states.forEach(root.addStates::remove);
             root.addComponents.add(line);
             line.connectTo(stateBefore, stateAfter);
             line.removeResistorFromCircuit();
@@ -95,8 +95,8 @@ public class Line extends Resistor implements ISubSystemProcessFlush, IAbstracto
 
     @Override
     public void simProcessFlush() {
-        double current = (aPin.state - bPin.state) * getResistanceInverse();
-        double voltage = aPin.state;
+        double current = getCurrent();
+        double voltage = aPin == null ? 0 : aPin.state;
         Iterator<Resistor> ir = resistors.iterator();
 
         for (State s : states) {

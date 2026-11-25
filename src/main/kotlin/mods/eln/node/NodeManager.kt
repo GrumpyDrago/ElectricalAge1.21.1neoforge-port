@@ -24,6 +24,7 @@ class NodeManager {
             nodes.remove(old)
         }
         nodes.add(node)
+        if (node.needPublish) publishLater(node)
         // println("NodeManager has " + nodeArray.size + "node")
         // nodeArray.put(new NodeIdentifier(node), node);
     }
@@ -96,21 +97,38 @@ class NodeManager {
         }
     }
 
+    private var publishQueue = ArrayList<NodeBase>()
+    private var publishing = ArrayList<NodeBase>()
+
+    internal fun publishLater(node: NodeBase) {
+        publishQueue.add(node)
+    }
+
+    /** Sends the nodes that have changed to the players that see them. */
+    fun publishChanges() {
+        val batch = publishQueue
+        publishQueue = publishing
+        publishing = batch
+        for (node in batch) {
+            // Nodes that are not registered (yet) get queued when they are.
+            if (node.needPublish && nodeArray[node.coordinate] === node) node.publishToAllPlayer()
+        }
+        batch.clear()
+    }
+
     fun clear() {
+        publishQueue.clear()
         nodes.clear()
         nodeArray.clear()
     }
 
     fun unload(dimensionId: Int) {
-        val i = nodes.iterator()
-        while (i.hasNext()) {
-            val n = i.next()
-            if (n.coordinate.dimension == dimensionId) {
-                n.unload()
-                i.remove()
-                nodeArray.remove(n.coordinate)
-            }
+        val unloaded = nodes.filter { it.coordinate.dimension == dimensionId }
+        for (n in unloaded) {
+            n.unload()
+            nodeArray.remove(n.coordinate)
         }
+        nodes.removeAll { it.coordinate.dimension == dimensionId }
     }
 
     companion object {
