@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.resources.ResourceLocation
+import org.joml.Matrix4f
 import org.joml.Quaternionf
 import kotlin.math.sqrt
 
@@ -183,7 +184,9 @@ object GL11 {
         val gui: GuiGraphics?,
         val light: Int,
         val overlay: Int,
-        val forceNoCull: Boolean
+        val forceNoCull: Boolean,
+        /** Whether blended things hide what is drawn behind them later. */
+        val blendWritesDepth: Boolean
     ) {
         /** Blocks drawn the usual way. Shader packs and effects bring their own buffers, and need to see the vertices. */
         val keepable = gui == null && !forceNoCull && buffers.javaClass == MultiBufferSource.BufferSource::class.java
@@ -228,15 +231,17 @@ object GL11 {
     /** Runs [body] with drawing directed at world (or item) geometry. */
     @JvmStatic
     @JvmOverloads
-    fun <T> inWorld(pose: PoseStack, buffers: MultiBufferSource, light: Int, overlay: Int = OverlayTexture.NO_OVERLAY, forceNoCull: Boolean = false, body: () -> T): T =
-        run(Context(pose, buffers, null, light, overlay, forceNoCull), body)
+    fun <T> inWorld(
+        pose: PoseStack, buffers: MultiBufferSource, light: Int, overlay: Int = OverlayTexture.NO_OVERLAY, forceNoCull: Boolean = false,
+        blendWritesDepth: Boolean = false, body: () -> T
+    ): T = run(Context(pose, buffers, null, light, overlay, forceNoCull, blendWritesDepth), body)
 
     /** Runs [body] with drawing directed at the GUI. */
     @JvmStatic
     fun <T> inGui(graphics: GuiGraphics, body: () -> T): T {
         graphics.flush()
         try {
-            return run(Context(graphics.pose(), graphics.bufferSource(), graphics, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, true), body)
+            return run(Context(graphics.pose(), graphics.bufferSource(), graphics, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, true, true), body)
         } finally {
             graphics.flush()
         }
@@ -559,6 +564,18 @@ object GL11 {
 
     // ------------------------------------------------------------ emission
 
+    private var interceptor: ((ResourceLocation?, GlMesh?, Matrix4f) -> Boolean)? = null
+
+    /** Runs [body]; what [interceptor] returns true for is not drawn. It gets no mesh for text. */
+    internal fun intercepting(interceptor: (ResourceLocation?, GlMesh?, Matrix4f) -> Boolean, body: () -> Unit) {
+        this.interceptor = interceptor
+        try {
+            body()
+        } finally {
+            this.interceptor = null
+        }
+    }
+
     private fun currentTexture(): ResourceLocation = (if (state.texture2d) state.texture else null) ?: WHITE
 
     /** Draws [mesh] (a list of quads) with the current matrix, texture and state. */
@@ -569,6 +586,7 @@ object GL11 {
     fun drawMesh(mesh: GlMesh, uOffset: Float, vOffset: Float) {
         val c = ctx ?: return
         if (mesh.vertexCount == 0) return
+        if (interceptor?.invoke(if (state.texture2d) state.texture else null, mesh, c.pose.last().pose()) == true) return
         val texture = currentTexture()
         val linear = linearTextures.isNotEmpty() && texture in linearTextures
         val last = c.pose.last()
@@ -585,7 +603,7 @@ object GL11 {
         }
         val cull = state.cull && !c.forceNoCull
         if (!state.lighting) {
-            val vc = c.buffers.getBuffer(ElnRenderTypes.unlit(texture, state.blend, cull, linear, state.depthTest))
+            val vc = c.buffers.getBuffer(ElnRenderTypes.unlit(texture, state.blend, cull, linear, state.depthTest, !state.blend || c.blendWritesDepth))
             for (i in 0 until mesh.vertexCount) {
                 val o = i * GlMesh.STRIDE
                 vc.addVertex(matrix, d[o], d[o + 1], d[o + 2])
@@ -594,7 +612,7 @@ object GL11 {
             }
             return
         }
-        val type = ElnRenderTypes.world(texture, state.blend, cull, linear, state.depthTest)
+        val type = ElnRenderTypes.world(texture, state.blend, cull, linear, state.depthTest, !state.blend || c.blendWritesDepth)
         val color = packColor(state.r, state.g, state.b, state.a)
         if (c.keepable && !state.blend && GlBake.draw(mesh, type, last, color, c.light, c.overlay, uOffset, vOffset)) return
         val vc = c.buffers.getBuffer(type)
@@ -773,6 +791,7 @@ object GL11 {
     fun drawString(text: String?, x: Float, y: Float, color: Int, shadow: Boolean) {
         val c = ctx ?: return
         if (text == null) return
+        if (interceptor?.invoke(null, null, c.pose.last().pose()) == true) return
         val font = Minecraft.getInstance().font
         val argb = if (color and -0x4000000 == 0) color or -0x1000000 else color
         if (c.gui != null) {

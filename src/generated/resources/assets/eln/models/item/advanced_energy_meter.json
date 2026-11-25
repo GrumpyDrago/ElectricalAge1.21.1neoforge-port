@@ -1,23 +1,36 @@
 {
-  "parent": "minecraft:builtin/entity",
-  "display": {
-    "fixed": {
-      "rotation": [
-        0,
-        180,
-        0
-      ],
-      "scale": [
-        0.75,
-        0.75,
-        0.75
-      ],
-      "translation": [
-        0,
-        0,
-        0
-      ]
-    }
+  "base": {
+    "parent": "minecraft:builtin/entity",
+    "display": {
+      "fixed": {
+        "rotation": [
+          0,
+          180,
+          0
+        ],
+        "scale": [
+          0.75,
+          0.75,
+          0.75
+        ],
+        "translation": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "gui_light": "front"
   },
-  "gui_light": "front"
+  "gui_light": "front",
+  "loader": "neoforge:separate_transforms",
+  "perspectives": {
+    "gui": {
+      "parent": "minecraft:item/generated",
+      "textures": {
+        "layer0": "eln:voltages/neutral",
+        "layer1": "eln:block/advancedenergymeter"
+      }
+    }
+  }
 }

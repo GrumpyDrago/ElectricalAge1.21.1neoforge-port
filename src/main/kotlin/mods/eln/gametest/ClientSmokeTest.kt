@@ -212,6 +212,30 @@ object ClientSmokeTest {
             shot("creative")
             mc.setScreen(null)
         }
+        // The real inventory screens; mods that make rendering faster treat their slots differently.
+        val creativeTabs = net.minecraft.core.registries.BuiltInRegistries.CREATIVE_MODE_TAB
+        for (id in creativeTabs.keySet().filter { it.namespace == Eln.MODID }) {
+            later(10) {
+                val screen = net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen(mc.player!!, mc.connection!!.enabledFeatures(), false)
+                mc.setScreen(screen)
+                screen.javaClass.getDeclaredMethod("selectTab", net.minecraft.world.item.CreativeModeTab::class.java)
+                    .apply { isAccessible = true }.invoke(screen, creativeTabs.get(id))
+            }
+            later { shot("tab_${id.path}") }
+        }
+        later(20) {
+            mc.setScreen(null)
+            onServer { _, player ->
+                val items = net.minecraft.core.registries.BuiltInRegistries.ITEM.filter {
+                    net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(it).namespace == Eln.MODID
+                }
+                for (slot in 0 until 36) player.inventory.setItem(slot, net.minecraft.world.item.ItemStack(items[slot * items.size / 36], 1))
+            }
+        }
+        later(20) { mc.setScreen(net.minecraft.client.gui.screens.inventory.ContainerScreen(
+            net.minecraft.world.inventory.ChestMenu.sixRows(0, mc.player!!.inventory), mc.player!!.inventory, net.minecraft.network.chat.Component.empty())) }
+        later { shot("inventory") }
+        later { mc.setScreen(null) }
         // Items as /give makes them: without data.
         later(5) { mc.setScreen(PlainItemScreen()) }
         later { mc.setScreen(null) }

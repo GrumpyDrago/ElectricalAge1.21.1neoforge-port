@@ -81,7 +81,7 @@ class BrushDescriptor(name: String): GenericItemUsingDamageDescriptor(name) {
 
     override fun renderItem(type: IItemRenderer.ItemRenderType?, item: ItemStack?, vararg data: Any?) {
         if (type == IItemRenderer.ItemRenderType.INVENTORY) {
-            val creative = Minecraft.getInstance().player!!.isCreativeMode
+            val creative = ClientHooks.player()?.isCreativeMode ?: false
             UtilsClient.drawIcon(type, ricon)
             if (!creative) {
                 GL11.glColor4f(1f, 1f, 1f, 0.75f - 0.75f * getLife(item) / 32f)

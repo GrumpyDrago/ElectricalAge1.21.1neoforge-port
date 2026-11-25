@@ -71,7 +71,7 @@ public class PowerCapacitorDescriptor extends TransparentNodeDescriptor {
     @Override
     public boolean shouldUseRenderHelper(ItemRenderType type, ItemStack item,
                                          ItemRendererHelper helper) {
-        return true;
+        return type != ItemRenderType.INVENTORY;
     }
 
     @Override
@@ -81,6 +81,7 @@ public class PowerCapacitorDescriptor extends TransparentNodeDescriptor {
 
     @Override
     public void renderItem(ItemRenderType type, ItemStack item, Object... data) {
-        draw();
+        if (type == ItemRenderType.INVENTORY) super.renderItem(type, item, data);
+        else draw();
     }
 }

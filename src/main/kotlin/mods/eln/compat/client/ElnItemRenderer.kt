@@ -37,7 +37,8 @@ class ElnItemRenderer : BlockEntityWithoutLevelRenderer(Minecraft.getInstance().
             ItemDisplayContext.THIRD_PERSON_LEFT_HAND, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, ItemDisplayContext.HEAD -> ItemRenderType.EQUIPPED
             else -> ItemRenderType.ENTITY
         }
-        GL11.inWorld(pose, buffers, light, overlay, forceNoCull = true) {
+        // Slots and icons are not always drawn in the order vanilla does; items have to win by their depth.
+        GL11.inWorld(pose, buffers, light, overlay, forceNoCull = true, blendWritesDepth = context == ItemDisplayContext.GUI) {
             when (type) {
                 ItemRenderType.INVENTORY -> {
                     // From the unit cube to slot pixels, y pointing down.

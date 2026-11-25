@@ -85,14 +85,13 @@ class WireMachineDescriptor(
     override fun renderItem(type: mods.eln.compat.IItemRenderer.ItemRenderType, item: ItemStack, vararg data: Any) {
         GL11.glPushMatrix()
         if (type == mods.eln.compat.IItemRenderer.ItemRenderType.INVENTORY) {
-            GL11.glRotatef(15f, 1f, 0f, 0f)
+            // Slots are measured in pixels, and down.
+            GL11.glTranslatef(8f, 8f, 0f)
+            GL11.glScalef(7f, -7f, 7f)
+            GL11.glRotatef(25f, 1f, 0f, 0f)
             GL11.glRotatef(225f, 0f, 1f, 0f)
-            GL11.glScalef(0.95f, 0.95f, 0.95f)
             objItemScale(obj)
-            when (kind) {
-                WireMachineKind.ROLLER, WireMachineKind.COMBINER -> GL11.glTranslated(0.0, -0.68, 0.0)
-                WireMachineKind.INSULATOR -> GL11.glTranslated(0.0, -0.62, 0.0)
-            }
+            GL11.glTranslated(0.0, -0.95, 0.0)
         } else {
             objItemScale(obj)
             when (kind) {

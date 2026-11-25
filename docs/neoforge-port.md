@@ -65,6 +65,8 @@ mod looks at these releases.
 - `mods.eln.compat.client.GL11` is an immediate mode drawing API with the calls of the old OpenGL, drawing through
   Minecraft's buffers. It only works within `GL11.inWorld` and `GL11.inGui`; anything else is ignored. Display lists
   record meshes. Big meshes that stay the same for a few frames are kept on the graphics card (`GlBake`).
+- The icon of an item is an ordinary model with the textures its descriptor draws; `runData` finds out which those are (`FlatIcon`).
+  What the descriptor draws on top, such as text, becomes a decoration. Anything else is drawn by `ElnItemRenderer`.
 - `mods.eln.registration.ElnRegistry` collects what the mod registers. `Eln.createContent()` runs once, when the first
   registry opens. Do not call `Block.asItem()` or make stacks from blocks before that is over.
 - A descriptor (`SixNodeDescriptor`, `TransparentNodeDescriptor`, `GenericItemUsingDamageDescriptor`) is one item. Six

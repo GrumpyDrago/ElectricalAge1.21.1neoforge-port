@@ -1,3 +1,14 @@
+## 2.0.0-alpha.2
+
+Fixes since 2.0.0-alpha.1:
+
+- Fixes item icons that were invisible in inventories, the hotbar and the creative tabs with AcceleratedRendering (as in All the Mods 10)
+- Icons are ordinary item models now, so mods that change how items are drawn treat them like any other item; cable lengths, breaker ratings and charge bars are drawn on top as decorations
+- What Electrical Age still draws itself in inventories can no longer be painted over by things drawn later
+- Fixes the icons of the wire roller, combiner and insulator, which were about one pixel big
+- Fixes the icons of the old power capacitor and power inductor blocks, which were empty
+- Brush icons can be drawn when no world is loaded
+
 ## 2.0.0-alpha.1
 
 - Ported to Minecraft 1.21.1 and NeoForge, see [neoforge-port.md](neoforge-port.md)

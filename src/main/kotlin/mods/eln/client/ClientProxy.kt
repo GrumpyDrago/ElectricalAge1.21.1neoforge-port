@@ -3,6 +3,7 @@ package mods.eln.client
 import mods.eln.Eln
 import mods.eln.GuiHandler
 import mods.eln.compat.client.ElnItemRenderer
+import mods.eln.compat.client.FlatIcon
 import mods.eln.compat.client.GuiContainer
 import mods.eln.entity.ElnEntities
 import mods.eln.entity.ReplicatorModel
@@ -27,6 +28,8 @@ import net.neoforged.bus.api.IEventBus
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent
+import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
 import net.neoforged.neoforge.client.event.RenderHighlightEvent
@@ -48,6 +51,8 @@ object ClientProxy {
         modBus.addListener(::menuScreens)
         modBus.addListener(::extensions)
         modBus.addListener(::keys)
+        modBus.addListener(::itemColors)
+        modBus.addListener(::itemDecorations)
         NeoForge.EVENT_BUS.register(this)
     }
 
@@ -81,6 +86,26 @@ object ClientProxy {
         Eln.clientKeyHandler = ClientKeyHandler()
         Eln.clientKeyHandler.register(event)
         NeoForge.EVENT_BUS.register(Eln.clientKeyHandler)
+    }
+
+    /** Hides the backgrounds of the icons if they are not wanted. */
+    private fun itemColors(event: RegisterColorHandlersEvent.Item) {
+        val option = "ui.icons.noVoltageBackground"
+        if (!Eln.config.getBooleanOrElse(option, false)) return
+        // The models are made with them.
+        Eln.config.setRuntimeBoolean(option, false)
+        val items = BuiltInRegistries.ITEM.filterIsInstance<DescriptorItem>().filter {
+            FlatIcon.of(it)?.let { icon -> FlatIcon.isBackground(icon.layers.first()) } == true
+        }
+        Eln.config.setRuntimeBoolean(option, true)
+        event.register({ _, layer -> if (layer == 0) 0x00FFFFFF else -1 }, *items.toTypedArray())
+    }
+
+    private fun itemDecorations(event: RegisterItemDecorationsEvent) {
+        for (item in BuiltInRegistries.ITEM) {
+            val icon = (item as? DescriptorItem)?.let(FlatIcon::of) ?: continue
+            if (icon.hasMore) event.register(item, icon)
+        }
     }
 
     private fun extensions(event: RegisterClientExtensionsEvent) {

@@ -4,6 +4,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonArray
 import mods.eln.Eln
 import mods.eln.compat.OreDict
+import mods.eln.compat.client.FlatIcon
 import mods.eln.generic.DescriptorItem
 import mods.eln.misc.ElnAssets
 import net.minecraft.core.registries.BuiltInRegistries
@@ -84,14 +85,34 @@ private class ElnProvider(private val output: PackOutput) : DataProvider {
             "display" to obj("fixed" to view(arr(0, 180, 0), arr(0, 0, 0), 0.75))
         )
 
+    /** Draws itself everywhere but as an icon, if that consists of layers of textures. */
+    private fun iconModel(item: DescriptorItem): JsonObject? {
+        val layers = FlatIcon.of(item)?.layers ?: return null
+        val icon = JsonObject()
+        layers.forEachIndexed { i, layer ->
+            icon.addProperty("layer$i", layer.withPath(layer.path.removePrefix("textures/").removeSuffix(".png")).toString())
+        }
+        flatIcons++
+        return obj(
+            "loader" to "neoforge:separate_transforms",
+            "gui_light" to "front",
+            "base" to customModel,
+            "perspectives" to obj("gui" to obj("parent" to "minecraft:item/generated", "textures" to icon))
+        )
+    }
+
+    private var flatIcons = 0
+
     private fun itemModels() {
+        // The models have to be the same whatever the configuration.
+        Eln.config.setRuntimeBoolean("ui.icons.noVoltageBackground", false)
         for (item in BuiltInRegistries.ITEM) {
             val id = BuiltInRegistries.ITEM.getKey(item)
             if (id.namespace != Eln.MODID) continue
             val path = "models/item/${id.path}"
             when {
                 item is DescriptorItem && BuiltInRegistries.BLOCK.containsKey(id) -> asset(path, obj("parent" to "eln:block/${id.path}"))
-                item is DescriptorItem && item.hasCustomRenderer() -> asset(path, customModel)
+                item is DescriptorItem && item.hasCustomRenderer() -> asset(path, iconModel(item) ?: customModel)
                 item is DescriptorItem -> {
                     val name = item.iconName.substringAfter(':')
                     val texture = texture(item.iconFolder, name) ?: texture("item", name) ?: texture("block", name)
@@ -207,6 +228,10 @@ private class ElnProvider(private val output: PackOutput) : DataProvider {
         itemModels()
         blocks()
         tags()
+        // The backgrounds of the icons are not in one of the usual folders.
+        files[output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve("minecraft/atlases/blocks.json")] =
+            obj("sources" to JsonArray().apply { add(obj("type" to "directory", "source" to "voltages", "prefix" to "voltages/")) })
+        Eln.logger.info("{} items with a flat icon", flatIcons)
         if (missing.isNotEmpty()) Eln.logger.warn("No texture for: {}", missing.joinToString())
         return CompletableFuture.allOf(*files.map { (path, json) -> DataProvider.saveStable(cache, json, path) }.toTypedArray())
     }

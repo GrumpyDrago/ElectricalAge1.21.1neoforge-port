@@ -31,7 +31,7 @@ object ClientHooks {
     private object Impl {
         fun kill(uuid: Int) = mods.eln.client.ClientProxy.uuidManager.kill(uuid)
         fun openGui(id: Int, x: Int, y: Int, z: Int) = mods.eln.client.ClientGui.open(id, x, y, z)
-        fun player(): Player? = Minecraft.getInstance().player
+        fun player(): Player? = Minecraft.getInstance()?.player
         fun level(): Level? = Minecraft.getInstance().level
         fun isPaused(): Boolean = Minecraft.getInstance().isPaused
     }
