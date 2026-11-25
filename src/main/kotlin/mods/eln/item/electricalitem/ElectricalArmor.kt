@@ -1,120 +1,104 @@
 package mods.eln.item.electricalitem
 
-import mods.eln.generic.genericArmorItem
+import mods.eln.compat.*
 import mods.eln.i18n.I18N.tr
+import mods.eln.item.ElnArmorItem
 import mods.eln.item.electricalinterface.IItemEnergyBattery
 import mods.eln.misc.Utils
 import mods.eln.wiki.Data
-import net.minecraft.entity.EntityLivingBase
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.util.DamageSource
-import net.minecraftforge.common.ISpecialArmor
-import net.minecraftforge.common.ISpecialArmor.ArmorProperties
+import net.minecraft.core.Holder
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.network.chat.Component
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.entity.EquipmentSlotGroup
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.ai.attributes.AttributeModifier
+import net.minecraft.world.entity.ai.attributes.Attributes
+import net.minecraft.world.item.ArmorMaterial
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.TooltipFlag
+import net.minecraft.world.item.component.ItemAttributeModifiers
+import java.util.function.Consumer
+import kotlin.math.max
+import kotlin.math.min
 
+/** Armor that protects as long as it has energy, and spends energy instead of wearing out. */
 class ElectricalArmor(
-    par2EnumArmorMaterial: ArmorMaterial?,
-    par3: Int,
-    type: ArmourType?,
-    t1: String?,
-    t2: String?,  //String icon,
+    name: String,
+    material: Holder<ArmorMaterial>,
+    type: Type,
     var energyStorage: Double,
     var chargePower: Double,
     var ratioMax: Double,
     var ratioMaxEnergy: Double,
     var energyPerDamage: Double
-    ) : genericArmorItem(par2EnumArmorMaterial, par3, type, t1, t2), IItemEnergyBattery, ISpecialArmor {
+) : ElnArmorItem(name, material, type, Properties().durability(100)), IItemEnergyBattery {
 
+    private fun protection(stack: ItemStack): Double = min(1.0, getEnergy(stack) / ratioMaxEnergy) * ratioMax * 20
 
-    override fun getProperties(player: EntityLivingBase, armor: ItemStack, source: DamageSource, damage: Double, slot: Int): ArmorProperties {
-        return ArmorProperties(100, Math.min(1.0, getEnergy(armor) / ratioMaxEnergy) * ratioMax, (getEnergy(armor) / energyPerDamage * 25.0).toInt())
-    }
+    override fun getDefaultAttributeModifiers(stack: ItemStack): ItemAttributeModifiers = ItemAttributeModifiers.builder()
+        .add(
+            Attributes.ARMOR,
+            AttributeModifier(
+                ResourceLocation.fromNamespaceAndPath("eln", "ecoal_armor." + type.getName()),
+                protection(stack), AttributeModifier.Operation.ADD_VALUE
+            ),
+            EquipmentSlotGroup.bySlot(type.slot)
+        ).build()
 
-    override fun getArmorDisplay(player: EntityPlayer, armor: ItemStack, slot: Int): Int {
-        return (Math.min(1.0, getEnergy(armor) / ratioMaxEnergy) * ratioMax * 20).toInt()
-    }
-
-    override fun damageArmor(entity: EntityLivingBase, stack: ItemStack, source: DamageSource, damage: Int, slot: Int) {
-        var e = getEnergy(stack)
-        e = Math.max(0.0, e - damage * energyPerDamage)
-        setEnergy(stack, e)
-        Utils.println("armor hit  damage=" + damage + " energy=" + e + " energyLost=" + damage * energyPerDamage)
-    }
-
-    override fun getIsRepairable(par1ItemStack: ItemStack, par2ItemStack: ItemStack): Boolean {
-        return false
-    }
-
-    override fun hasColor(par1ItemStack: ItemStack): Boolean {
-        return false
-    }
-
-    val defaultNBT: NBTTagCompound
-        get() {
-            val nbt = NBTTagCompound()
-            nbt.setDouble("energy", 0.0)
-            nbt.setBoolean("powerOn", false)
-            nbt.setInteger("rand", (Math.random() * 0xFFFFFFF).toInt())
-            return nbt
-        }
-
-    protected fun getNbt(stack: ItemStack): NBTTagCompound? {
-        var nbt = stack.tagCompound
-        if (nbt == null) {
-            stack.tagCompound = defaultNBT.also { nbt = it }
-        }
-        return nbt
-    }
-
-    fun getPowerOn(stack: ItemStack): Boolean {
-        return getNbt(stack)!!.getBoolean("powerOn")
-    }
-
-    fun setPowerOn(stack: ItemStack, value: Boolean) {
-        getNbt(stack)!!.setBoolean("powerOn", value)
-    }
-
-    override fun addInformation(itemStack: ItemStack, entityPlayer: EntityPlayer?, list: MutableList<Any?>, par4: Boolean) {
-        super.addInformation(itemStack, entityPlayer, list, par4)
-        list.add(tr("Charge power: %1\$W", chargePower.toInt()))
-        list.add(tr("Stored energy: %1\$J (%2$%)", getEnergy(itemStack),
-            (getEnergy(itemStack) / energyStorage * 100).toInt()))
-        //list.add("Power button is " + (getPowerOn(itemStack) ? "ON" : "OFF"));
-    }
-
-    override fun getEnergy(stack: ItemStack): Double {
-        return getNbt(stack)!!.getDouble("energy")
-    }
-
-    override fun setEnergy(stack: ItemStack, value: Double) {
-        getNbt(stack)!!.setDouble("energy", value)
-    }
-
-    override fun getEnergyMax(stack: ItemStack): Double {
-        return energyStorage
-    }
-
-    override fun getChargePower(stack: ItemStack): Double {
-        return chargePower
-    }
-
-    override fun getDischagePower(stack: ItemStack): Double {
-        return 0.0
-    }
-
-    override fun getPriority(stack: ItemStack): Int {
+    override fun <T : LivingEntity> damageItem(stack: ItemStack, amount: Int, entity: T?, onBroken: Consumer<Item>): Int {
+        val energy = max(0.0, getEnergy(stack) - amount * energyPerDamage)
+        setEnergy(stack, energy)
+        Utils.println("armor hit  damage=$amount energy=$energy energyLost=${amount * energyPerDamage}")
         return 0
     }
 
-    override fun electricalItemUpdate(stack: ItemStack, time: Double) {}
+    override fun isValidRepairItem(stack: ItemStack, repair: ItemStack): Boolean = false
 
-    override fun getItemEnchantability(): Int {
-        return 0;
+    override fun isBarVisible(stack: ItemStack): Boolean = true
+
+    override fun getBarWidth(stack: ItemStack): Int = (13 * getEnergy(stack) / energyStorage).toInt().coerceIn(0, 13)
+
+    val defaultNBT: CompoundTag
+        get() {
+            val nbt = CompoundTag()
+            nbt.putDouble("energy", 0.0)
+            nbt.putBoolean("powerOn", false)
+            return nbt
+        }
+
+    fun getPowerOn(stack: ItemStack): Boolean = stack.tagCompound?.getBoolean("powerOn") ?: false
+
+    fun setPowerOn(stack: ItemStack, value: Boolean) = stack.updateTag { it.putBoolean("powerOn", value) }
+
+    override fun appendHoverText(stack: ItemStack, context: TooltipContext, tooltip: MutableList<Component>, flag: TooltipFlag) {
+        super.appendHoverText(stack, context, tooltip, flag)
+        tooltip.add(Component.literal(tr("Charge power: %1\$W", chargePower.toInt())))
+        tooltip.add(
+            Component.literal(
+                tr("Stored energy: %1\$J (%2$%)", getEnergy(stack), (getEnergy(stack) / energyStorage * 100).toInt())
+            )
+        )
     }
 
+    override fun getEnergy(stack: ItemStack): Double = stack.tagCompound?.getDouble("energy") ?: 0.0
+
+    override fun setEnergy(stack: ItemStack, value: Double) = stack.updateTag { it.putDouble("energy", value) }
+
+    override fun getEnergyMax(stack: ItemStack): Double = energyStorage
+
+    override fun getChargePower(stack: ItemStack): Double = chargePower
+
+    override fun getDischagePower(stack: ItemStack): Double = 0.0
+
+    override fun getPriority(stack: ItemStack): Int = 0
+
+    override fun electricalItemUpdate(stack: ItemStack, time: Double) {}
+
+    override fun isEnchantable(stack: ItemStack): Boolean = false
+
     init {
-        //rIcon = new ResourceLocation("eln", icon);
         Data.addPortable(ItemStack(this))
     }
 }

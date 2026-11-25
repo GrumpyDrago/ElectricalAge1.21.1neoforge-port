@@ -1,9 +1,5 @@
 package mods.eln.transparentnode.computercraftio;
 
-import dan200.computercraft.api.lua.ILuaContext;
-import dan200.computercraft.api.lua.LuaException;
-import dan200.computercraft.api.peripheral.IComputerAccess;
-import dan200.computercraft.api.peripheral.IPeripheral;
 import mods.eln.misc.Coordinate;
 import mods.eln.misc.Direction;
 import mods.eln.misc.LRDU;
@@ -16,13 +12,13 @@ import mods.eln.sim.ElectricalLoad;
 import mods.eln.sim.ThermalLoad;
 import mods.eln.sim.nbt.NbtElectricalGateInputOutput;
 import mods.eln.sim.nbt.NbtElectricalGateOutputProcess;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-public class ComputerCraftIoElement extends TransparentNodeElement implements IPeripheral {
+public class ComputerCraftIoElement extends TransparentNodeElement {
 
     public NbtElectricalGateInputOutput[] ioGate = new NbtElectricalGateInputOutput[4];
     public NbtElectricalGateOutputProcess[] ioGateProcess = new NbtElectricalGateOutputProcess[4];
@@ -81,7 +77,7 @@ public class ComputerCraftIoElement extends TransparentNodeElement implements IP
     }
 
     @Override
-    public boolean onBlockActivated(EntityPlayer player, Direction side, float vx, float vy, float vz) {
+    public boolean onBlockActivated(Player player, Direction side, float vx, float vy, float vz) {
         return false;
     }
 
@@ -89,14 +85,11 @@ public class ComputerCraftIoElement extends TransparentNodeElement implements IP
         return "EAProbe";
     }
 
-    @Override
     public String[] getMethodNames() {
         return new String[]{"writeDirection", "readDirection", "writeOutput", "readOutput", "readInput"};
     }
 
-    @Override
-    public Object[] callMethod(IComputerAccess computer, ILuaContext context,
-                               int method, Object[] arguments) throws LuaException, InterruptedException {
+    public Object[] callMethod(int method, Object[] arguments) {
         int id = -1;
         if (arguments.length < 1) return null;
         if (!(arguments[0] instanceof String)) return null;
@@ -130,7 +123,7 @@ public class ComputerCraftIoElement extends TransparentNodeElement implements IP
             ComputerCraftIoElement e = (ComputerCraftIoElement) tn.element;
             Object[] argumentsCopy = arguments.clone();
             argumentsCopy[0] = remaineStr;
-            return e.callMethod(computer, context, method, argumentsCopy);
+            return e.callMethod(method, argumentsCopy);
         }
 
         switch (method) {
@@ -152,19 +145,6 @@ public class ComputerCraftIoElement extends TransparentNodeElement implements IP
                 break;
         }
         return null;
-    }
-
-    @Override
-    public void attach(IComputerAccess computer) {
-    }
-
-    @Override
-    public void detach(IComputerAccess computer) {
-    }
-
-    @Override
-    public boolean equals(IPeripheral other) {
-        return other == this;
     }
 
     @NotNull

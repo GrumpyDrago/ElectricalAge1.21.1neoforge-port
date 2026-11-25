@@ -1,5 +1,9 @@
 package mods.eln.transparentnode
 
+import mods.eln.compat.client.Gui
+import net.minecraft.core.particles.ParticleTypes
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.generic.GenericItemUsingDamageDescriptor
 import mods.eln.gui.GuiButtonEln
@@ -33,14 +37,12 @@ import mods.eln.sim.mna.misc.MnaConst
 import mods.eln.sim.nbt.NbtElectricalLoad
 import mods.eln.sixnode.electricalcable.UtilityCableDescriptor
 import mods.eln.sixnode.electricalcable.UtilityCableMaterial
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.Container
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraftforge.oredict.OreDictionary
-import org.lwjgl.opengl.GL11
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import mods.eln.compat.client.GL11
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -80,9 +82,9 @@ class WireMachineDescriptor(
         }
     }
 
-    override fun renderItem(type: net.minecraftforge.client.IItemRenderer.ItemRenderType, item: ItemStack, vararg data: Any) {
+    override fun renderItem(type: mods.eln.compat.IItemRenderer.ItemRenderType, item: ItemStack, vararg data: Any) {
         GL11.glPushMatrix()
-        if (type == net.minecraftforge.client.IItemRenderer.ItemRenderType.INVENTORY) {
+        if (type == mods.eln.compat.IItemRenderer.ItemRenderType.INVENTORY) {
             GL11.glRotatef(15f, 1f, 0f, 0f)
             GL11.glRotatef(225f, 0f, 1f, 0f)
             GL11.glScalef(0.95f, 0.95f, 0.95f)
@@ -102,9 +104,9 @@ class WireMachineDescriptor(
         GL11.glPopMatrix()
     }
 
-    override fun handleRenderType(item: ItemStack, type: net.minecraftforge.client.IItemRenderer.ItemRenderType): Boolean = true
-    override fun shouldUseRenderHelper(type: net.minecraftforge.client.IItemRenderer.ItemRenderType, item: ItemStack, helper: net.minecraftforge.client.IItemRenderer.ItemRendererHelper) =
-        type != net.minecraftforge.client.IItemRenderer.ItemRenderType.INVENTORY
+    override fun handleRenderType(item: ItemStack, type: mods.eln.compat.IItemRenderer.ItemRenderType): Boolean = true
+    override fun shouldUseRenderHelper(type: mods.eln.compat.IItemRenderer.ItemRenderType, item: ItemStack, helper: mods.eln.compat.IItemRenderer.ItemRendererHelper) =
+        type != mods.eln.compat.IItemRenderer.ItemRenderType.INVENTORY
 }
 
 private enum class WireMachineNetwork(val id: Byte) {
@@ -179,7 +181,7 @@ class WireMachineElement(node: TransparentNode, descriptor: TransparentNodeDescr
 
     override fun hasGui() = true
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu {
         return WireMachineContainer(this.node, player, inventory, machineDescriptor.kind)
     }
 
@@ -216,26 +218,26 @@ class WireMachineElement(node: TransparentNode, descriptor: TransparentNodeDescr
         }
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
-        selectedOption = nbt.getInteger("selectedOption")
-        targetLengthMeters = nbt.getInteger("targetLengthMeters").coerceAtLeast(1)
+        selectedOption = nbt.getInt("selectedOption")
+        targetLengthMeters = nbt.getInt("targetLengthMeters").coerceAtLeast(1)
         progressMeters = nbt.getDouble("progressMeters")
         progressTargetMeters = nbt.getDouble("progressTargetMeters")
         loadedMassKg = nbt.getDouble("loadedMassKg")
         insulationMetersBuffer = nbt.getDouble("insulationMetersBuffer")
-        loadedMaterial = nbt.getInteger("loadedMaterial").takeIf { it >= 0 }?.let { UtilityCableMaterial.values()[it] }
+        loadedMaterial = nbt.getInt("loadedMaterial").takeIf { it >= 0 }?.let { UtilityCableMaterial.values()[it] }
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
-        nbt.setInteger("selectedOption", selectedOption)
-        nbt.setInteger("targetLengthMeters", targetLengthMeters)
-        nbt.setDouble("progressMeters", progressMeters)
-        nbt.setDouble("progressTargetMeters", progressTargetMeters)
-        nbt.setDouble("loadedMassKg", loadedMassKg)
-        nbt.setDouble("insulationMetersBuffer", insulationMetersBuffer)
-        nbt.setInteger("loadedMaterial", loadedMaterial?.ordinal ?: -1)
+        nbt.putInt("selectedOption", selectedOption)
+        nbt.putInt("targetLengthMeters", targetLengthMeters)
+        nbt.putDouble("progressMeters", progressMeters)
+        nbt.putDouble("progressTargetMeters", progressTargetMeters)
+        nbt.putDouble("loadedMassKg", loadedMassKg)
+        nbt.putDouble("insulationMetersBuffer", insulationMetersBuffer)
+        nbt.putInt("loadedMaterial", loadedMaterial?.ordinal ?: -1)
     }
 
     private fun currentOptions(): List<WireMachineOption> {
@@ -512,7 +514,7 @@ class WireMachineElement(node: TransparentNode, descriptor: TransparentNodeDescr
         val material = input.detectIngotMaterial() ?: return
         if (loadedMaterial != null && loadedMaterial != material) return
         loadedMaterial = material
-        loadedMassKg += input.stackSize.toDouble()
+        loadedMassKg += input.count.toDouble()
         inventory.setInventorySlotContents(0, null)
         inventory.markDirty()
     }
@@ -524,7 +526,7 @@ class WireMachineElement(node: TransparentNode, descriptor: TransparentNodeDescr
     private fun absorbInsulationInput() {
         val input = inventory.getStackInSlot(1) ?: return
         if (!input.matchesOre("itemRubber")) return
-        insulationMetersBuffer += input.stackSize * 32.0
+        insulationMetersBuffer += input.count * 32.0
         inventory.setInventorySlotContents(1, null)
         inventory.markDirty()
     }
@@ -535,8 +537,8 @@ class WireMachineElement(node: TransparentNode, descriptor: TransparentNodeDescr
         return left?.itemDescriptorAs<RollerWheelDescriptor>() != null && right?.itemDescriptorAs<RollerWheelDescriptor>() != null
     }
 
-    private fun ItemStack.matchesOre(name: String): Boolean = OreDictionary.getOreIDs(this).any { OreDictionary.getOreName(it) == name }
-    private fun ItemStack.matchesAnyOre(vararg names: String): Boolean = OreDictionary.getOreIDs(this).any { OreDictionary.getOreName(it) in names }
+    private fun ItemStack.matchesOre(name: String): Boolean = OreDict.matches(this, name)
+    private fun ItemStack.matchesAnyOre(vararg names: String): Boolean = names.any { OreDict.matches(this, it) }
     private fun ItemStack.asUtilityCableDescriptor(): UtilityCableDescriptor? = Eln.sixNodeItem.getDescriptor(this) as? UtilityCableDescriptor
     private inline fun <reified T> ItemStack.itemDescriptorAs(): T? = GenericItemUsingDamageDescriptor.getDescriptor(this) as? T
     private fun ItemStack.detectIngotMaterial(): UtilityCableMaterial? = when {
@@ -591,7 +593,7 @@ class WireMachineRender(entity: TransparentNodeEntity, descriptor: TransparentNo
         insulationMetersBuffer = stream.readFloat()
     }
 
-    override fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen {
+    override fun newGuiDraw(side: Direction, player: Player): Screen {
         return WireMachineGui(player, inventory, this)
     }
 
@@ -709,7 +711,7 @@ class WireMachineRender(entity: TransparentNodeEntity, descriptor: TransparentNo
     private fun emitInsulatorSmoke() {
         if (!running) return
         val world = tileEntity.worldObj ?: return
-        if (!world.isRemote) return
+        if (!world.isClientSide) return
         if (world.rand.nextFloat() > 0.08f) return
         val baseX = tileEntity.xCoord + 0.5
         val baseY = tileEntity.yCoord + 0.68
@@ -717,11 +719,11 @@ class WireMachineRender(entity: TransparentNodeEntity, descriptor: TransparentNo
         val dx = (world.rand.nextDouble() - 0.5) * 0.18
         val dz = (world.rand.nextDouble() - 0.5) * 0.18
         val dy = world.rand.nextDouble() * 0.05
-        world.spawnParticle("smoke", baseX + dx, baseY + dy, baseZ + dz, 0.0, 0.015, 0.0)
+        world.addParticle(ParticleTypes.SMOKE, baseX + dx, baseY + dy, baseZ + dz, 0.0, 0.015, 0.0)
     }
 }
 
-class WireMachineGui(player: EntityPlayer, inventory: IInventory, private val render: WireMachineRender) :
+class WireMachineGui(player: Player, inventory: IInventory, private val render: WireMachineRender) :
     GuiContainerEln(WireMachineContainer(null, player, inventory, render.transparentNodeDescriptor.let { it as WireMachineDescriptor }.kind)) {
 
     private val descriptor get() = render.transparentNodeDescriptor as WireMachineDescriptor
@@ -778,9 +780,9 @@ class WireMachineGui(player: EntityPlayer, inventory: IInventory, private val re
         drawString(8, 104, render.statusLine())
         val barWidth = 160
         val filled = (barWidth * render.progressRatio()).toInt()
-        drawRect(guiLeft + 8, guiTop + 130, guiLeft + 8 + barWidth, guiTop + 138, 0xFF444444.toInt())
+        Gui.drawRect(leftPos + 8, topPos + 130, leftPos + 8 + barWidth, topPos + 138, 0xFF444444.toInt())
         if (filled > 0) {
-            drawRect(guiLeft + 8, guiTop + 130, guiLeft + 8 + filled, guiTop + 138, 0xFF2FB34A.toInt())
+            Gui.drawRect(leftPos + 8, topPos + 130, leftPos + 8 + filled, topPos + 138, 0xFF2FB34A.toInt())
         }
         drawString(8, 118, tr("Progress: %1$ / %2$", Utils.plotValue(render.progressMeters.toDouble(), "m"), Utils.plotValue(render.progressTargetMeters.toDouble(), "m")))
     }
@@ -790,7 +792,7 @@ class WireMachineGui(player: EntityPlayer, inventory: IInventory, private val re
 
 class WireMachineContainer(
     override val node: NodeBase?,
-    player: EntityPlayer,
+    player: Player,
     inventory: IInventory,
     kind: WireMachineKind
 ) : BasicContainer(player, inventory, kind.slots(inventory)), INodeContainer {
@@ -808,7 +810,7 @@ private fun WireMachineKind.slotCount(): Int = when (this) {
     WireMachineKind.COMBINER -> 6
 }
 
-private fun WireMachineKind.slots(inventory: IInventory): Array<net.minecraft.inventory.Slot> = when (this) {
+private fun WireMachineKind.slots(inventory: IInventory): Array<net.minecraft.world.inventory.Slot> = when (this) {
     WireMachineKind.ROLLER -> arrayOf(
         SlotWithSkinAndComment(inventory, 0, 8, 18, SlotSkin.medium, arrayOf(tr("Metal Ingot Input"))),
         SlotWithSkinAndComment(inventory, 1, 30, 18, SlotSkin.medium, arrayOf(tr("Left Roller Wheel"))),

@@ -1,15 +1,17 @@
 package mods.eln.node
 
+import mods.eln.compat.*
+
 import mods.eln.misc.Coordinate
 import mods.eln.misc.Utils.getTags
 import mods.eln.misc.Utils.println
 import mods.eln.node.transparent.TransparentNode
 import mods.eln.node.transparent.TransparentNodeElement
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.world.WorldSavedData
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.level.saveddata.SavedData
 import java.util.*
 
-class NodeManager(par1Str: String?) : WorldSavedData(par1Str) {
+class NodeManager {
     val nodeArray: HashMap<Coordinate, NodeBase>
     val nodes: ArrayList<NodeBase>
     val nodeList: Collection<NodeBase>
@@ -22,6 +24,7 @@ class NodeManager(par1Str: String?) : WorldSavedData(par1Str) {
             nodes.remove(old)
         }
         nodes.add(node)
+        if (node.needPublish) publishLater(node)
         // println("NodeManager has " + nodeArray.size + "node")
         // nodeArray.put(new NodeIdentifier(node), node);
     }
@@ -40,14 +43,6 @@ class NodeManager(par1Str: String?) : WorldSavedData(par1Str) {
         // println("NodeManager has " + nodeArray.size + "node")
     }
 
-    override fun isDirty(): Boolean {
-        return true
-    }
-
-    override fun readFromNBT(nbt: NBTTagCompound) {}
-
-    override fun writeToNBT(nbt: NBTTagCompound) {}
-
     fun getNodeFromCoordonate(nodeCoordinate: Coordinate?): NodeBase? {
         return nodeArray[nodeCoordinate]
     }
@@ -64,7 +59,7 @@ class NodeManager(par1Str: String?) : WorldSavedData(par1Str) {
     val randomNode: NodeBase?
         get() = if (nodes.isEmpty()) null else nodes[rand.nextInt(nodes.size)]
 
-    fun loadFromNbt(nbt: NBTTagCompound?) {
+    fun loadFromNbt(nbt: CompoundTag?) {
         val addedNode: MutableList<NodeBase> = ArrayList()
         for (o in getTags(nbt!!)) {
             val tag = o
@@ -84,7 +79,7 @@ class NodeManager(par1Str: String?) : WorldSavedData(par1Str) {
         }
     }
 
-    fun saveToNbt(nbt: NBTTagCompound, dim: Int) {
+    fun saveToNbt(nbt: CompoundTag, dim: Int) {
         var nodeCounter = 0
         val nodesCopy: MutableList<NodeBase> = ArrayList()
         nodesCopy.addAll(nodes)
@@ -92,31 +87,48 @@ class NodeManager(par1Str: String?) : WorldSavedData(par1Str) {
             try {
                 if (node.mustBeSaved() == false) continue
                 if (dim != Int.MIN_VALUE && node.coordinate.dimension != dim) continue
-                val nbtNode = NBTTagCompound()
-                nbtNode.setString("tag", node.nodeUuid)
+                val nbtNode = CompoundTag()
+                nbtNode.putString("tag", node.nodeUuid)
                 node.writeToNBT(nbtNode)
-                nbt.setTag("n" + nodeCounter++, nbtNode)
+                nbt.put("n" + nodeCounter++, nbtNode)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
     }
 
+    private var publishQueue = ArrayList<NodeBase>()
+    private var publishing = ArrayList<NodeBase>()
+
+    internal fun publishLater(node: NodeBase) {
+        publishQueue.add(node)
+    }
+
+    /** Sends the nodes that have changed to the players that see them. */
+    fun publishChanges() {
+        val batch = publishQueue
+        publishQueue = publishing
+        publishing = batch
+        for (node in batch) {
+            // Nodes that are not registered (yet) get queued when they are.
+            if (node.needPublish && nodeArray[node.coordinate] === node) node.publishToAllPlayer()
+        }
+        batch.clear()
+    }
+
     fun clear() {
+        publishQueue.clear()
         nodes.clear()
         nodeArray.clear()
     }
 
     fun unload(dimensionId: Int) {
-        val i = nodes.iterator()
-        while (i.hasNext()) {
-            val n = i.next()
-            if (n.coordinate.dimension == dimensionId) {
-                n.unload()
-                i.remove()
-                nodeArray.remove(n.coordinate)
-            }
+        val unloaded = nodes.filter { it.coordinate.dimension == dimensionId }
+        for (n in unloaded) {
+            n.unload()
+            nodeArray.remove(n.coordinate)
         }
+        nodes.removeAll { it.coordinate.dimension == dimensionId }
     }
 
     companion object {

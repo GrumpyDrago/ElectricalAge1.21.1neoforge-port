@@ -754,7 +754,7 @@ class JsonConfig @JvmOverloads constructor(
 
     private fun findLegacyKey(legacyEntries: LegacyEntries, spec: ConfigSpec): LegacyKey? {
         return legacyKeysFor(spec).firstOrNull {
-            legacyEntries.hasKey(it.category, it.key)
+            legacyEntries.contains(it.category, it.key)
         }?.let {
             val categoryName = legacyEntries.findCategoryName(it.category) ?: return@let null
             val propertyName = legacyEntries.findKeyName(categoryName, it.key) ?: return@let null
@@ -1070,7 +1070,7 @@ private class LegacyEntries {
         data.getOrPut(category) { linkedMapOf() }[key] = value
     }
 
-    fun hasKey(category: String, key: String): Boolean {
+    fun contains(category: String, key: String): Boolean {
         val actualCategory = findCategoryName(category) ?: return false
         return findKeyName(actualCategory, key) != null
     }

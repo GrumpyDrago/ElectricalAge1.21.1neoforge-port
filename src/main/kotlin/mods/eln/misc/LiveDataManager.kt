@@ -1,9 +1,9 @@
 package mods.eln.misc
 
-import cpw.mods.fml.common.FMLCommonHandler
-import cpw.mods.fml.common.eventhandler.SubscribeEvent
-import cpw.mods.fml.common.gameevent.TickEvent
-import cpw.mods.fml.common.gameevent.TickEvent.RenderTickEvent
+import mods.eln.compat.*
+
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.neoforge.client.event.RenderFrameEvent
 import java.util.*
 
 /*
@@ -33,8 +33,7 @@ class LiveDataManager {
 
     var map: MutableMap<Any, Element> = HashMap()
     @SubscribeEvent
-    fun tick(event: RenderTickEvent) {
-        if (event.phase != TickEvent.Phase.START) return
+    fun tick(event: RenderFrameEvent.Pre) {
         val keyToRemove: MutableList<Any> = ArrayList()
         for ((key, e) in map) {
             e.timeout--

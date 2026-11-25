@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.themralheatexchanger
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.fluid.ElementSidedFluidHandler
 import mods.eln.fluid.TankData
@@ -23,16 +25,15 @@ import mods.eln.sim.nbt.NbtElectricalGateInput
 import mods.eln.sim.nbt.NbtThermalLoad
 import mods.eln.sim.process.destruct.ThermalLoadWatchDog
 import mods.eln.sim.process.destruct.WorldExplosion
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraftforge.client.IItemRenderer
-import net.minecraftforge.common.util.ForgeDirection
-import net.minecraftforge.fluids.Fluid
-import net.minecraftforge.fluids.FluidStack
-import net.minecraftforge.fluids.FluidTank
-import net.minecraftforge.fluids.IFluidHandler
-import org.lwjgl.opengl.GL11
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.core.Direction as McDirection
+import mods.eln.fluid.IElnFluidHandler
+import net.minecraft.world.level.material.Fluid
+import net.neoforged.neoforge.fluids.FluidStack
+import net.neoforged.neoforge.fluids.capability.templates.FluidTank
+import mods.eln.compat.client.GL11
 import java.lang.Math.ceil
 import java.lang.Math.min
 
@@ -63,7 +64,7 @@ class ThermalHeatExchangerDescriptor(
     override fun renderItem(type: IItemRenderer.ItemRenderType, item: ItemStack, vararg data: Any) =
         draw()//if (type == IItemRenderer.ItemRenderType.INVENTORY) super.renderItem(type, item, *data) else draw()
 
-    override fun addInformation(itemStack: ItemStack?, entityPlayer: EntityPlayer?, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack?, entityPlayer: Player?, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
         list.add(tr("Converts fluids between hot and cold states"))
         list.add(tr("Cold -> Hot = consumes heat"))
@@ -85,8 +86,8 @@ class ThermalHeatExchangerElement(
 ): TransparentNodeElement(transparentNode, descriptor) {
 
     companion object {
-        val INPUT_SIDE = ForgeDirection.DOWN
-        val OUTPUT_SIDE = ForgeDirection.UP
+        val INPUT_SIDE = McDirection.DOWN
+        val OUTPUT_SIDE = McDirection.UP
     }
 
     val thermalPairs = mutableListOf<ThermalPairing>()
@@ -105,8 +106,8 @@ class ThermalHeatExchangerElement(
         var joulesPerMb = 0.0
         if (thermalPairs.isNotEmpty() && tank.getFluidAmount(INPUT_SIDE) > 0 && inputFluid != null) {
 
-            thermalPairs.filter { it.input.id == inputFluid.id || (it.reversible && it.output.id == inputFluid.id) }.forEach {
-                if (it.input.id == inputFluid.id) {
+            thermalPairs.filter { it.input === inputFluid || (it.reversible && it.output === inputFluid) }.forEach {
+                if (it.input === inputFluid) {
                     // Normal Forwards conversion
                     inputMbPerTick = moveFluidProcess(it.output, it.maxMbInputPerTick, it.ratio, it.minTemp, it.maxTemp)
                     outputMbPerTick = (inputMbPerTick * it.ratio).toInt()
@@ -230,12 +231,12 @@ class ThermalHeatExchangerElement(
         Pair(tr("thermal power"), Utils.plotPower(joulesPerTick * 20))
     )
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
         tank.writeToNBT(nbt, "tank")
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         tank.readFromNBT(nbt, "tank")
     }
@@ -245,9 +246,9 @@ class ThermalHeatExchangerElement(
         connect()
     }
 
-    override fun onBlockActivated(player: EntityPlayer, side: Direction, vx: Float, vy: Float, vz: Float) = false
+    override fun onBlockActivated(player: Player, side: Direction, vx: Float, vy: Float, vz: Float) = false
 
-    override fun getFluidHandler(): IFluidHandler {
+    override fun getFluidHandler(): IElnFluidHandler {
         return tank
     }
 }

@@ -1,5 +1,7 @@
 package mods.eln.sixnode.mqttsignal
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.mqtt.MqttManager
 import mods.eln.mqtt.MqttSignalControllerCommand
@@ -24,11 +26,10 @@ import mods.eln.sim.ThermalLoad
 import mods.eln.sim.nbt.NbtElectricalGateInputOutput
 import mods.eln.sim.nbt.NbtElectricalGateOutputProcess
 import mods.eln.i18n.I18N.tr
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.Container
-import net.minecraft.inventory.IInventory
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.entity.player.EntityPlayerMP
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.server.level.ServerPlayer
 import java.util.LinkedHashMap
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -69,7 +70,7 @@ class MqttSignalControllerElement(
 
     override fun hasGui(): Boolean = true
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu {
         return MqttSignalControllerContainer(player, elementInventory)
     }
 
@@ -129,7 +130,7 @@ class MqttSignalControllerElement(
         updateServerMatch()
     }
 
-    override fun destroy(entityPlayer: EntityPlayerMP?) {
+    override fun destroy(entityPlayer: ServerPlayer?) {
         super.destroy(entityPlayer)
         mqttDisconnect()
         MqttSignalControllerRegistry.release(coordinate)
@@ -141,7 +142,7 @@ class MqttSignalControllerElement(
         MqttSignalControllerRegistry.release(coordinate)
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         val name = nbt.getString("mqttControllerName")
         val server = nbt.getString("mqttServerName")
@@ -162,15 +163,15 @@ class MqttSignalControllerElement(
         refreshAllPortModes(true)
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
-        nbt.setString("mqttControllerName", controllerInfo.controllerName)
-        nbt.setString("mqttServerName", controllerInfo.serverName)
-        nbt.setString("mqttControllerId", controllerInfo.controllerId)
+        nbt.putString("mqttControllerName", controllerInfo.controllerName)
+        nbt.putString("mqttServerName", controllerInfo.serverName)
+        nbt.putString("mqttControllerId", controllerInfo.controllerId)
         val array = IntArray(signalPorts.size) { idx -> portModes[idx].ordinal }
-        nbt.setIntArray("mqttPortModes", array)
+        nbt.putIntArray("mqttPortModes", array)
         signalPorts.forEach { port ->
-            nbt.setDouble("mqttDesired${port.label}", desiredOutputs[port.ordinal])
+            nbt.putDouble("mqttDesired${port.label}", desiredOutputs[port.ordinal])
         }
     }
 
@@ -189,7 +190,7 @@ class MqttSignalControllerElement(
         }
     }
 
-    override fun networkUnserialize(stream: DataInputStream, player: EntityPlayerMP?) {
+    override fun networkUnserialize(stream: DataInputStream, player: ServerPlayer?) {
         super.networkUnserialize(stream, player)
         try {
             when (stream.readByte().toInt()) {
@@ -289,7 +290,7 @@ class MqttSignalControllerElement(
         if (!serverMatched) return
         val server = MqttManager.getServerByName(controllerInfo.serverName) ?: return
         MqttSignalControllerManager.ensureSubscription(controllerInfo.controllerId, coord, server, this::handleCommand)
-        val dimension = coord.world().provider.dimensionName
+        val dimension = coord.world().dimension().location().toString()
         val snapshots = signalPorts.mapIndexed { idx, port ->
             SignalPortSnapshot(port, portModes[idx], portLoads[idx].voltage)
         }

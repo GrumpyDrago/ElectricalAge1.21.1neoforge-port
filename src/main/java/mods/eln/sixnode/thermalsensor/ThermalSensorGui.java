@@ -2,9 +2,9 @@ package mods.eln.sixnode.thermalsensor;
 
 import mods.eln.gui.*;
 import mods.eln.sixnode.electricalsensor.ElectricalSensorElement;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
+import mods.eln.compat.client.GuiButton;
+import net.minecraft.world.entity.player.Player;
+import mods.eln.compat.IInventory;
 
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -17,7 +17,7 @@ public class ThermalSensorGui extends GuiContainerEln {
     GuiTextFieldEln lowValue, highValue;
     ThermalSensorRender render;
 
-    public ThermalSensorGui(EntityPlayer player, IInventory inventory, ThermalSensorRender render) {
+    public ThermalSensorGui(Player player, IInventory inventory, ThermalSensorRender render) {
         super(new ThermalSensorContainer(player, inventory, render.descriptor.temperatureOnly));
         this.render = render;
     }

@@ -5,8 +5,8 @@ import mods.eln.gui.GuiHelperContainer;
 import mods.eln.gui.IGuiObject;
 import mods.eln.misc.Utils;
 import mods.eln.node.six.SixNodeElementInventory;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
+import net.minecraft.world.entity.player.Player;
+import mods.eln.compat.IInventory;
 
 import static mods.eln.i18n.I18N.tr;
 
@@ -15,7 +15,7 @@ public class ResistorGui extends GuiContainerEln {
     ResistorRender render;
     private SixNodeElementInventory inventory;
 
-    public ResistorGui(EntityPlayer player, IInventory inventory, ResistorRender render) {
+    public ResistorGui(Player player, IInventory inventory, ResistorRender render) {
         super(new ResistorContainer(player, inventory));
         this.inventory = (SixNodeElementInventory) inventory;
         this.render = render;

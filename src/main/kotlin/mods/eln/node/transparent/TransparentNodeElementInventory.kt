@@ -1,13 +1,14 @@
 package mods.eln.node.transparent
 
+import mods.eln.compat.*
+
 import mods.eln.misc.INBTTReady
 import mods.eln.misc.Utils.readFromNBT
 import mods.eln.misc.Utils.writeToNBT
 import mods.eln.sixnode.electricalcable.IUtilityCableInventory
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.ISidedInventory
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
 
 open class TransparentNodeElementInventory : ISidedInventory, INBTTReady, IUtilityCableInventory {
     @JvmField
@@ -52,11 +53,11 @@ open class TransparentNodeElementInventory : ISidedInventory, INBTTReady, IUtili
     override fun decrStackSize(slot: Int, amt: Int): ItemStack? {
         var stack = getStackInSlot(slot)
         if (stack != null) {
-            if (stack.stackSize <= amt) {
+            if (stack.count <= amt) {
                 setInventorySlotContents(slot, null)
             } else {
                 stack = stack.splitStack(amt)
-                if (stack.stackSize == 0) {
+                if (stack.count == 0) {
                     setInventorySlotContents(slot, null)
                 }
             }
@@ -74,8 +75,8 @@ open class TransparentNodeElementInventory : ISidedInventory, INBTTReady, IUtili
 
     override fun setInventorySlotContents(slot: Int, stack: ItemStack?) {
         inv[slot] = stack
-        if (stack != null && stack.stackSize > inventoryStackLimit) {
-            stack.stackSize = inventoryStackLimit
+        if (stack != null && stack.count > inventoryStackLimit) {
+            stack.count = inventoryStackLimit
         }
     }
 
@@ -87,8 +88,9 @@ open class TransparentNodeElementInventory : ISidedInventory, INBTTReady, IUtili
         return stackLimit
     }
 
-    override fun isUseableByPlayer(player: EntityPlayer): Boolean {
-        return true
+    override fun isUseableByPlayer(player: Player): Boolean {
+        val element = transparentNodeElement ?: return true
+        return element.node?.isUsableBy(player) ?: false
     }
 
     override fun openInventory() {}
@@ -99,11 +101,11 @@ open class TransparentNodeElementInventory : ISidedInventory, INBTTReady, IUtili
         }
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound, str: String) {
+    override fun readFromNBT(nbt: CompoundTag, str: String) {
         readFromNBT(nbt, str, this)
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound, str: String) {
+    override fun writeToNBT(nbt: CompoundTag, str: String) {
         writeToNBT(nbt, str, this)
     }
 

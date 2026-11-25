@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.floodlight
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.i18n.I18N
 import mods.eln.item.ConfigCopyToolDescriptor
@@ -27,12 +29,11 @@ import mods.eln.sim.nbt.NbtElectricalGateInput
 import mods.eln.sim.nbt.NbtElectricalLoad
 import mods.eln.sim.process.destruct.VoltageStateWatchDog
 import mods.eln.sim.process.destruct.WorldExplosion
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.entity.player.EntityPlayerMP
-import net.minecraft.inventory.Container
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.world.entity.player.Player
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -95,7 +96,7 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
         slowProcessList.add(floodlightProcess)
     }
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu {
         return FloodlightContainer(player, inventory, descriptor)
     }
 
@@ -103,7 +104,7 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
         return true
     }
 
-    override fun onBlockActivated(player: EntityPlayer, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
+    override fun onBlockActivated(player: Player, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
         if (Utils.isPlayerUsingWrench(player)) {
             blockFacing = blockFacing.left(rotationAxis)
             reconnect()
@@ -115,7 +116,7 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
 
         if (currentEquippedItem is LampDescriptor) {
             if (currentEquippedItem.lampData.technology in descriptor.acceptedLampTypes) {
-                AutoAcceptInventoryProxy.creativeFreeInsert = Eln.config.getBooleanOrElse("gameplay.qol.creativeNoConsumeInsertedItems", false) && player is EntityPlayerMP && Utils.isCreative(player)
+                AutoAcceptInventoryProxy.creativeFreeInsert = Eln.config.getBooleanOrElse("gameplay.qol.creativeNoConsumeInsertedItems", false) && player is ServerPlayer && Utils.isCreative(player)
                 return inventoryProxy.take(player.currentEquippedItem, this, notifyInventoryChange = true).also {
                     if (it && Eln.config.getBooleanOrElse("gameplay.qol.rememberLastFloodlightBulbs", false)) {
                         lastLamp1Stack = inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_1_ID)?.copy()
@@ -133,26 +134,26 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
         return 1f
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         initialPlacement = nbt.getBoolean("initialPlacement")
-        rotationAxis = HybridNodeDirection.fromInt(nbt.getInteger("rotationAxis"))!!
-        blockFacing = HybridNodeDirection.fromInt(nbt.getInteger("blockFacing"))!!
+        rotationAxis = HybridNodeDirection.fromInt(nbt.getInt("rotationAxis"))!!
+        blockFacing = HybridNodeDirection.fromInt(nbt.getInt("blockFacing"))!!
         powered = nbt.getBoolean("powered")
         swivelAngle = nbt.getDouble("swivelAngle")
         headAngle = nbt.getDouble("headAngle")
         beamWidth = nbt.getDouble("beamWidth")
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
-        nbt.setBoolean("initialPlacement", initialPlacement)
-        nbt.setInteger("rotationAxis", rotationAxis.int)
-        nbt.setInteger("blockFacing", blockFacing.int)
-        nbt.setBoolean("powered", powered)
-        nbt.setDouble("swivelAngle", swivelAngle)
-        nbt.setDouble("headAngle", headAngle)
-        nbt.setDouble("beamWidth", beamWidth)
+        nbt.putBoolean("initialPlacement", initialPlacement)
+        nbt.putInt("rotationAxis", rotationAxis.int)
+        nbt.putInt("blockFacing", blockFacing.int)
+        nbt.putBoolean("powered", powered)
+        nbt.putDouble("swivelAngle", swivelAngle)
+        nbt.putDouble("headAngle", headAngle)
+        nbt.putDouble("beamWidth", beamWidth)
     }
 
     override fun initialize() {
@@ -285,11 +286,11 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
         info[I18N.tr("Power Consumption")] = plotPower("", electricalLoad.voltage.pow(2) / parallelResistance)
 
         val lamp1Stack = inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_1_ID)
-        if (lamp1Stack != null) info[I18N.tr("Bulb 1")] = lamp1Stack.displayName
+        if (lamp1Stack != null) info[I18N.tr("Bulb 1")] = lamp1Stack.plainName
         else info[I18N.tr("Bulb 1")] = I18N.tr("None")
 
         val lamp2Stack = inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_2_ID)
-        if (lamp2Stack != null) info[I18N.tr("Bulb 2")] = lamp2Stack.displayName
+        if (lamp2Stack != null) info[I18N.tr("Bulb 2")] = lamp2Stack.plainName
         else info[I18N.tr("Bulb 2")] = I18N.tr("None")
 
         if (Eln.config.getBooleanOrElse("ui.waila.easyMode", false)) {
@@ -313,22 +314,22 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
         return info
     }
 
-    override fun readConfigTool(compound: NBTTagCompound, invoker: EntityPlayer) {
+    override fun readConfigTool(compound: CompoundTag, invoker: Player) {
         var publishChanges = false
         var inventoryChanged = false
 
         if (!motorized) {
-            if (compound.hasKey("swivelAngle")) {
+            if (compound.contains("swivelAngle")) {
                 swivelAngle = compound.getDouble("swivelAngle")
                 publishChanges = true
             }
 
-            if (compound.hasKey("headAngle")) {
+            if (compound.contains("headAngle")) {
                 headAngle = compound.getDouble("headAngle")
                 publishChanges = true
             }
 
-            if (compound.hasKey("beamWidth")) {
+            if (compound.contains("beamWidth")) {
                 beamWidth = compound.getDouble("beamWidth")
                 publishChanges = true
             }
@@ -353,11 +354,11 @@ class FloodlightElement(transparentNode: TransparentNode, transparentNodeDescrip
         else if (publishChanges) needPublish()
     }
 
-    override fun writeConfigTool(compound: NBTTagCompound, invoker: EntityPlayer) {
+    override fun writeConfigTool(compound: CompoundTag, invoker: Player) {
         if (!motorized) {
-            compound.setDouble("swivelAngle", swivelAngle)
-            compound.setDouble("headAngle", headAngle)
-            compound.setDouble("beamWidth", beamWidth)
+            compound.putDouble("swivelAngle", swivelAngle)
+            compound.putDouble("headAngle", headAngle)
+            compound.putDouble("beamWidth", beamWidth)
         }
 
         ConfigCopyToolDescriptor.writeGenDescriptor(compound, "lamp1", inventory.getStackInSlot(FloodlightContainer.LAMP_SLOT_1_ID))

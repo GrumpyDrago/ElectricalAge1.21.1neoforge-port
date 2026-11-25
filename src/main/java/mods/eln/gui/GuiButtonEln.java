@@ -1,10 +1,11 @@
 package mods.eln.gui;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.audio.PositionedSoundRecord;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.util.ResourceLocation;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.sounds.SoundEvents;
+import mods.eln.compat.client.GuiButton;
+import net.minecraft.resources.ResourceLocation;
+import mods.eln.compat.client.GL11;
 
 import java.util.ArrayList;
 
@@ -36,7 +37,7 @@ public class GuiButtonEln extends GuiButton implements IGuiObject {
     @Override
     public void idraw(int x, int y, float f) {
         GL11.glColor4f(1f, 1f, 1f, 1f);
-        drawButton(Minecraft.getMinecraft(), x, y);
+        drawButton(Minecraft.getInstance(), x, y);
     }
 
     @Override
@@ -57,7 +58,7 @@ public class GuiButtonEln extends GuiButton implements IGuiObject {
         if (code != 0) {
             return;
         }
-        pressedInside = mousePressed(Minecraft.getMinecraft(), x, y);
+        pressedInside = mousePressed(Minecraft.getInstance(), x, y);
     }
 
     @Override
@@ -70,7 +71,7 @@ public class GuiButtonEln extends GuiButton implements IGuiObject {
         pressedInside = false;
         if (shouldActivate) {
             if (playPressSound) {
-                Minecraft.getMinecraft().getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("gui.button.press"), 1.0F));
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
             }
             onMouseClicked();
             if (observer != null) {
@@ -86,7 +87,7 @@ public class GuiButtonEln extends GuiButton implements IGuiObject {
     @Override
     public void idraw2(int x, int y) {
         if (helper != null && visible && x >= xPosition && y >= yPosition && x < xPosition + width && y < yPosition + height)
-            helper.drawHoveringText(comment, x, y, Minecraft.getMinecraft().fontRenderer);
+            helper.drawHoveringText(comment, x, y, Minecraft.getInstance().font);
     }
 
     @Override

@@ -1,13 +1,15 @@
 package mods.eln.transparentnode.solarpanel;
 
+import mods.eln.compat.Mc;
+
 
 import mods.eln.gui.GuiContainerEln;
 import mods.eln.gui.GuiHelperContainer;
 import mods.eln.gui.GuiVerticalTrackBar;
 import mods.eln.gui.IGuiObject;
 import mods.eln.node.transparent.TransparentNodeElementInventory;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
+import net.minecraft.world.entity.player.Player;
+import mods.eln.compat.IInventory;
 
 import static mods.eln.i18n.I18N.tr;
 
@@ -20,7 +22,7 @@ public class SolarPannelGuiDraw extends GuiContainerEln {
 
     GuiVerticalTrackBar vuMeterTemperature;
 
-    public SolarPannelGuiDraw(EntityPlayer player, IInventory inventory, SolarPanelRender render) {
+    public SolarPannelGuiDraw(Player player, IInventory inventory, SolarPanelRender render) {
         super(new SolarPanelContainer(null, player, inventory));
         this.inventory = (TransparentNodeElementInventory) inventory;
         this.render = render;
@@ -59,9 +61,9 @@ public class SolarPannelGuiDraw extends GuiContainerEln {
 
         super.preDraw(f, x, y);
         if (render.pannelAlphaSyncNew) syncVumeter();
-        //vuMeterTemperature.temperatureHit = (float) (SolarPannelSlowProcess.getSolarAlpha(render.tileEntity.worldObj));
+        //vuMeterTemperature.temperatureHit = (float) (SolarPannelSlowProcess.getSolarAlpha(Mc.worldObj(render.tileEntity)));
         vuMeterTemperature.setEnable(!render.hasTracker);
-        int sunAlpha = ((int) (180 / Math.PI * SolarPannelSlowProcess.getSolarAlpha(render.getTileEntity().getWorldObj())) - 90);
+        int sunAlpha = ((int) (180 / Math.PI * SolarPannelSlowProcess.getSolarAlpha(Mc.worldObj(render.getTileEntity()))) - 90);
 
         vuMeterTemperature.setComment(0, tr("Solar panel angle: %1$°", ((int) (180 / Math.PI * vuMeterTemperature.getValue()) - 90)));
         if (Math.abs(sunAlpha) > 90)

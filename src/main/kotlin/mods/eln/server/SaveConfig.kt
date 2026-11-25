@@ -1,28 +1,35 @@
 package mods.eln.server
 
 import mods.eln.Eln
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.world.WorldSavedData
+import net.minecraft.core.HolderLookup
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.server.MinecraftServer
+import net.minecraft.world.level.saveddata.SavedData
 
-class SaveConfig(par1Str: String) : WorldSavedData(par1Str) {
-    override fun readFromNBT(nbt: NBTTagCompound) {
-        Eln.wind.readFromNBT(nbt, "wind")
+/** World-wide state: currently the wind. */
+class SaveConfig : SavedData() {
+    override fun save(tag: CompoundTag, registries: HolderLookup.Provider): CompoundTag {
+        Eln.wind.writeToNBT(tag, "wind")
+        return tag
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
-        Eln.wind.writeToNBT(nbt, "wind")
-    }
-
-    override fun isDirty(): Boolean {
-        return true
-    }
+    override fun isDirty(): Boolean = true
 
     companion object {
         @JvmField
         var instance: SaveConfig? = null
-    }
 
-    init {
-        instance = this
+        @JvmStatic
+        fun load(server: MinecraftServer): SaveConfig {
+            val config = server.overworld().dataStorage.computeIfAbsent(
+                Factory(::SaveConfig) { tag, _ ->
+                    Eln.wind.readFromNBT(tag, "wind")
+                    SaveConfig()
+                },
+                "eln_config"
+            )
+            instance = config
+            return config
+        }
     }
 }

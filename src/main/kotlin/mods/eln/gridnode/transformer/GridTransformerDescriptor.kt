@@ -1,12 +1,13 @@
 package mods.eln.gridnode.transformer
 
+import mods.eln.compat.*
+
 import mods.eln.gridnode.GridDescriptor
 import mods.eln.misc.Obj3D
 import mods.eln.node.transparent.TransparentNodeDescriptor
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
 import mods.eln.sound.SoundCommand
-import net.minecraft.item.ItemStack
-import net.minecraftforge.client.IItemRenderer
+import net.minecraft.world.item.ItemStack
 
 class GridTransformerDescriptor(name: String, obj: Obj3D, cableTexture: String, cableDescriptor: ElectricalCableDescriptor) : GridDescriptor(name, obj, GridTransformerElement::class.java, GridTransformerRender::class.java, cableTexture, cableDescriptor, 12) {
     val minimalLoadToHum = 0.1f

@@ -6,9 +6,9 @@ import mods.eln.misc.UtilsClient;
 import mods.eln.misc.VoltageLevelColor;
 import mods.eln.node.six.SixNodeDescriptor;
 import mods.eln.wiki.Data;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import mods.eln.compat.client.GL11;
 
 public class ModbusRtuDescriptor extends SixNodeDescriptor {
 

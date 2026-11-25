@@ -1,6 +1,6 @@
 # Minecraft Mod - Codename: ELN
 
-Electrical Age (ELN) brings large-scale electrical simulations and advanced automation tools to Minecraft 1.7.10. Development continues here as the maintained fork by Jared Dunbar (jrddunbr) and Graham Nothup (Grissess); upstream has gone dormant. Back up your worlds before testing new builds.
+Electrical Age (ELN) brings large-scale electrical simulations and advanced automation tools to Minecraft 1.21.1. Development continues here as the maintained fork by Jared Dunbar (jrddunbr) and Graham Nothup (Grissess); upstream has gone dormant. Back up your worlds before testing new builds.
 
 Visit [electrical-age.net](https://electrical-age.net/) for general project info, join the [Discord server](https://discord.gg/YjK2JAD) for support/discussion, and browse the [GitHub wiki](https://github.com/age-series/ElectricalAge/wiki) for extra documentation.
 
@@ -14,16 +14,15 @@ Key highlights:
 
 ## Download
 
-We only upload releases to the [GitHub releases page](https://github.com/age-series/ElectricalAge), the [Modrinth page](https://modrinth.com/mod/electrical-age-jrddunbr-edition), and the [CurseForge page](https://legacy.curseforge.com/minecraft/mc-mods/electrical-age-eln). If you download the mod from anywhere else, you are taking an unnecessary risk.
+Releases are only uploaded to the [GitHub releases page](https://github.com/GrumpyDrago/ElectricalAge1.21.1neoforge-port/releases) of this project. If you download the mod from anywhere else, you are taking an unnecessary risk.
 
 ## Getting started
 
-**ElectricalAge is Minecraft 1.7.10 compatible only. Forge is required.**
+**This version is for Minecraft 1.21.1. NeoForge and [Kotlin for Forge](https://modrinth.com/mod/kotlin-for-forge) are required.** Worlds made with the 1.7.10 version cannot be opened, see [docs/neoforge-port.md](docs/neoforge-port.md).
 
-1. Fetch the latest stable build from the [releases](https://github.com/age-series/ElectricalAge/releases) page.
-2. Drop the downloaded JAR into your launcher’s mods folder. Use Forge 1.7.10, revision 1614.
+1. Fetch the latest build from the [releases](https://github.com/GrumpyDrago/ElectricalAge1.21.1neoforge-port/releases) page.
+2. Drop the downloaded JAR and Kotlin for Forge 5 into your launcher’s mods folder. Use NeoForge 21.1.
 3. Launch the game and enjoy.
-4. Optionally, grab the [test world](https://eln.ja13.org/worlds/latest.zip) to explore ready-made examples.
 
 If you want to compile the project yourself, see the [contributing guide](./CONTRIBUTING.md#building-from-source-and-adding-new-features).
 

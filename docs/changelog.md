@@ -1,3 +1,15 @@
+## 2.0.0-alpha.1
+
+- Ported to Minecraft 1.21.1 and NeoForge, see [neoforge-port.md](neoforge-port.md)
+- Every component is an item of its own
+- IC2 and OpenComputers support removed, Waila replaced by Jade, RF replaced by FE
+- Fixes the solver: current sources, solar panels and capacitors that share a node no longer overwrite each other
+- Fixes current sources that kept feeding a circuit after they were removed
+- Fixes a crash with cables that end at ground, and one with brushes that were not crafted
+- Fixes contents being duplicated by breaking something while its GUI is open
+- Nodes can only be controlled by players next to them
+- Much less work for the server in big bases, and for the client where there are big models
+
 ## 1.16.14
 
 - Fixes the steam generation taking place when the temperature is not high enough for steam

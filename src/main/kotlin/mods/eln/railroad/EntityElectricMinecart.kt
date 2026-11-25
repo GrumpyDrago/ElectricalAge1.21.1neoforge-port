@@ -1,31 +1,41 @@
 package mods.eln.railroad
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.misc.Coordinate
 import mods.eln.node.NodeManager
 import mods.eln.sim.mna.misc.MnaConst
-import net.minecraft.block.Block
-import net.minecraft.entity.item.EntityMinecart
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.init.Blocks
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.world.World
+import mods.eln.entity.ElnEntities
+import net.minecraft.core.BlockPos
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.EntityType
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.Items
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.entity.vehicle.AbstractMinecart
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.level.Level
 import kotlin.math.abs
 import kotlin.math.sign
 
-class EntityElectricMinecart(world: World, x: Double, y: Double, z: Double): EntityMinecart(world, x, y, z) {
+class EntityElectricMinecart : AbstractMinecart {
+    constructor(type: EntityType<*>, world: Level) : super(type, world)
 
-    // TODO: Confirm if this is actually needed for anything
-    constructor(world: World): this(world, 0.0, 0.0, 0.0)
+    constructor(world: Level, x: Double, y: Double, z: Double) : super(ElnEntities.electricMinecart, world, x, y, z)
 
     private var lastPowerElement: RailroadPowerInterface? = null
     private val locomotiveMaximumResistance = 200.0
     var energyBufferTargetJoules = 10_000.0
     var energyBufferJoules = 0.0
 
-    override fun onUpdate() {
-        super.onUpdate()
-        val cartCoordinate = Coordinate(posX.toInt(), posY.toInt(), posZ.toInt(), worldObj)
+    override fun tick() {
+        super.tick()
+        if (level().isClientSide) return
+        val cartCoordinate = Coordinate(blockX, blockY, blockZ, level())
         val overheadWires = getOverheadWires(cartCoordinate)
         val underTrackWires = getUnderTrackWires(cartCoordinate)
 
@@ -64,16 +74,8 @@ class EntityElectricMinecart(world: World, x: Double, y: Double, z: Double): Ent
     var pushX: Double = 0.0
     var pushZ: Double = 0.0
 
-    override fun func_145821_a(
-        blockX: Int,
-        blockY: Int,
-        blockZ: Int,
-        speed: Double,
-        drag: Double,
-        block: Block?,
-        direction: Int
-    ) {
-        super.func_145821_a(blockX, blockY, blockZ, speed + 1, drag, block, direction)
+    override fun moveAlongTrack(pos: BlockPos, state: BlockState) {
+        super.moveAlongTrack(pos, state)
         if (energyBufferJoules > 0) {
             val maxEnergy = 40.0
             var energyAvailable = maxEnergy
@@ -94,8 +96,7 @@ class EntityElectricMinecart(world: World, x: Double, y: Double, z: Double): Ent
 
         //Eln.logger.info("Push: ($pushX, $pushZ)")
 
-        motionX += pushX
-        motionZ += pushZ
+        setDeltaMovement(motionX + pushX, motionY, motionZ + pushZ)
 
         //Eln.logger.info("Speed: ($motionX, $motionZ)")
 
@@ -126,44 +127,35 @@ class EntityElectricMinecart(world: World, x: Double, y: Double, z: Double): Ent
         return null
     }
 
-    override fun interactFirst(player: EntityPlayer): Boolean {
-        if (player.isSneaking) return false
-
-        if (riddenByEntity != null && riddenByEntity != player) {
-            return true
-        }
-
-        if (!worldObj.isRemote) {
-            player.mountEntity(this)
-        }
-        return true
+    override fun interact(player: Player, hand: InteractionHand): InteractionResult {
+        val result = super.interact(player, hand)
+        if (result.consumesAction()) return result
+        if (player.isSecondaryUseActive || isVehicle) return InteractionResult.PASS
+        if (level().isClientSide) return InteractionResult.SUCCESS
+        return if (player.startRiding(this)) InteractionResult.CONSUME else InteractionResult.PASS
     }
 
-    override fun writeEntityToNBT(tag: NBTTagCompound) {
-        super.writeEntityToNBT(tag)
-        tag.setDouble("EnergyBufferJ", energyBufferJoules)
-        tag.setDouble("EnergyBufferTargetJ", energyBufferTargetJoules)
+    override fun canBeRidden(): Boolean = true
+
+    override fun addAdditionalSaveData(tag: CompoundTag) {
+        super.addAdditionalSaveData(tag)
+        tag.putDouble("EnergyBufferJ", energyBufferJoules)
+        tag.putDouble("EnergyBufferTargetJ", energyBufferTargetJoules)
     }
 
-    override fun readEntityFromNBT(tag: NBTTagCompound) {
-        super.readEntityFromNBT(tag)
-        if (tag.hasKey("EnergyBufferJ")) {
+    override fun readAdditionalSaveData(tag: CompoundTag) {
+        super.readAdditionalSaveData(tag)
+        if (tag.contains("EnergyBufferJ")) {
             energyBufferJoules = tag.getDouble("EnergyBufferJ")
         }
-        if (tag.hasKey("EnergyBufferTargetJ")) {
+        if (tag.contains("EnergyBufferTargetJ")) {
             energyBufferTargetJoules = tag.getDouble("EnergyBufferTargetJ")
         }
     }
 
-    override fun getMinecartType(): Int {
-        return 0
-    }
+    override fun getMinecartType(): Type = Type.RIDEABLE
 
-    override fun func_145817_o(): Block? {
-        return Blocks.iron_block
-    }
+    override fun getDefaultDisplayBlockState(): BlockState = Blocks.IRON_BLOCK.defaultBlockState()
 
-    override fun func_145820_n(): Block? {
-        return Blocks.iron_block
-    }
+    override fun getDropItem(): Item = Eln.findItemStack("Electric Minecart", 1)?.item ?: Items.MINECART
 }

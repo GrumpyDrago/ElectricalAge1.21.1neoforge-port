@@ -1,5 +1,7 @@
 package mods.eln.mechanical
 
+import mods.eln.compat.*
+
 import mods.eln.cable.CableRender
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.cable.CableRenderType
@@ -9,11 +11,10 @@ import mods.eln.node.transparent.*
 import mods.eln.sim.IProcess
 import mods.eln.sim.process.destruct.WorldExplosion
 import mods.eln.sound.LoopedSound
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraftforge.client.IItemRenderer
-import org.lwjgl.opengl.GL11
-import org.lwjgl.opengl.GL12
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import mods.eln.compat.client.GL11
+import mods.eln.compat.client.GL12
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import kotlin.reflect.KClass
@@ -294,12 +295,12 @@ abstract class SimpleShaftElement(node: TransparentNode, transparentNodeDescript
         node!!.lrduCubeMask.getTranslate(front.down()).serialize(stream)
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
         shaft.writeToNBT(nbt, "shaft")
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         shaft.readFromNBT(nbt, "shaft")
         // Utils.println(String.format("SS.rFN: %s r=%f", shaft, shaft.rads))

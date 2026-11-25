@@ -1,5 +1,7 @@
 package mods.eln.sixnode.electricalfiredetector;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.generic.GenericItemUsingDamageDescriptor;
 import mods.eln.item.electricalitem.BatteryItem;
 import mods.eln.misc.Coordinate;
@@ -7,9 +9,9 @@ import mods.eln.misc.RcInterpolator;
 import mods.eln.misc.Utils;
 import mods.eln.sim.IProcess;
 import mods.eln.sixnode.electricalwatch.ElectricalWatchContainer;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockFire;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.BaseFireBlock;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 
@@ -97,9 +99,9 @@ public class ElectricalFireDetectorSlowProcess implements IProcess {
             for (int dx = -maxRangeHalf; dx <= maxRangeHalf; ++dx)
                 for (int dy = -maxRangeHalf; dy <= maxRangeHalf; ++dy)
                     for (int dz = -maxRangeHalf; dz <= maxRangeHalf; ++dz) {
-                        Block block = detectionBBCenter.world().getBlock(detectionBBCenter.x + dx, detectionBBCenter.y + dy,
+                        Block block = Mc.getBlock(detectionBBCenter.world(), detectionBBCenter.x + dx, detectionBBCenter.y + dy,
                             detectionBBCenter.z + dz);
-                        if (block.getClass() == BlockFire.class) {
+                        if (block instanceof BaseFireBlock) {
                             fireDetected = true;
 
                             Coordinate coord = element.getCoordinate();
@@ -107,7 +109,7 @@ public class ElectricalFireDetectorSlowProcess implements IProcess {
                                 detectionBBCenter.x + dx + 0.5, detectionBBCenter.y + dy + 0.5, detectionBBCenter.z + dz + 0.5);
 
                             for (Block b : blockList)
-                                if (b.isOpaqueCube()) {
+                                if (Mc.isOpaqueCube(b)) {
                                     fireDetected = false;
                                     break;
                                 }

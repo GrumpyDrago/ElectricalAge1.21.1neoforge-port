@@ -40,12 +40,13 @@ public class WirelessSignalRepeaterProcess implements IProcess, IWirelessSignalS
 
     @Override
     public HashMap<String, ArrayList<IWirelessSignalTx>> getTx() {
-        return spot.getTx();
+        // Not processed yet since it was placed or loaded.
+        return spot == null ? new HashMap<>() : spot.getTx();
     }
 
     @Override
     public ArrayList<IWirelessSignalSpot> getSpot() {
-        return spot.getSpot();
+        return spot == null ? new ArrayList<>() : spot.getSpot();
     }
 
     @Override

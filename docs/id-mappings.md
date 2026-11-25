@@ -8,6 +8,8 @@ For `sharedItem`, `sixNodeItem`, and `transparentNodeItem`, the final damage/ide
 (group_id << 6) | sub_id
 ```
 
+Since 1.21.1 every entry is registered as an item of its own, and the identifier is only used inside the mod: in saved nodes, in packets, and to look descriptors up.
+
 The tables below are keyed by hexadecimal `group_id`. The first column and first row are hexadecimal lookups so a save/debug value can be located quickly.
 
 `--` means the group is currently unused in that registry.
@@ -36,7 +38,7 @@ The tables below are keyed by hexadecimal `group_id`. The first column and first
 | `0x4_` | Lamp socket | Lamp supply | Battery charger | Power socket | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` |
 | `0x5_` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | Wireless signal | Data logger | Electrical relay | Electrical gate source |
 | `0x6_` | Passive components | Switches | Electrical manager | `--` | Electrical sensors | Thermal sensors | VU meters | Alarms | Environmental sensors | `--` | `--` | `--` | Electrical redstone | Electrical gates | `--` | `--` |
-| `0x7_` | `--` | `--` | `--` | `--` | Tree resin collector | Six-node misc | Logic gates | `--` | `--` | `--` | `--` | `--` | Analog chips | Portable NaN | Current relays | Conduit (dev only) |
+| `0x7_` | `--` | `--` | `--` | `--` | Tree resin collector | Six-node misc | Logic gates | `--` | `--` | `--` | `--` | `--` | Analog chips | Portable NaN | Current relays | `--` |
 
 Notes:
 

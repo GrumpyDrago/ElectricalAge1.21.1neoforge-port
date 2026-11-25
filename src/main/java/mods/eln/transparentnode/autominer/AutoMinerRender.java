@@ -1,5 +1,9 @@
 package mods.eln.transparentnode.autominer;
 
+import mods.eln.compat.client.Gui;
+
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.item.electricalitem.PortableOreScannerItem.RenderStorage;
 import mods.eln.misc.*;
@@ -9,12 +13,12 @@ import mods.eln.node.transparent.TransparentNodeElementRender;
 import mods.eln.node.transparent.TransparentNodeEntity;
 import mods.eln.sound.LoopedSound;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.audio.ISound;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.client.resources.sounds.SoundInstance;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.GL11;
+import mods.eln.compat.client.GL11;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -72,7 +76,7 @@ public class AutoMinerRender extends TransparentNodeElementRender {
             ledsPState[idx] = Math.random() > 0.5;
         }
 
-        addLoopedSound(new LoopedSound("eln:autominer", coordinate(), ISound.AttenuationType.LINEAR) {
+        addLoopedSound(new LoopedSound("eln:autominer", coordinate(), SoundInstance.Attenuation.LINEAR) {
             @Override
             public float getVolume() {
                 if (powerOk &&
@@ -134,7 +138,7 @@ public class AutoMinerRender extends TransparentNodeElementRender {
             GL11.glScalef(1 / 128f, -1 / 128f, 1);
             int idx = 0;
             for (String log : logs) {
-                Minecraft.getMinecraft().fontRenderer.drawString(idx == 0 ? FC.BRIGHT_GREEN + "> " +
+                Gui.drawText(Minecraft.getInstance().font, idx == 0 ? FC.BRIGHT_GREEN + "> " +
                     log.substring(2) : FC.DARK_GREEN + log, 80, 1 + idx, 0xFFD0D0D0 /*No effect...*/);
                 idx += 8;
             }
@@ -199,9 +203,9 @@ public class AutoMinerRender extends TransparentNodeElementRender {
                         camAlpha = (float) (Math.PI / 2);
                         break;
                 }
-                render.generate(this.getTileEntity().getWorldObj(), getTileEntity().xCoord + 0.5,
-                    getTileEntity().yCoord + 0.5 - (Math.max(0, pipeLength - 5)),
-                    getTileEntity().zCoord + 0.5, -(float) (Math.PI * 1 / 2) + camAlpha, -(float) (Math.PI / 2));
+                render.generate(Mc.worldObj(this.getTileEntity()), Mc.xCoord(getTileEntity()) + 0.5,
+                    Mc.yCoord(getTileEntity()) + 0.5 - (Math.max(0, pipeLength - 5)),
+                    Mc.zCoord(getTileEntity()) + 0.5, -(float) (Math.PI * 1 / 2) + camAlpha, -(float) (Math.PI / 2));
             }
         }
 
@@ -212,7 +216,7 @@ public class AutoMinerRender extends TransparentNodeElementRender {
 
     @Nullable
     @Override
-    public GuiScreen newGuiDraw(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public Screen newGuiDraw(@NotNull Direction side, @NotNull Player player) {
         return new AutoMinerGuiDraw(player, inventory, this);
     }
 

@@ -1,13 +1,14 @@
 package mods.eln.sim
 
+import mods.eln.compat.*
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import mods.eln.misc.Recipe
 import mods.eln.misc.RecipesList
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
 
 private class SimpleInventory(size: Int) : IInventory {
     private val stacks = arrayOfNulls<ItemStack>(size)
@@ -16,9 +17,9 @@ private class SimpleInventory(size: Int) : IInventory {
     override fun decrStackSize(slot: Int, amount: Int): ItemStack? {
         val stack = stacks[slot] ?: return null
         val removed = stack.copy()
-        removed.stackSize = amount.coerceAtMost(stack.stackSize)
-        stack.stackSize -= removed.stackSize
-        if (stack.stackSize <= 0) stacks[slot] = null
+        removed.count = amount.coerceAtMost(stack.count)
+        stack.count -= removed.count
+        if (stack.count <= 0) stacks[slot] = null
         return removed
     }
 
@@ -31,7 +32,7 @@ private class SimpleInventory(size: Int) : IInventory {
     override fun hasCustomInventoryName(): Boolean = false
     override fun getInventoryStackLimit(): Int = 64
     override fun markDirty() {}
-    override fun isUseableByPlayer(player: net.minecraft.entity.player.EntityPlayer?): Boolean = true
+    override fun isUseableByPlayer(player: net.minecraft.world.entity.player.Player?): Boolean = true
     override fun openInventory() {}
     override fun closeInventory() {}
     override fun isItemValidForSlot(slot: Int, stack: ItemStack?): Boolean = true
@@ -41,8 +42,8 @@ class StackMachineProcessTest {
     @Test
     fun processSmeltsWhenEnergyAvailable() {
         val inventory = SimpleInventory(3)
-        val inputItem = Item()
-        val outputItem = Item()
+        val inputItem = Items.IRON_INGOT
+        val outputItem = Items.GOLD_INGOT
         val input = ItemStack(inputItem, 1)
         inventory.setInventorySlotContents(0, input)
 
@@ -63,14 +64,14 @@ class StackMachineProcessTest {
         process.process(1.0)
 
         assertTrue(inventory.getStackInSlot(0) == null)
-        assertEquals(1, inventory.getStackInSlot(1)!!.stackSize)
+        assertEquals(1, inventory.getStackInSlot(1)!!.count)
     }
 
     @Test
     fun getProcessStateReflectsProgress() {
         val inventory = SimpleInventory(2)
-        val inputItem = Item()
-        val outputItem = Item()
+        val inputItem = Items.IRON_INGOT
+        val outputItem = Items.GOLD_INGOT
         val input = ItemStack(inputItem, 1)
         inventory.setInventorySlotContents(0, input)
 

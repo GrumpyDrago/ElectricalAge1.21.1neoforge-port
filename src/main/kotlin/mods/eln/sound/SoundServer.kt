@@ -1,9 +1,10 @@
 package mods.eln.sound
 
-import cpw.mods.fml.common.FMLCommonHandler
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.misc.Utils.sendPacketToClient
-import net.minecraft.entity.player.EntityPlayerMP
+import net.minecraft.world.phys.Vec3
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -14,17 +15,11 @@ object SoundServer {
         val stream = DataOutputStream(bos)
         try {
             stream.writeByte(Eln.packetPlaySound.toInt())
-            stream.writeByte(p.world!!.provider.dimensionId)
+            stream.writeInt(p.world!!.dimensionId)
             p.writeTo(stream)
-            val server = FMLCommonHandler.instance().minecraftServerInstance
-            for (obj in server.configurationManager.playerEntityList) {
-                val player = obj as EntityPlayerMP
-                if (player.dimension == p.world!!.provider.dimensionId && player.getDistance(
-                        p.x,
-                        p.y,
-                        p.z
-                    ) < p.rangeMax + 2
-                ) {
+            val server = currentServer ?: return
+            for (player in server.players) {
+                if (player.dimension == p.world!!.dimensionId && player.position().distanceTo(Vec3(p.x, p.y, p.z)) < p.rangeMax + 2) {
                     sendPacketToClient(bos, player)
                 }
             }

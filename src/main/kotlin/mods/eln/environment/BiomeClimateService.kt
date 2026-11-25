@@ -1,10 +1,15 @@
 package mods.eln.environment
 
+import mods.eln.compat.*
+
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import mods.eln.Eln
-import net.minecraft.world.World
-import net.minecraft.world.biome.BiomeGenBase
+import net.minecraft.world.level.Level
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Holder
+import net.minecraft.core.registries.Registries
+import net.minecraft.world.level.biome.Biome
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import java.util.Locale
@@ -28,18 +33,18 @@ object BiomeClimateService {
     private const val DEEP_UNDERGROUND_AMBIENT_C = 40.0
 
     private val profilesByBiomeName = HashMap<String, BiomeClimateProfile>()
-    private val profilesByBiomeId = HashMap<Int, BiomeClimateProfile>()
+    private val profilesByBiomeId = HashMap<String, BiomeClimateProfile>()
     private val missingProfileBiomeKeys = HashSet<String>()
     private val weatherByDimension = HashMap<Int, WeatherSnapshot>()
     @Volatile private var loaded = false
     @Volatile private var startupAuditComplete = false
 
     @JvmStatic
-    fun sample(world: World, x: Int, y: Int, z: Int): ClimateState {
+    fun sample(world: Level, x: Int, y: Int, z: Int): ClimateState {
         ensureLoaded()
 
         val weather = getWeatherSnapshot(world)
-        val biome = world.getBiomeGenForCoords(x, z)
+        val biome = world.getBiome(BlockPos(x, y, z))
         val profile = resolveProfileForBiome(biome)
 
         val dayBlend = dayBlendForWorldTicks(world.worldTime)
@@ -68,12 +73,27 @@ object BiomeClimateService {
         )
     }
 
+    /** The profile of the biome at this place. */
+    internal fun profileAt(world: Level, x: Int, y: Int, z: Int): BiomeClimateProfile {
+        ensureLoaded()
+        return resolveProfileForBiome(world.getBiome(BlockPos(x, y, z)))
+    }
+
+    /** The temperature part of [sample]. */
+    internal fun temperatureCelsius(world: Level, y: Int, profile: BiomeClimateProfile): Double {
+        val weather = getWeatherSnapshot(world)
+        val dayBlend = dayBlendForWorldTicks(world.worldTime)
+        val biomeTemperatureC = interpolateTemperature(profile.dayHighCelsius, profile.nightLowCelsius, dayBlend)
+        val temperatureC = applyCloudTemperatureDelta(biomeTemperatureC, weather.raining, weather.thundering)
+        return applyDepthTemperatureProfile(temperatureC, y)
+    }
+
     private fun supportsPrecipitation(profile: BiomeClimateProfile): Boolean {
         return profile.precipitationType != "none"
     }
 
     private fun resolvePrecipitationType(
-        biome: BiomeGenBase?,
+        biome: Holder<Biome>?,
         x: Int,
         y: Int,
         z: Int,
@@ -85,14 +105,14 @@ object BiomeClimateService {
         return "rain"
     }
 
-    private fun resolveProfileForBiome(biome: BiomeGenBase?): BiomeClimateProfile {
+    private fun resolveProfileForBiome(biome: Holder<Biome>?): BiomeClimateProfile {
         if (biome != null) {
             synchronized(this) {
-                profilesByBiomeId[biome.biomeID]?.let { return it }
+                profilesByBiomeId[biome.id]?.let { return it }
             }
         }
 
-        val biomeName = biome?.biomeName
+        val biomeName = biome?.id
         val resolved = if (!biomeName.isNullOrBlank()) {
             findProfileForBiomeName(biomeName) ?: run {
                 synchronized(this) {
@@ -106,7 +126,7 @@ object BiomeClimateService {
 
         if (biome != null) {
             synchronized(this) {
-                profilesByBiomeId[biome.biomeID] = resolved
+                profilesByBiomeId[biome.id] = resolved
             }
         }
         return resolved
@@ -140,16 +160,14 @@ object BiomeClimateService {
                 return
             }
 
-            val missingEntries = ArrayList<Pair<Int, String>>()
-            BiomeGenBase.getBiomeGenArray()
-                .filterNotNull()
-                .forEach { biome ->
-                    val name = biome.biomeName ?: return@forEach
-                    if (findProfileForBiomeName(name) == null) {
-                        missingProfileBiomeKeys.add(normalizeKey(name))
-                        missingEntries.add(biome.biomeID to name)
-                    }
+            val missingEntries = ArrayList<Pair<String, String>>()
+            currentServer?.registryAccess()?.registryOrThrow(Registries.BIOME)?.keySet()?.forEach { key ->
+                val name = key.toString()
+                if (findProfileForBiomeName(name) == null) {
+                    missingProfileBiomeKeys.add(normalizeKey(name))
+                    missingEntries.add(name to name)
                 }
+            }
 
             if (missingEntries.isEmpty()) {
                 Eln.logger.info("Biome climate startup audit: all registered biomes have climate profiles.")
@@ -220,23 +238,15 @@ object BiomeClimateService {
         return out
     }
 
-    private fun isSnowBiome(biome: BiomeGenBase?, x: Int, y: Int, z: Int): Boolean {
+    private fun isSnowBiome(biome: Holder<Biome>?, x: Int, y: Int, z: Int): Boolean {
         if (biome == null) {
             return false
         }
-        if (biome.enableSnow) {
-            return true
-        }
-        return biome.safeTemperature(x, y, z) <= 0.15f
+        return biome.value().coldEnoughToSnow(BlockPos(x, y, z))
     }
 
-    private fun BiomeGenBase.safeTemperature(x: Int, y: Int, z: Int): Float {
-        return try {
-            getFloatTemperature(x, y, z)
-        } catch (_: Exception) {
-            0.8f
-        }
-    }
+    private val Holder<Biome>.id: String
+        get() = unwrapKey().map { it.location().toString() }.orElse("")
 
     @JvmStatic
     fun dayBlendForWorldTicks(worldTime: Long): Double {
@@ -335,8 +345,8 @@ object BiomeClimateService {
         }
     }
 
-    private fun getWeatherSnapshot(world: World): WeatherSnapshot {
-        val dimension = world.provider.dimensionId
+    private fun getWeatherSnapshot(world: Level): WeatherSnapshot {
+        val dimension = world.dimensionId
         val tick = world.totalWorldTime
 
         synchronized(this) {
@@ -478,7 +488,7 @@ private data class WeatherSnapshot(
     val thundering: Boolean
 )
 
-private data class BiomeClimateProfile(
+internal data class BiomeClimateProfile(
     val dayHighCelsius: Double,
     val nightLowCelsius: Double,
     val dayHumidityPercent: Double,

@@ -1,5 +1,7 @@
 package mods.eln.gridnode
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.i18n.I18N.tr
 import mods.eln.misc.*
@@ -16,10 +18,9 @@ import mods.eln.sim.nbt.NbtElectricalLoad
 import mods.eln.sim.process.destruct.VoltageStateWatchDog
 import mods.eln.sim.process.destruct.WorldExplosion
 import mods.eln.sound.LoopedSound
-import net.minecraft.item.ItemStack
-import net.minecraft.util.Vec3
-import net.minecraftforge.client.IItemRenderer
-import org.lwjgl.opengl.GL11
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.phys.Vec3
+import mods.eln.compat.client.GL11
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import kotlin.math.abs
@@ -51,7 +52,7 @@ class GridSwitchDescriptor(
     var maxVolume = 5.0
     var nominalGridP = 8000
     init {
-        renderOffset = Vec3.createVectorHelper(2.5, -0.5, 1.5)
+        renderOffset = Vec3(2.5, -0.5, 1.5)
     }
     companion object {
         // val QUARTER_TURN = PI / 2  // WHY does OpenGL use degrees?!
@@ -67,12 +68,12 @@ class GridSwitchDescriptor(
     ).map { obj.getPart(it) }
 
     val rotors = mapOf(  // Name to Pair(Origin,cw?)
-        "Contact_M1_ContactMMesh_1" to Pair(Vec3.createVectorHelper(4.5, 1.75, 0.5), true),
-        "Contact_M2_ContactMMesh_2.001" to Pair(Vec3.createVectorHelper(4.5, 1.75, 2.5), false),
-        "Contact_F1_ContactFMesh_1" to Pair(Vec3.createVectorHelper(0.5, 1.75, 0.5), false),
-        "Contact_F2_ContactFMesh_2" to Pair(Vec3.createVectorHelper(0.5, 1.75, 2.5), true),
-        "Belt_pulley_1_BeltPulleyMesh_1" to Pair(Vec3.createVectorHelper(4.0, 1.75, 0.5), false),
-        "Belt_pulley_2_BeltPulleyMesh_2" to Pair(Vec3.createVectorHelper(4.0, 1.75, 2.5), true)
+        "Contact_M1_ContactMMesh_1" to Pair(Vec3(4.5, 1.75, 0.5), true),
+        "Contact_M2_ContactMMesh_2.001" to Pair(Vec3(4.5, 1.75, 2.5), false),
+        "Contact_F1_ContactFMesh_1" to Pair(Vec3(0.5, 1.75, 0.5), false),
+        "Contact_F2_ContactFMesh_2" to Pair(Vec3(0.5, 1.75, 2.5), true),
+        "Belt_pulley_1_BeltPulleyMesh_1" to Pair(Vec3(4.0, 1.75, 0.5), false),
+        "Belt_pulley_2_BeltPulleyMesh_2" to Pair(Vec3(4.0, 1.75, 2.5), true)
     ).mapKeys { obj.getPart(it.key) }
 
     init {
@@ -265,11 +266,11 @@ class GridSwitchElement(node: TransparentNode, descriptor: TransparentNodeDescri
         }
         val part = (if(i == 0) { desc.plus } else { desc.gnd })[idx]
         val ro = desc.renderOffset
-        val pt = part.boundingBox().centre().addVector(
+        val pt = part.boundingBox().centre().add(
             ro.xCoord, ro.yCoord, ro.zCoord
         )
         // Rotate this point by a quarter turn around y to correspond to our rendering offset
-        return Vec3.createVectorHelper(
+        return Vec3(
             pt.zCoord, pt.yCoord, -pt.xCoord
         )
     }

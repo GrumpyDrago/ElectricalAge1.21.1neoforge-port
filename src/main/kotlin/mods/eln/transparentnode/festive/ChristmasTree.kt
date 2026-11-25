@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.festive
 
+import mods.eln.compat.*
+
 import mods.eln.ghost.GhostGroup
 import mods.eln.misc.Direction
 import mods.eln.misc.Obj3D
@@ -7,7 +9,7 @@ import mods.eln.misc.UtilsClient
 import mods.eln.node.transparent.TransparentNodeDescriptor
 import mods.eln.node.transparent.TransparentNodeElementRender
 import mods.eln.node.transparent.TransparentNodeEntity
-import org.lwjgl.opengl.GL11
+import mods.eln.compat.client.GL11
 import java.io.DataInputStream
 import java.io.IOException
 

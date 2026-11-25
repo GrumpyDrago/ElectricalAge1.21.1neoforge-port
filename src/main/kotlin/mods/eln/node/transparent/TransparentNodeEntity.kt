@@ -1,7 +1,13 @@
 package mods.eln.node.transparent
 
-import cpw.mods.fml.relauncher.Side
-import cpw.mods.fml.relauncher.SideOnly
+import mods.eln.registration.ElnBlockEntities
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.level.block.state.BlockState
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.misc.Coordinate
@@ -9,21 +15,22 @@ import mods.eln.misc.Direction
 import mods.eln.misc.FakeSideInventory.Companion.instance
 import mods.eln.misc.LRDU
 import mods.eln.node.NodeBlockEntity
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.init.Blocks
-import net.minecraft.inventory.Container
-import net.minecraft.inventory.ISidedInventory
-import net.minecraft.item.ItemStack
-import net.minecraft.util.AxisAlignedBB
-import net.minecraft.world.World
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.level.Level
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
 import java.lang.reflect.InvocationTargetException
 
-open class TransparentNodeEntity : NodeBlockEntity(), ISidedInventory {
+open class TransparentNodeEntity(type: BlockEntityType<*>, pos: BlockPos, state: BlockState) : NodeBlockEntity(type, pos, state), ISidedInventory {
+    constructor(pos: BlockPos, state: BlockState) : this(ElnBlockEntities.transparentNode, pos, state)
+
     var elementRender: TransparentNodeElementRender? = null
     var elementRenderId: Short = 0
 
@@ -63,12 +70,12 @@ open class TransparentNodeEntity : NodeBlockEntity(), ISidedInventory {
         }
     }
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container? {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu? {
         val n = node as TransparentNode? ?: return null
         return n.newContainer(side, player)
     }
 
-    override fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen? {
+    override fun newGuiDraw(side: Direction, player: Player): Screen? {
         return elementRender!!.newGuiDraw(side, player)
     }
 
@@ -89,27 +96,20 @@ open class TransparentNodeEntity : NodeBlockEntity(), ISidedInventory {
         return if (elementRender == null) super.cameraDrawOptimisation() else elementRender!!.cameraDrawOptimisation()
     }
 
-    @SideOnly(Side.CLIENT)
-    override fun unoptimizedRenderBoundingBox(): AxisAlignedBB {
+    override fun unoptimizedRenderBoundingBox(): AABB {
         return if (elementRender == null) super.unoptimizedRenderBoundingBox() else elementRender!!.unoptimizedRenderBoundingBox()
-    }
-
-    @Suppress("UNUSED_PARAMETER") fun getDamageValue(world: World, x: Int, y: Int, z: Int): Int {
-        return if (world.isRemote) {
-            elementRenderId.toInt()
-        } else 0
     }
 
     override fun tileEntityNeighborSpawn() {
         if (elementRender != null) elementRender!!.notifyNeighborSpawn()
     }
 
-    fun addCollisionBoxesToList(par5AxisAlignedBB: AxisAlignedBB, list: MutableList<AxisAlignedBB?>, blockCoord: Coordinate?) {
-        val desc = if (worldObj.isRemote) {
+    fun addCollisionBoxesToList(par5AxisAlignedBB: AABB, list: MutableList<AABB?>, blockCoord: Coordinate?) {
+        val desc = if (worldObj.isClientSide) {
             if (elementRender == null) null else elementRender!!.transparentNodeDescriptor
         } else {
             val node = node as TransparentNode?
-            if (node == null) null else node.element!!.transparentNodeDescriptor
+            node?.element?.transparentNodeDescriptor
         }
         val x: Int
         val y: Int
@@ -124,8 +124,8 @@ open class TransparentNodeEntity : NodeBlockEntity(), ISidedInventory {
             z = zCoord
         }
         if (desc == null) {
-            val bb = Blocks.stone.getCollisionBoundingBoxFromPool(worldObj, x, y, z)
-            if (par5AxisAlignedBB.intersectsWith(bb)) list.add(bb)
+            val bb = AABB(BlockPos(x, y, z))
+            if (par5AxisAlignedBB.intersects(bb)) list.add(bb)
         } else {
             desc.addCollisionBoxesToList(par5AxisAlignedBB, list, worldObj, x, y, z)
         }
@@ -156,7 +156,7 @@ open class TransparentNodeEntity : NodeBlockEntity(), ISidedInventory {
 
     open val sidedInventory: ISidedInventory
         get() {
-            if (worldObj.isRemote) {
+            if (worldObj.isClientSide) {
                 if (elementRender == null) return instance
                 val i = elementRender!!.inventory
                 if (i != null && i is ISidedInventory) {
@@ -173,6 +173,14 @@ open class TransparentNodeEntity : NodeBlockEntity(), ISidedInventory {
             }
             return instance
         }
+
+    override fun markDirty() {
+        super<NodeBlockEntity>.setChanged()
+    }
+
+    override fun setChanged() {
+        super<NodeBlockEntity>.setChanged()
+    }
 
     override fun getSizeInventory(): Int {
         return sidedInventory.sizeInventory
@@ -206,7 +214,7 @@ open class TransparentNodeEntity : NodeBlockEntity(), ISidedInventory {
         return sidedInventory.inventoryStackLimit
     }
 
-    override fun isUseableByPlayer(var1: EntityPlayer): Boolean {
+    override fun isUseableByPlayer(var1: Player): Boolean {
         return sidedInventory.isUseableByPlayer(var1)
     }
 

@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.turret;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.generic.GenericItemUsingDamageDescriptor;
 import mods.eln.i18n.I18N;
@@ -21,13 +23,13 @@ import mods.eln.sim.ElectricalLoad;
 import mods.eln.sim.ThermalLoad;
 import mods.eln.sim.nbt.NbtElectricalLoad;
 import mods.eln.sim.nbt.NbtResistor;
-import net.minecraft.entity.monster.IMob;
-import net.minecraft.entity.passive.EntityAnimal;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -158,9 +160,9 @@ public class TurretElement extends TransparentNodeElement implements IConfigurab
     }
 
     @Override
-    public boolean onBlockActivated(EntityPlayer player, Direction side,
+    public boolean onBlockActivated(Player player, Direction side,
                                     float vx, float vy, float vz) {
-        return acceptingInventory.take(player.getCurrentEquippedItem());
+        return acceptingInventory.take(Mc.getCurrentEquippedItem(player));
     }
 
     @Override
@@ -182,15 +184,15 @@ public class TurretElement extends TransparentNodeElement implements IConfigurab
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         super.writeToNBT(nbt);
-        nbt.setDouble("chargePower", chargePower);
-        nbt.setBoolean("filterIsSpare", filterIsSpare);
-        nbt.setDouble("energyBuffer", energyBuffer);
+        nbt.putDouble("chargePower", chargePower);
+        nbt.putBoolean("filterIsSpare", filterIsSpare);
+        nbt.putDouble("energyBuffer", energyBuffer);
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound nbt) {
+    public void readFromNBT(CompoundTag nbt) {
         super.readFromNBT(nbt);
         chargePower = nbt.getDouble("chargePower");
         filterIsSpare = nbt.getBoolean("filterIsSpare");
@@ -209,7 +211,7 @@ public class TurretElement extends TransparentNodeElement implements IConfigurab
 
     @Nullable
     @Override
-    public Container newContainer(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public AbstractContainerMenu newContainer(@NotNull Direction side, @NotNull Player player) {
         return new TurretContainer(player, acceptingInventory.getInventory());
     }
 
@@ -257,11 +259,11 @@ public class TurretElement extends TransparentNodeElement implements IConfigurab
                 if (filterIsSpare) {
                     target += "not ";
                 }
-                if (filter.entityClass == EntityPlayer.class) {
+                if (filter.entityClass == Player.class) {
                     target += I18N.tr("players");
-                } else if (filter.entityClass == IMob.class) {
+                } else if (filter.entityClass == Enemy.class) {
                     target += I18N.tr("monsters");
-                } else if (filter.entityClass == EntityAnimal.class) {
+                } else if (filter.entityClass == Animal.class) {
                     target += I18N.tr("animals");
                 } else {
                     target += I18N.tr("??");
@@ -284,12 +286,12 @@ public class TurretElement extends TransparentNodeElement implements IConfigurab
     }
 
     @Override
-    public void readConfigTool(NBTTagCompound compound, EntityPlayer invoker) {
-        if(compound.hasKey("chargePower")) {
+    public void readConfigTool(CompoundTag compound, Player invoker) {
+        if(compound.contains("chargePower")) {
             chargePower = compound.getDouble("chargePower");
             needPublish();
         }
-        if(compound.hasKey("filterInvert")) {
+        if(compound.contains("filterInvert")) {
             filterIsSpare = compound.getBoolean("filterInvert");
         }
         if(ConfigCopyToolDescriptor.readGenDescriptor(compound, "filter", getInventory(), 0, invoker))
@@ -297,9 +299,9 @@ public class TurretElement extends TransparentNodeElement implements IConfigurab
     }
 
     @Override
-    public void writeConfigTool(NBTTagCompound compound, EntityPlayer invoker) {
-        compound.setDouble("chargePower", chargePower);
-        compound.setBoolean("filterInvert", filterIsSpare);
+    public void writeConfigTool(CompoundTag compound, Player invoker) {
+        compound.putDouble("chargePower", chargePower);
+        compound.putBoolean("filterInvert", filterIsSpare);
         ConfigCopyToolDescriptor.writeGenDescriptor(compound, "filter", getInventory().getStackInSlot(0));
     }
 }

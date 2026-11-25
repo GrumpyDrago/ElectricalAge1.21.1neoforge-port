@@ -1,5 +1,7 @@
 package mods.eln.cable
 
+import mods.eln.compat.*
+
 import mods.eln.gui.ISlotSkin
 import mods.eln.i18n.I18N
 import mods.eln.misc.Utils
@@ -7,8 +9,7 @@ import mods.eln.node.six.SixNodeItemSlot
 import mods.eln.sixnode.currentcable.CurrentCableDescriptor
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
 import mods.eln.sixnode.electricalcable.UtilityCableDescriptor
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.ItemStack
+import net.minecraft.world.item.ItemStack
 import kotlin.math.abs
 
 /**
@@ -31,8 +32,8 @@ class CableItemSlot(
     ), ISlotSkin.SlotSkin.medium, comment
 ) {
 
-    override fun isItemValid(itemStack: ItemStack): Boolean {
-        if (!super.isItemValid(itemStack)) return false
+    override fun mayPlace(itemStack: ItemStack): Boolean {
+        if (!super.mayPlace(itemStack)) return false
 
         return when (val cableDescriptor = Utils.getItemObject(itemStack)) {
             is UtilityCableDescriptor -> abs(cableDescriptor.getRemainingLengthMeters(itemStack) - expectedCableLength) < UtilityCableDescriptor.LENGTH_METERS_EPSILON

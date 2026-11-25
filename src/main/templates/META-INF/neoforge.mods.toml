@@ -1,0 +1,35 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
+issueTrackerURL="https://github.com/age-series/ElectricalAge/issues"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+displayURL="https://github.com/age-series/ElectricalAge"
+logoFile="assets/eln/logo.png"
+credits="The Age Series Team"
+authors="Dolu1990, jrddunbr, Baughn, Grissess, Caeleron, Omega_Haxors, lambdaShade, cm0x4D, metc, TheBuilderBoy76, Justus0405"
+description="Large-scale electrical simulation and advanced automation for Minecraft."
+
+[[dependencies.${mod_id}]]
+modId="neoforge"
+type="required"
+versionRange="${neo_version_range}"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="minecraft"
+type="required"
+versionRange="${minecraft_version_range}"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="kotlinforforge"
+type="required"
+versionRange="[5.0,)"
+ordering="AFTER"
+side="BOTH"

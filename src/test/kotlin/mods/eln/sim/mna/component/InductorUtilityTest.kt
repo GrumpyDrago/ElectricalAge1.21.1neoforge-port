@@ -1,11 +1,13 @@
 package mods.eln.sim.mna.component
 
+import mods.eln.compat.*
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import mods.eln.sim.mna.SubSystem
 import mods.eln.disableLog4jJmx
 import mods.eln.sim.mna.state.VoltageState
-import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.nbt.CompoundTag
 
 class InductorUtilityTest {
     @Test
@@ -40,7 +42,7 @@ class InductorUtilityTest {
         val inductor = Inductor("L3")
         inductor.currentState.state = 1.25
 
-        val nbt = NBTTagCompound()
+        val nbt = CompoundTag()
         inductor.writeToNBT(nbt, "pfx")
 
         val other = Inductor("L3")

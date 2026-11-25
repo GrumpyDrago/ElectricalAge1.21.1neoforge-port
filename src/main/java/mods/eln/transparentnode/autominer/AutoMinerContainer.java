@@ -6,9 +6,9 @@ import mods.eln.item.ElectricalDrillDescriptor;
 import mods.eln.item.MiningPipeDescriptor;
 import mods.eln.item.OreScanner;
 import mods.eln.misc.BasicContainer;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.Slot;
+import net.minecraft.world.entity.player.Player;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.inventory.Slot;
 
 import static mods.eln.i18n.I18N.tr;
 
@@ -20,7 +20,7 @@ public class AutoMinerContainer extends BasicContainer {
     public static final int StorageSize = 0;
     public static final int inventorySize = StorageStartId + StorageSize;
 
-    public AutoMinerContainer(EntityPlayer player, IInventory inventory) {
+    public AutoMinerContainer(Player player, IInventory inventory) {
         super(player, inventory, newSlots(inventory));
     }
 

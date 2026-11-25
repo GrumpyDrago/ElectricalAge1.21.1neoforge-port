@@ -1,5 +1,8 @@
 package mods.eln.server.console
 
+import net.minecraft.core.BlockPos
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.gridnode.GridElement
 import mods.eln.gridnode.GridLink
@@ -24,11 +27,11 @@ import mods.eln.node.simple.SimpleNode
 import mods.eln.node.six.SixNode
 import mods.eln.node.transparent.TransparentNode
 import mods.eln.server.ElnDestroyHelper
-import mods.eln.server.console.ElnConsoleCommands.Companion.boolToStr
-import mods.eln.server.console.ElnConsoleCommands.Companion.cprint
-import mods.eln.server.console.ElnConsoleCommands.Companion.getArgBool
-import net.minecraft.command.ICommandSender
-import net.minecraft.entity.player.EntityPlayerMP
+import mods.eln.server.console.ElnConsoleCommands.boolToStr
+import mods.eln.server.console.ElnConsoleCommands.cprint
+import mods.eln.server.console.ElnConsoleCommands.getArgBool
+import net.minecraft.commands.CommandSourceStack
+import net.minecraft.server.level.ServerPlayer
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -53,7 +56,7 @@ private data class ZoneBounds(
     val maxZ: Int
 )
 
-private fun parseZoneBounds(ics: EntityPlayerMP, args: List<String>, commandName: String): ZoneBounds? {
+private fun parseZoneBounds(ics: CommandSourceStack, args: List<String>, commandName: String): ZoneBounds? {
     if (args.size == 1) {
         val radius = args[0].toIntOrNull()
         if (radius == null || radius < 0) {
@@ -61,9 +64,9 @@ private fun parseZoneBounds(ics: EntityPlayerMP, args: List<String>, commandName
             cprint(ics, "${FC.BRIGHT_YELLOW}Usage: /eln $commandName <radius> or /eln $commandName x1 y1 z1 x2 y2 z2", indent = 1)
             return null
         }
-        val x = ics.playerCoordinates.posX
-        val y = ics.playerCoordinates.posY
-        val z = ics.playerCoordinates.posZ
+        val x = BlockPos.containing(ics.position).x
+        val y = BlockPos.containing(ics.position).y
+        val z = BlockPos.containing(ics.position).z
         return ZoneBounds(x - radius, x + radius, y - radius, y + radius, z - radius, z + radius)
     }
     if (args.size != 6) {
@@ -98,12 +101,12 @@ private fun isConfigPathPattern(path: String): Boolean =
 class ElnLsCommand: IConsoleCommand {
     override val name = "ls"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "${FC.WHITE}Eln Command list:")
         cprint(ics, ElnConsoleCommandList.joinToString(", ") { it.name }, indent = 1)
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Lists all available commands.", indent = 1)
         cprint(ics, "")
         cprint(ics, "No input parameters.", indent = 1)
@@ -114,7 +117,7 @@ class ElnLsCommand: IConsoleCommand {
 class ElnConfigCommand : IConsoleCommand {
     override val name = "config"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         when (args.getOrNull(0)?.lowercase()) {
             "get" -> {
                 val path = args.getOrNull(1)
@@ -193,7 +196,7 @@ class ElnConfigCommand : IConsoleCommand {
         }
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Read or modify any JSON-backed Electrical Age config path.", indent = 1)
         cprint(ics, "This command updates the cache and writes back to config/eln/eln.json.", indent = 1)
         cprint(ics, "", indent = 1)
@@ -222,7 +225,7 @@ class ElnConfigCommand : IConsoleCommand {
 open class ElnAboutCommand: IConsoleCommand {
     override val name = "about"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "${FC.WHITE}About Electrical Age:")
         cprint(ics,  "${FC.BRIGHT_GREY}Authors: ${FC.DARK_GREY}${Eln.AUTHORS.joinToString(", ")}")
         cprint(ics, "${FC.BRIGHT_GREY}Version: ${FC.DARK_GREY}" + Version.simpleVersionName)
@@ -232,7 +235,7 @@ open class ElnAboutCommand: IConsoleCommand {
         }
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Returns useful information about Electrical Age.", indent = 1)
         cprint(ics, "")
         cprint(ics, "No input parameters.", indent = 1)
@@ -245,12 +248,12 @@ class ElnVersionCommand: ElnAboutCommand() { override val name = "version"}
 class ElnNewWindDirectionCommand: IConsoleCommand {
     override val name = "newWind"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         Eln.wind.newWindTarget()
         cprint(ics, "New random wind amplitude target: ${Eln.wind.targetNotFiltered}")
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Changes progressively the wind to another target amplitude.", indent = 1)
         cprint(ics, "Changes stored into the map.", indent = 1)
         cprint(ics, "")
@@ -264,7 +267,7 @@ class ElnNewWindDirectionCommand: IConsoleCommand {
 class ElnMatrixCommand: IConsoleCommand {
     override val name = "matrix"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, FC.BRIGHT_YELLOW + "Dumping all circuits. This will take a moment on large worlds...")
         println("Dumping all circuits. This will take a moment on large worlds...")
         var dumpSubSystems = ""
@@ -294,7 +297,7 @@ class ElnMatrixCommand: IConsoleCommand {
         cprint(ics, FC.BRIGHT_YELLOW + "Average subsystem size: " + ct / ssc)
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Dumps everything Electrical Age knows about circuit topologies into a file called elnDumpMatrix.txt, which can then be consumed by a nice little program that I wrote that can give visualizations of all of the node graphs that the MNA takes in to calculate circuit values.", indent = 1)
         cprint(ics, "[https://github.com/jrddunbr/eln-matrix-viz]", "https://github.com/jrddunbr/eln-matrix-viz")
         cprint(ics, "")
@@ -306,7 +309,7 @@ class ElnMatrixCommand: IConsoleCommand {
 class ElnManCommand: IConsoleCommand {
     override val name = "man"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         when (args.size) {
             0 -> {
                 cprint(ics, "Returns help for a given command.", indent = 1)
@@ -326,7 +329,7 @@ class ElnManCommand: IConsoleCommand {
         }
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Returns help for a given command.", indent = 1)
         cprint(ics, "")
         cprint(ics, "Parameters :", indent = 1)
@@ -346,8 +349,8 @@ class ElnManCommand: IConsoleCommand {
 class ElnZoneDumpCommand : IConsoleCommand {
     override val name = "zonedump"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
-        if (ics !is EntityPlayerMP) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        if (ics.player == null) {
             cprint(ics, "${FC.BRIGHT_RED}This command can only be run by a player.", indent = 1)
             return
         }
@@ -359,8 +362,8 @@ class ElnZoneDumpCommand : IConsoleCommand {
         val minZ = bounds.minZ
         val maxZ = bounds.maxZ
 
-        val world = ics.worldObj
-        val dim = world.provider.dimensionId
+        val world = ics.level
+        val dim = world.dimensionId
         val rangeDescription = "($minX,$minY,$minZ) -> ($maxX,$maxY,$maxZ) in dim $dim"
 
         val nodeManager = NodeManager.instance
@@ -381,7 +384,7 @@ class ElnZoneDumpCommand : IConsoleCommand {
         val warnings = mutableListOf<String>()
         val builder = StringBuilder()
         builder.append("Zone dump for $rangeDescription\n")
-        builder.append("Player: ${ics.commandSenderName}\n")
+        builder.append("Player: ${ics.textName}\n")
         builder.append("Generated: ${Date()}\n\n")
 
         builder.append("Nodes:\n")
@@ -411,7 +414,7 @@ class ElnZoneDumpCommand : IConsoleCommand {
                 }
                 val actualBlock = world.getBlock(coord.x, coord.y, coord.z)
                 if (expectedBlock != null && actualBlock != expectedBlock) {
-                    warnings.add("Node ${coord} (${node.javaClass.simpleName}) expected ${expectedBlock.unlocalizedName} but found ${actualBlock.unlocalizedName}")
+                    warnings.add("Node ${coord} (${node.javaClass.simpleName}) expected ${expectedBlock.descriptionId} but found ${actualBlock.descriptionId}")
                 }
             }
         }
@@ -430,12 +433,12 @@ class ElnZoneDumpCommand : IConsoleCommand {
             for (y in minY..maxY) {
                 for (z in minZ..maxZ) {
                     val block = world.getBlock(x, y, z)
-                    val meta = world.getBlockMetadata(x, y, z)
+                    val meta = world.getState(x, y, z)
                     val tile = world.getTileEntity(x, y, z)
-                    builder.append("  ($x,$y,$z): ${block.unlocalizedName} meta=$meta tile=${tile?.javaClass?.simpleName}\n")
+                    builder.append("  ($x,$y,$z): ${block.descriptionId} meta=$meta tile=${tile?.javaClass?.simpleName}\n")
                     val coord = Coordinate(x, y, z, dim)
                     if ((block == Eln.sixNodeBlock || block == Eln.transparentNodeBlock) && !coordToNode.containsKey(coord)) {
-                        warnings.add("Block ${block.unlocalizedName} at $coord has no registered node")
+                        warnings.add("Block ${block.descriptionId} at $coord has no registered node")
                     }
                     if (block == Eln.ghostBlock && !coordToNode.containsKey(coord) && Eln.ghostManager.getGhost(coord) == null) {
                         warnings.add("Ghost block at $coord has no registered node or ghost manager entry")
@@ -464,7 +467,7 @@ class ElnZoneDumpCommand : IConsoleCommand {
         }
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Dump Eln nodes and world blocks in a zone to a zonedump-<timestamp>.txt file.", indent = 1)
         cprint(ics, "Usage: /eln zonedump <radius>", indent = 1)
         cprint(ics, "Usage: /eln zonedump x1 y1 z1 x2 y2 z2", indent = 1)
@@ -589,8 +592,8 @@ class ElnZoneDumpCommand : IConsoleCommand {
 class ElnZoneCleanCommand : IConsoleCommand {
     override val name = "zoneclean"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
-        if (ics !is EntityPlayerMP) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        if (ics.player == null) {
             cprint(ics, "${FC.BRIGHT_RED}This command can only be run by a player.", indent = 1)
             return
         }
@@ -602,8 +605,8 @@ class ElnZoneCleanCommand : IConsoleCommand {
         val minZ = bounds.minZ
         val maxZ = bounds.maxZ
 
-        val world = ics.worldObj
-        val dim = world.provider.dimensionId
+        val world = ics.level
+        val dim = world.dimensionId
         val nodeManager = NodeManager.instance
         val nodes = nodeManager?.nodeList ?: emptyList()
         val nodesToProcess = nodes.filter {
@@ -667,7 +670,7 @@ class ElnZoneCleanCommand : IConsoleCommand {
         )
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Removes ghost nodes and orphaned Eln blocks within a rectangular zone.", indent = 1)
         cprint(ics, "Usage: /eln zoneclean <radius>", indent = 1)
         cprint(ics, "Usage: /eln zoneclean x1 y1 z1 x2 y2 z2", indent = 1)
@@ -679,8 +682,8 @@ class ElnZoneCleanCommand : IConsoleCommand {
 class ElnZoneRemoveCommand : IConsoleCommand {
     override val name = "zoneremove"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
-        if (ics !is EntityPlayerMP) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        if (ics.player == null) {
             cprint(ics, "${FC.BRIGHT_RED}This command can only be run by a player.", indent = 1)
             return
         }
@@ -692,8 +695,8 @@ class ElnZoneRemoveCommand : IConsoleCommand {
         val minZ = bounds.minZ
         val maxZ = bounds.maxZ
 
-        val world = ics.worldObj
-        val dim = world.provider.dimensionId
+        val world = ics.level
+        val dim = world.dimensionId
         val nodeManager = NodeManager.instance
         if (nodeManager == null) {
             cprint(ics, "${FC.BRIGHT_RED}Node manager unavailable, cannot run zoneremove.", indent = 1)
@@ -757,7 +760,7 @@ class ElnZoneRemoveCommand : IConsoleCommand {
         )
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Removes all Eln nodes and blocks within a rectangular zone.", indent = 1)
         cprint(ics, "Ghost nodes on the zone boundary notify their owners before removal.", indent = 1)
         cprint(ics, "Usage: /eln zoneremove <radius>", indent = 1)
@@ -784,13 +787,13 @@ class ElnZoneRemoveCommand : IConsoleCommand {
 class ElnZoneDestroyCommand : IConsoleCommand {
     override val name = "zonedestroy"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
-        if (ics !is EntityPlayerMP) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        if (ics.player == null) {
             cprint(ics, "${FC.BRIGHT_RED}This command can only be run by a player.", indent = 1)
             return
         }
         val bounds = parseZoneBounds(ics, args, name) ?: return
-        val world = ics.worldObj
+        val world = ics.level
         val nodeManager = NodeManager.instance
         if (nodeManager == null) {
             cprint(ics, "${FC.BRIGHT_RED}Node manager unavailable, cannot run zonedestroy.", indent = 1)
@@ -805,7 +808,7 @@ class ElnZoneDestroyCommand : IConsoleCommand {
             maxY = bounds.maxY,
             minZ = bounds.minZ,
             maxZ = bounds.maxZ,
-            player = ics
+            player = ics.player!!
         )
 
         cprint(
@@ -815,7 +818,7 @@ class ElnZoneDestroyCommand : IConsoleCommand {
         )
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Destroys all Eln nodes and blocks within a rectangular zone without dropping items.", indent = 1)
         cprint(ics, "Usage: /eln zonedestroy <radius>", indent = 1)
         cprint(ics, "Usage: /eln zonedestroy x1 y1 z1 x2 y2 z2", indent = 1)
@@ -826,8 +829,8 @@ class ElnZoneDestroyCommand : IConsoleCommand {
 class ElnStopShaftCommand : IConsoleCommand {
     override val name = "stop-shaft"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
-        if (ics !is EntityPlayerMP) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        if (ics.player == null) {
             cprint(ics, "${FC.BRIGHT_RED}This command can only be run by a player.", indent = 1)
             return
         }
@@ -844,8 +847,8 @@ class ElnStopShaftCommand : IConsoleCommand {
             return
         }
 
-        val world = ics.worldObj
-        val dim = world.provider.dimensionId
+        val world = ics.level
+        val dim = world.dimensionId
         var bestDistanceSq = Double.MAX_VALUE
         var bestShaftElement: ShaftElement? = null
 
@@ -854,9 +857,9 @@ class ElnStopShaftCommand : IConsoleCommand {
             if (node !is TransparentNode) return@forEach
 
             val shaftElement = node.element as? ShaftElement ?: return@forEach
-            val dx = (node.coordinate.x + 0.5) - ics.posX
-            val dy = (node.coordinate.y + 0.5) - ics.posY
-            val dz = (node.coordinate.z + 0.5) - ics.posZ
+            val dx = (node.coordinate.x + 0.5) - ics.position.x
+            val dy = (node.coordinate.y + 0.5) - ics.position.y
+            val dz = (node.coordinate.z + 0.5) - ics.position.z
             val distanceSq = dx * dx + dy * dy + dz * dz
             if (distanceSq <= radiusSq && distanceSq < bestDistanceSq) {
                 bestDistanceSq = distanceSq
@@ -891,7 +894,7 @@ class ElnStopShaftCommand : IConsoleCommand {
         )
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Sets the nearest shaft network energy to 0 J within a 3-block radius.", indent = 1)
         cprint(ics, "Usage: /eln stop-shaft", indent = 1)
         cprint(ics, "")
@@ -901,8 +904,8 @@ class ElnStopShaftCommand : IConsoleCommand {
 class ElnResetAmbientTempsCommand : IConsoleCommand {
     override val name = "resetAmbientTemps"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
-        if (ics !is EntityPlayerMP) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
+        if (ics.player == null) {
             cprint(ics, "${FC.BRIGHT_RED}This command can only be run by a player.", indent = 1)
             return
         }
@@ -924,7 +927,7 @@ class ElnResetAmbientTempsCommand : IConsoleCommand {
         }
 
         val rangeSq = range.toDouble() * range.toDouble()
-        val dim = ics.worldObj.provider.dimensionId
+        val dim = ics.level.dimensionId
         var devicesTouched = 0
         var thermalLoadsReset = 0
         var minAmbientC = Double.POSITIVE_INFINITY
@@ -933,9 +936,9 @@ class ElnResetAmbientTempsCommand : IConsoleCommand {
         nodeManager.nodeList.forEach { node ->
             if (node.coordinate.dimension != dim) return@forEach
 
-            val dx = (node.coordinate.x + 0.5) - ics.posX
-            val dy = (node.coordinate.y + 0.5) - ics.posY
-            val dz = (node.coordinate.z + 0.5) - ics.posZ
+            val dx = (node.coordinate.x + 0.5) - ics.position.x
+            val dy = (node.coordinate.y + 0.5) - ics.position.y
+            val dz = (node.coordinate.z + 0.5) - ics.position.z
             val distanceSq = dx * dx + dy * dy + dz * dz
             if (distanceSq > rangeSq) return@forEach
 
@@ -993,7 +996,7 @@ class ElnResetAmbientTempsCommand : IConsoleCommand {
         )
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Resets nearby Eln device temperatures to local biome ambient temperature.", indent = 1)
         cprint(ics, "Usage: /eln resetAmbientTemps <range 1..32>", indent = 1)
         cprint(ics, "")
@@ -1003,7 +1006,7 @@ class ElnResetAmbientTempsCommand : IConsoleCommand {
 class ElnResetLampLifeCommand: IConsoleCommand {
     override val name = "resetLampLives"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.isEmpty()) {
             LampLists.resetLampLifeFlag = true // This flag is automatically set to false up to two seconds after this command is called.
             cprint(ics, "Resetting the lives of all light bulbs to their default values...", indent = 1)
@@ -1012,7 +1015,7 @@ class ElnResetLampLifeCommand: IConsoleCommand {
         }
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Resets the lives of all light bulbs installed in lamp sockets to the nominal values defined in the config file.", indent = 1)
         cprint(ics, "If the config file entries are invalid, the lives are reset to the default nominal values defined in the codebase.", indent = 1)
         cprint(ics, "")
@@ -1025,7 +1028,7 @@ class ElnResetLampLifeCommand: IConsoleCommand {
 class ElnWailaEasyModeCommand: IConsoleCommand {
     override val name = "wailaEasyMode"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.size == 1) {
             val wailaEasyMode = getArgBool(ics, args[0])?: return
             saveConfigPath("ui.waila.easyMode", wailaEasyMode)
@@ -1035,7 +1038,7 @@ class ElnWailaEasyModeCommand: IConsoleCommand {
         }
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Enables/disables waila easy mode.", indent = 1)
         cprint(ics, "This will save to the server config file.", indent = 1)
         cprint(ics, "")
@@ -1059,7 +1062,7 @@ class ElnWailaEasyModeCommand: IConsoleCommand {
 class ElnDebugCommand: IConsoleCommand {
     override val name = "debug"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.size == 1) {
             val debug = getArgBool(ics, args[0])?: return
             saveConfigPath("debug.logging.enabled", debug)
@@ -1069,7 +1072,7 @@ class ElnDebugCommand: IConsoleCommand {
         }
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Enables/disables debug mode.", indent = 1)
         cprint(ics, "This will save to the server config file.", indent = 1)
         cprint(ics, "")
@@ -1093,7 +1096,7 @@ class ElnDebugCommand: IConsoleCommand {
 class ElnSimSnapshotCommand: IConsoleCommand {
     override val name = "sim-snapshot"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.size == 1) {
             val enableSnapshots = getArgBool(ics, args[0]) ?: return
             saveConfigPath("debug.logging.simSnapshot", enableSnapshots)
@@ -1104,7 +1107,7 @@ class ElnSimSnapshotCommand: IConsoleCommand {
         }
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Enables/disables saving circuit MNA snapshots to disk.", indent = 1)
         cprint(ics, "This will save to the server config file.", indent = 1)
         cprint(ics, "")
@@ -1127,7 +1130,7 @@ class ElnWatchdogCommand: IConsoleCommand {
     override val name = "watchdog"
     private val validTypes = listOf("all", "thermal", "resistorHeat", "current", "voltage", "shaftSpeed", "other", "defaults")
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.isEmpty() || args.size > 2) {
             cprint(ics, "Usage: /eln watchdog <type> [true|false]", indent = 1)
             cprint(ics, "Types: ${validTypes.joinToString(", ")}", indent = 1)
@@ -1198,7 +1201,7 @@ class ElnWatchdogCommand: IConsoleCommand {
         saveConfigPath("simulation.watchdog.destruction.other", Eln.config.getBooleanOrElse("simulation.watchdog.destruction.other", true))
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Enable or disable destruction for one watchdog category at runtime.", indent = 1)
         cprint(ics, "Use defaults to restore the default watchdog profile.", indent = 1)
         cprint(ics, "This also updates config/eln/eln.json.", indent = 1)
@@ -1224,7 +1227,7 @@ class ElnWatchdogCommand: IConsoleCommand {
 class ElnIconsCommand: IConsoleCommand {
     override val name = "icons"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.size == 1) {
             val symbols = args[0].equals("symbols", ignoreCase = true)
             saveConfigPath("ui.icons.noSymbols", symbols)
@@ -1234,7 +1237,7 @@ class ElnIconsCommand: IConsoleCommand {
         }
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Changes the icon set", indent = 1)
         cprint(ics, "This will save to the server config file.", indent = 1)
         cprint(ics, "")
@@ -1258,7 +1261,7 @@ class ElnIconsCommand: IConsoleCommand {
 class ElnPoleMapCommand: IConsoleCommand {
     override val name = "poleMap"
 
-    override fun runCommand(ics: ICommandSender, args: List<String>) {
+    override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         val outputName = args.getOrNull(0)?.takeIf { it.isNotBlank() } ?: "eln_power_poles.svg"
         val dimensionFilter = args.getOrNull(1)?.let {
             it.toIntOrNull() ?: run {
@@ -1293,7 +1296,7 @@ class ElnPoleMapCommand: IConsoleCommand {
         }
     }
 
-    override fun getManPage(ics: ICommandSender, args: List<String>) {
+    override fun getManPage(ics: CommandSourceStack, args: List<String>) {
         cprint(ics, "Creates an SVG map of every T1/T2 pole and grid transformer in the loaded world.", indent = 1)
         cprint(ics, "Altitude is ignored so you get a plan view of the grid layout.", indent = 1)
         cprint(ics, "")

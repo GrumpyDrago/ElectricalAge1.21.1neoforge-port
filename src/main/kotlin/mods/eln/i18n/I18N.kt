@@ -1,17 +1,12 @@
 package mods.eln.i18n
 
-import cpw.mods.fml.common.FMLCommonHandler
-import cpw.mods.fml.common.registry.LanguageRegistry
+import net.minecraft.locale.Language
 import mods.eln.misc.Utils
 
 /**
  * Internationalization and localization helper class.
  */
 object I18N {
-    private val languageRegistry: LanguageRegistry? by lazy {
-        try { LanguageRegistry.instance() } catch (_: Throwable) { null }
-    }
-
     /**
      * Defines the different translatable types.
      */
@@ -82,7 +77,7 @@ object I18N {
 
     @JvmStatic
     fun getCurrentLanguage(): String {
-        return FMLCommonHandler.instance().currentLanguage
+        return if (net.neoforged.fml.loading.FMLEnvironment.dist?.isClient == true) ClientLanguage.current() else "en_us"
     }
 
     internal fun encodeLangKey(key: String): String {
@@ -95,10 +90,7 @@ object I18N {
             if (replaceWhitespaces) {
                 result = result.replace(' ', '_')
             }
-            return result
-                .replace("=", "\\=")
-                .replace(":", "\\:")
-                .replace("\n", "\\n")
+            return result.replace("\n", "\\n")
         } else {
             return null
         }
@@ -135,7 +127,7 @@ object I18N {
         // Try to find the translation for the string using forge API.
         var translation: String? = null
         try {
-            translation = languageRegistry?.getStringLocalization(encodeLangKey(text))
+            translation = Language.getInstance().getOrDefault(encodeLangKey(text), "")
         } catch (_: Throwable) {
             // Forge classes may not be available in test environments (ExceptionInInitializerError,
             // NoClassDefFoundError, etc.). Fall back to the original text.
@@ -146,7 +138,7 @@ object I18N {
             translation = text
         } else {
             // Replace placeholders.
-            translation = translation.replace("\\n", "\n").replace("\\:", ":")
+            translation = translation.replace("\\n", "\n")
         }
 
         // Replace placeholders in string by actual string values of the passed objects.

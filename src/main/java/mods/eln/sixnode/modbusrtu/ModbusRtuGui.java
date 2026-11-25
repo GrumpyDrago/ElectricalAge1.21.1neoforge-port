@@ -3,7 +3,7 @@ package mods.eln.sixnode.modbusrtu;
 import mods.eln.gui.*;
 import mods.eln.gui.IGuiObject.IGuiObjectObserver;
 import mods.eln.wiki.GuiVerticalExtender;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.entity.player.Player;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -29,7 +29,7 @@ public class ModbusRtuGui extends GuiScreenEln {
 
     GuiHelper helper;
 
-    public ModbusRtuGui(EntityPlayer player, ModbusRtuRender render) {
+    public ModbusRtuGui(Player player, ModbusRtuRender render) {
         this.render = render;
     }
 
@@ -68,7 +68,7 @@ public class ModbusRtuGui extends GuiScreenEln {
         station.setComment(0, tr("Station ID"));
         extender.add(station);
 
-        name = new GuiTextFieldEln(fontRendererObj, 2 + station.getWidth() + 12, y, 101, helper);
+        name = new GuiTextFieldEln(fontRendererObj, 2 + station.width + 12, y, 101, helper);
         y += name.getHeight();
         name.setText(render.name);
         name.setObserver(this);
@@ -112,7 +112,7 @@ public class ModbusRtuGui extends GuiScreenEln {
             txName.setComment(0, tr("Channel name"));
             extender.add(txName);
 
-            x += txName.getWidth() + 12;
+            x += txName.width + 12;
 
             GuiTextFieldEln txId = new GuiTextFieldEln(fontRendererObj, x, y + 4, 40, helper);
             if (tx.id != -1)
@@ -122,7 +122,7 @@ public class ModbusRtuGui extends GuiScreenEln {
             txId.setComment(0, tr("Modbus ID"));
             extender.add(txId);
 
-            x += txId.getWidth() + 12;
+            x += txId.width + 12;
 
             GuiButtonEln txDelete = new GuiButtonEln(x, y, 20, 20, "X");
             txDelete.setObserver(new WirelessTxDeleteListener(render, tx.uuid));
@@ -166,7 +166,7 @@ public class ModbusRtuGui extends GuiScreenEln {
             rxName.setComment(0, tr("Channel name"));
             extender.add(rxName);
 
-            x += rxName.getWidth() + 12;
+            x += rxName.width + 12;
 
             GuiTextFieldEln rxId = new GuiTextFieldEln(fontRendererObj, x, y + 4, 40, helper);
             if (rx.id != -1)
@@ -176,7 +176,7 @@ public class ModbusRtuGui extends GuiScreenEln {
             rxId.setComment(0, tr("Modbus ID"));
             extender.add(rxId);
 
-            x += rxId.getWidth() + 12;
+            x += rxId.width + 12;
 
             GuiButtonEln rxDelete = new GuiButtonEln(x, y, 20, 20, "X");
             rxDelete.setObserver(new WirelessRxDeleteListener(render, rx.uuid));

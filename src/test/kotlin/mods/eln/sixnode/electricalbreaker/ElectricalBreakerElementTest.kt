@@ -1,5 +1,7 @@
 package mods.eln.sixnode.electricalbreaker
 
+import mods.eln.compat.*
+
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.misc.Direction
 import mods.eln.misc.LRDU

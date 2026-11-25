@@ -1,16 +1,17 @@
 package mods.eln.sixnode.mqttmeter
 
+import mods.eln.compat.*
+
 import mods.eln.gui.GuiButtonEln
 import mods.eln.gui.GuiContainerEln
 import mods.eln.gui.GuiHelperContainer
 import mods.eln.gui.GuiTextFieldEln
 import mods.eln.gui.IGuiObject
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.IInventory
+import net.minecraft.world.entity.player.Player
 import mods.eln.i18n.I18N.tr
 
 class MqttEnergyMeterGui(
-    player: EntityPlayer,
+    player: Player,
     inventory: IInventory,
     private val render: MqttEnergyMeterRender
 ) : GuiContainerEln(MqttEnergyMeterContainer(player, inventory)) {

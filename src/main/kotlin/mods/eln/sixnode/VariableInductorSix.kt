@@ -1,5 +1,7 @@
 package mods.eln.sixnode
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.generic.GenericItemUsingDamageDescriptor
@@ -33,16 +35,14 @@ import mods.eln.sim.mna.misc.MnaConst
 import mods.eln.sim.nbt.NbtElectricalGateInput
 import mods.eln.sim.nbt.NbtElectricalLoad
 import mods.eln.wiki.Data
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.Container
-import net.minecraft.inventory.IInventory
-import net.minecraft.inventory.Slot
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraftforge.client.IItemRenderer
-import org.lwjgl.opengl.GL11
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.inventory.Slot
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import mods.eln.compat.client.GL11
 import java.util.HashMap
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -96,7 +96,7 @@ class VariableInductorSixDescriptor(
 
     override fun addInformation(
         itemStack: ItemStack?,
-        entityPlayer: EntityPlayer?,
+        entityPlayer: Player?,
         list: MutableList<String>?,
         par4: Boolean
     ) {
@@ -119,7 +119,7 @@ class VariableInductorSixDescriptor(
         return RealisticEnum.UNREALISTIC
     }
 
-    override fun getFrontFromPlace(side: Direction, player: EntityPlayer): LRDU {
+    override fun getFrontFromPlace(side: Direction, player: Player): LRDU {
         return super.getFrontFromPlace(side, player)!!.left()
     }
 
@@ -269,14 +269,14 @@ class VariableInductorSixElement(
         controlProcess.forceUpdate()
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         fromNbt = true
     }
 
     override fun hasGui(): Boolean = true
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu {
         return VariableInductorSixContainer(player, inventory)
     }
 }
@@ -305,13 +305,13 @@ class VariableInductorSixRender(
         }
     }
 
-    override fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen {
+    override fun newGuiDraw(side: Direction, player: Player): Screen {
         return VariableInductorSixGui(player, inventory)
     }
 }
 
 class VariableInductorSixGui(
-    player: EntityPlayer,
+    player: Player,
     inventory: IInventory
 ) : GuiContainerEln(VariableInductorSixContainer(player, inventory)) {
     override fun guiObjectEvent(`object`: IGuiObject) {
@@ -323,7 +323,7 @@ class VariableInductorSixGui(
     }
 }
 
-class VariableInductorSixContainer(player: EntityPlayer, inventory: IInventory) : BasicContainer(
+class VariableInductorSixContainer(player: Player, inventory: IInventory) : BasicContainer(
     player,
     inventory,
     arrayOf(

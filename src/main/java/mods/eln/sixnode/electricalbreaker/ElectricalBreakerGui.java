@@ -1,9 +1,9 @@
 package mods.eln.sixnode.electricalbreaker;
 
 import mods.eln.gui.*;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
+import mods.eln.compat.client.GuiButton;
+import net.minecraft.world.entity.player.Player;
+import mods.eln.compat.IInventory;
 
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -18,7 +18,7 @@ public class ElectricalBreakerGui extends GuiContainerEln {
 
     enum SelectedType {none, min, max}
 
-    public ElectricalBreakerGui(EntityPlayer player, IInventory inventory, ElectricalBreakerRender render) {
+    public ElectricalBreakerGui(Player player, IInventory inventory, ElectricalBreakerRender render) {
         super(new ElectricalBreakerContainer(player, inventory));
         this.render = render;
     }

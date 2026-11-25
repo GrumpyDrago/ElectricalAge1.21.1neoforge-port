@@ -1,11 +1,13 @@
 package mods.eln.sixnode.thermometersensor
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.environment.BiomeClimateService
 import mods.eln.misc.INBTTReady
 import mods.eln.misc.RcInterpolator
 import mods.eln.sim.IProcess
-import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.nbt.CompoundTag
 
 class ThermometerSensorSlowProcess(private val element: ThermometerSensorElement) : IProcess, INBTTReady {
     private var timeCounter = 0.0
@@ -32,12 +34,12 @@ class ThermometerSensorSlowProcess(private val element: ThermometerSensorElement
         }
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound, str: String) {
+    override fun readFromNBT(nbt: CompoundTag, str: String) {
         rc.setValue(nbt.getFloat(str + "rc"))
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound, str: String) {
-        nbt.setFloat(str + "rc", rc.get())
+    override fun writeToNBT(nbt: CompoundTag, str: String) {
+        nbt.putFloat(str + "rc", rc.get())
     }
 
     companion object {

@@ -1,5 +1,7 @@
 package mods.eln.railroad
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.node.transparent.TransparentNodeElement
 import mods.eln.sim.IProcess

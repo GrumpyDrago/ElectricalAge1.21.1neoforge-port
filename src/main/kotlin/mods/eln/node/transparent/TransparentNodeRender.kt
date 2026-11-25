@@ -1,16 +1,24 @@
 package mods.eln.node.transparent
 
-import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer
-import net.minecraft.tileentity.TileEntity
-import org.lwjgl.opengl.GL11
+import com.mojang.blaze3d.vertex.PoseStack
+import mods.eln.compat.client.GL11
+import net.minecraft.client.renderer.MultiBufferSource
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider
+import net.minecraft.world.phys.AABB
 
-class TransparentNodeRender : TileEntitySpecialRenderer() {
-    override fun renderTileEntityAt(entity: TileEntity, x: Double, y: Double, z: Double, var8: Float) {
-        val tileEntity = entity as TransparentNodeEntity
-        if (tileEntity.elementRender == null) return
-        GL11.glPushMatrix()
-        GL11.glTranslatef(x.toFloat() + .5f, y.toFloat() + .5f, z.toFloat() + .5f)
-        tileEntity.elementRender!!.draw()
-        GL11.glPopMatrix()
+class TransparentNodeRender(@Suppress("UNUSED_PARAMETER") context: BlockEntityRendererProvider.Context) : BlockEntityRenderer<TransparentNodeEntity> {
+    override fun render(entity: TransparentNodeEntity, partialTick: Float, pose: PoseStack, buffers: MultiBufferSource, light: Int, overlay: Int) {
+        val render = entity.elementRender ?: return
+        GL11.inWorld(pose, buffers, light, overlay) {
+            GL11.glTranslatef(.5f, .5f, .5f)
+            render.draw()
+        }
     }
+
+    override fun getViewDistance(): Int = 256
+
+    override fun getRenderBoundingBox(entity: TransparentNodeEntity): AABB = entity.renderBox()
+
+    override fun shouldRenderOffScreen(entity: TransparentNodeEntity): Boolean = !entity.cameraDrawOptimisation()
 }

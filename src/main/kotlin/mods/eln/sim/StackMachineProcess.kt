@@ -1,10 +1,11 @@
 package mods.eln.sim
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.misc.RecipesList
 import mods.eln.misc.Utils
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.ItemStack
+import net.minecraft.world.item.ItemStack
 
 class StackMachineProcess(
     var inventory: IInventory?,
@@ -88,7 +89,7 @@ class StackMachineProcess(
         if (canSmelt()) {
             val recipe = recipesList!!.getRecipe(inventory!!.getStackInSlot(inputSlotId))
             Utils.tryPutStackInInventory(recipe!!.outputCopy.requireNoNulls(), inventory!!, outSlotIdList)
-            inventory!!.decrStackSize(inputSlotId, recipe.input.stackSize)
+            inventory!!.decrStackSize(inputSlotId, recipe.input.count)
         }
     }
 

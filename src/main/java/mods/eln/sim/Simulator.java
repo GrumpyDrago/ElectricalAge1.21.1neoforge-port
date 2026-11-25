@@ -1,9 +1,8 @@
 package mods.eln.sim;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent.Phase;
-import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
+import mods.eln.compat.FMLCommonHandler;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import mods.eln.Eln;
 import mods.eln.environment.RoomThermalManager;
 import mods.eln.item.lampitem.LampLists;
@@ -354,8 +353,7 @@ public class Simulator /* ,IPacketHandler */ {
     public boolean pleaseCrash = false;
 
     @SubscribeEvent
-    public void tick(ServerTickEvent event) {
-        if (event.phase != Phase.START) return;
+    public void tick(ServerTickEvent.Pre event) {
         if (pleaseCrash) throw new StackOverflowError();
         long stackStart;
 
@@ -419,10 +417,14 @@ public class Simulator /* ,IPacketHandler */ {
             process.process(0.05);
         }
 
-        for (IDestructible d : destructableSet) {
-            d.destructImpl();
+        if (!destructableSet.isEmpty()) {
+            // Destruction can lead to more destruction.
+            List<IDestructible> destructed = new ArrayList<>(destructableSet);
+            destructableSet.clear();
+            for (IDestructible d : destructed) {
+                d.destructImpl();
+            }
         }
-        destructableSet.clear();
 
         slowNsStack += System.nanoTime() - stackStart;
         avgTickTime += 1.0 / 20 * ((int) (System.nanoTime() - startTime) / 1000);

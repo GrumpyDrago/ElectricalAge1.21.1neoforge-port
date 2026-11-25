@@ -1,8 +1,9 @@
 package mods.eln.fluid
 
+import mods.eln.compat.*
+
 import mods.eln.config.JsonConfig
-import net.minecraftforge.fluids.Fluid
-import net.minecraftforge.fluids.FluidRegistry
+import net.minecraft.world.level.material.Fluid
 import java.io.File
 
 data class FuelEntry(
@@ -202,7 +203,7 @@ object FuelRegistry {
     }
 
     fun fluidListToFluids(fluidNames: Array<String>) =
-        fluidNames.map { FluidRegistry.getFluid(it) }.filterNotNull().toTypedArray()
+        fluidNames.map { FluidNames.find(it) }.filterNotNull().toTypedArray()
 
     fun heatEnergyPerMilliBucket(fuelName: String): Double =
         config.getDoubleOrElse(heatValueFactorPath, defaultHeatValueFactor) * baseHeatValueForFuel(fuelName)

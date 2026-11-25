@@ -1,27 +1,19 @@
 package mods.eln.node.six
 
-import mods.eln.misc.Utils
+import mods.eln.generic.DescriptorItem
 import mods.eln.node.ISixNodeCache
-import net.minecraft.block.Block
-import net.minecraft.block.BlockContainer
-import net.minecraft.item.ItemStack
+import net.minecraft.core.BlockPos
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.EmptyBlockGetter
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.RenderShape
 
 class SixNodeCacheStd : ISixNodeCache {
+    /** Plain full cubes can be put over a six node. */
     override fun accept(stack: ItemStack): Boolean {
-        Utils.println("Testing item ${stack.displayName} for blockiness")
-        val b = Block.getBlockFromItem(stack.item) ?: return false
-        if (b is BlockContainer) return false
-        Utils.println("Item is probably a block with render type ${b.renderType}")
-        return if (stack.item is SixNodeItem) false else when (b.renderType) {
-            0 -> true
-            31 -> true // Logs
-            39 -> true // Quartz block
-            59 -> true // Chisel?
-            else -> false
-        }
-    }
-
-    override fun getMeta(stack: ItemStack): Int {
-        return stack.itemDamage
+        if (stack.item is DescriptorItem) return false
+        val state = Block.byItem(stack.item).defaultBlockState()
+        if (state.isAir || state.hasBlockEntity()) return false
+        return state.renderShape == RenderShape.MODEL && state.isCollisionShapeFullBlock(EmptyBlockGetter.INSTANCE, BlockPos.ZERO)
     }
 }

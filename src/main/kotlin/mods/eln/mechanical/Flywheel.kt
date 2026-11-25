@@ -1,5 +1,7 @@
 package mods.eln.mechanical
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.i18n.I18N.tr
 import mods.eln.misc.Direction
@@ -10,9 +12,9 @@ import mods.eln.node.transparent.EntityMetaTag
 import mods.eln.node.transparent.TransparentNode
 import mods.eln.node.transparent.TransparentNodeDescriptor
 import mods.eln.sim.IProcess
-import net.minecraft.entity.Entity
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.util.DamageSource
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
+import mods.eln.misc.ElnDamage
 
 class FlywheelDescriptor(baseName: String, obj: Obj3D, val capacityScale: Float = 1f) : SimpleShaftDescriptor(baseName,
     FlyWheelElement::class, ShaftRender::class, EntityMetaTag.Basic) {
@@ -54,19 +56,19 @@ class FlyWheelElement(node: TransparentNode, desc_: TransparentNodeDescriptor) :
             for(obj in objects) {
                 val ent = obj as Entity
                 Utils.println(String.format("FPP.sP: considering %s", ent))
-                val dx = Math.abs(ent.posX - coord.x - 0.5)
-                val dy = Math.abs(ent.posY - coord.y - 1)
-                val dz = Math.abs(ent.posZ - coord.z - 0.5)
+                val dx = Math.abs(ent.x - coord.x - 0.5)
+                val dy = Math.abs(ent.y - coord.y - 1)
+                val dz = Math.abs(ent.z - coord.z - 0.5)
                 if(dy > yTolerance) {
-                    Utils.println("FPP.sP: dy out of range (" + dy + "; c.y " + coord.y + " e.y" + ent.posY + "): " + ent)
+                    Utils.println("FPP.sP: dy out of range (" + dy + "; c.y " + coord.y + " e.y" + ent.y + "): " + ent)
                     continue
                 }
                 if(dx > xzTolerance) {
-                    Utils.println("FPP.sP: dx out of range (" + dx + "; c.x " + coord.x + " e.x" + ent.posX + "): " + ent)
+                    Utils.println("FPP.sP: dx out of range (" + dx + "; c.x " + coord.x + " e.x" + ent.x + "): " + ent)
                     continue
                 }
                 if(dz > xzTolerance) {
-                    Utils.println("FPP.sP: dz out of range (" + dz + "; c.z " + coord.z + " e.z" + ent.posZ + "): " + ent)
+                    Utils.println("FPP.sP: dz out of range (" + dz + "; c.z " + coord.z + " e.z" + ent.z + "): " + ent)
                     continue
                 }
                 val mag = velocityF.getValue(rads).coerceIn(0.0, 1.0)
@@ -76,19 +78,19 @@ class FlyWheelElement(node: TransparentNode, desc_: TransparentNodeDescriptor) :
                     else -> arrayOf(0.0, mag, 0.0) // XXX
                 }
                 val dmg = damageF.getValue(rads).toInt().coerceIn(0, 1000)
-                if (ent is EntityPlayer) {
+                if (ent is Player) {
                     val ply = ent
                     // creative mode players can't have their position set, apparently.
-                    if (!ply.capabilities.isCreativeMode) {
-                        ent.addVelocity(vel[0], vel[1], vel[2])
+                    if (!ply.isCreativeMode) {
+                        ent.push(vel[0], vel[1], vel[2])
                     }
                 } else {
                     // not a player, we do what we want
-                    ent.addVelocity(vel[0], vel[1], vel[2])
+                    ent.push(vel[0], vel[1], vel[2])
                 }
                 Utils.println("FFP.sP: ent " + ent + " flung " + vel.joinToString(",") + " for damage " + dmg)
                 if(dmg <= 0) continue
-                ent.attackEntityFrom(DamageSource("Flywheel"), dmg.toFloat())
+                ent.attackEntityFrom(ElnDamage.flywheel(ent), dmg.toFloat())
             }
         }
     }

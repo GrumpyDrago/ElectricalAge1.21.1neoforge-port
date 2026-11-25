@@ -1,14 +1,20 @@
 package mods.eln.wiki;
 
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import java.util.ArrayList;
+import java.util.List;
+
+import mods.eln.compat.Mc;
+
 import mods.eln.gui.GuiHelper;
 import mods.eln.gui.IGuiObject;
 import mods.eln.misc.UtilsClient;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import org.lwjgl.opengl.GL11;
+import mods.eln.compat.client.Gui;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.resources.ResourceLocation;
+import mods.eln.compat.client.GL11;
 
 import java.util.List;
 
@@ -28,71 +34,16 @@ public class GuiItemStack extends Gui implements IGuiObject {
     ItemStack stack;
 
     public GuiHelper helper;
-    static final ResourceLocation slotSkin = new ResourceLocation("textures/gui/container/furnace.png");
+    static final ResourceLocation slotSkin = Mc.rl("textures/gui/container/furnace.png");
 
 
     @Override
     public void idraw(int x, int y, float f) {
-        //RenderHelper.disableStandardItemLighting();
-        try {
-            GL11.glColor3f(1f, 1f, 1f);
-            UtilsClient.bindTexture(slotSkin);
-            drawTexturedModalRect(posX - 1, posY - 1, 55, 16, 73 - 55, 34 - 16);
-
-            if (stack != null) {
-                //	RenderHelper.enableStandardItemLighting();
-                RenderHelper.enableStandardItemLighting();
-                RenderHelper.enableGUIStandardItemLighting();
-
-                UtilsClient.drawItemStack(stack, posX, posY, null, true);
-
-                RenderHelper.disableStandardItemLighting();
-                // GL11.glEnable(GL11.GL_LIGHTING);
-                //  GL11.glEnable(GL11.GL_DEPTH_TEST);
-                //  RenderHelper.enableStandardItemLighting();
-            }
-        } catch (Exception e) {
-            // TODO: handle exception
-        }
-
-
+        GL11.glColor3f(1f, 1f, 1f);
+        UtilsClient.bindTexture(slotSkin);
+        drawTexturedModalRect(posX - 1, posY - 1, 55, 16, 73 - 55, 34 - 16);
+        if (stack != null) UtilsClient.drawItemStack(stack, posX, posY, null, true);
     }
-    /*    GL11.glDisable(GL12.GL_RESCALE_NORMAL);
-    RenderHelper.disableStandardItemLighting();
-    GL11.glDisable(GL11.GL_LIGHTING);
-  //  GL11.glDisable(GL11.GL_DEPTH_TEST);
-    RenderHelper.enableGUIStandardItemLighting();
-    
-    short short1 = 240;
-    short short2 = 240;
-    OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, (float)short1 / 1.0F, (float)short2 / 1.0F);
-
-    GL11.glEnable(GL11.GL_LIGHTING);
-    
-    
-  //  RenderHelper.enableStandardItemLighting();
-  //  RenderHelper.disableStandardItemLighting();
- //   RenderHelper.enableStandardItemLighting();
- /*  GL11.glDepthFunc(GL11.GL_GREATER);
-    GL11.glDisable(GL11.GL_LIGHTING);
-    GL11.glDepthMask(false);
- //   par2TextureManager.func_110577_a(field_110798_h);
-    this.zLevel -= 50.0F;
-    GL11.glEnable(GL11.GL_BLEND);
-    GL11.glBlendFunc(GL11.GL_DST_COLOR, GL11.GL_DST_COLOR);
-    GL11.glColor4f(0.5F, 0.25F, 0.8F, 1.0F);
-  //  this.renderGlint(par4 * 431278612 + par5 * 32178161, par4 - 2, par5 - 2, 20, 20);
-    GL11.glDisable(GL11.GL_BLEND);
-    GL11.glDepthMask(true);
-    this.zLevel += 50.0F;
-    GL11.glEnable(GL11.GL_LIGHTING);
-    GL11.glDepthFunc(GL11.GL_LEQUAL);
-	*/
-
-    //RenderHelper.enableGUIStandardItemLighting();
-    //RenderHelper.enableStandardItemLighting();
-    //RenderHelper.disableStandardItemLighting();
-    // RenderHelper.enableGUIStandardItemLighting();
 
     @Override
     public void idraw2(int x, int y) {
@@ -101,8 +52,9 @@ public class GuiItemStack extends Gui implements IGuiObject {
             int px, py;
             px = posX;
             py = posY;
-            List list = stack.getTooltip(Minecraft.getMinecraft().thePlayer, false);
-            helper.drawHoveringText(list, x, y, Minecraft.getMinecraft().fontRenderer);
+            List<String> list = new ArrayList<>();
+            for (Component line : Screen.getTooltipFromItem(Minecraft.getInstance(), stack)) list.add(line.getString());
+            helper.drawHoveringText(list, x, y, Minecraft.getInstance().font);
         }
     }
 

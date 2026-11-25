@@ -1,21 +1,23 @@
 package mods.eln.sound
 
+import mods.eln.compat.*
+
 import mods.eln.misc.Coordinate
 
 class BeepLoopedSound(
     coord: Coordinate,
-    private var volume: Float = 1f,
-    private var pitch: Float = 1f
+    private var loudness: Float = 1f,
+    private var tone: Float = 1f
 ) : LoopedSound("eln:beep_loop", coord) {
-    override fun getVolume() = volume
-    override fun getPitch() = pitch
+    override fun getVolume() = loudness
+    override fun getPitch() = tone
 
     fun setVolume(value: Float) {
-        volume = value
+        loudness = value
     }
 
     fun setPitch(value: Float) {
-        pitch = value
+        tone = value
     }
 
     fun setActiveState(value: Boolean) {

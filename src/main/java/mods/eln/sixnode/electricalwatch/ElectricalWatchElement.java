@@ -1,5 +1,7 @@
 package mods.eln.sixnode.electricalwatch;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.i18n.I18N;
 import mods.eln.item.electricalitem.BatteryItem;
 import mods.eln.misc.Direction;
@@ -12,9 +14,9 @@ import mods.eln.node.six.SixNodeElement;
 import mods.eln.node.six.SixNodeElementInventory;
 import mods.eln.sim.ElectricalLoad;
 import mods.eln.sim.ThermalLoad;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import mods.eln.compat.IInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -81,8 +83,8 @@ public class ElectricalWatchElement extends SixNodeElement {
     }
 
     @Override
-    public boolean onBlockActivated(EntityPlayer entityPlayer, Direction side, float vx, float vy, float vz) {
-        return inventory.take(entityPlayer.getCurrentEquippedItem(), this, true, false);
+    public boolean onBlockActivated(Player entityPlayer, Direction side, float vx, float vy, float vz) {
+        return inventory.take(Mc.getCurrentEquippedItem(entityPlayer), this, true, false);
     }
 
     @Override
@@ -100,7 +102,7 @@ public class ElectricalWatchElement extends SixNodeElement {
 
     @Nullable
     @Override
-    public Container newContainer(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public AbstractContainerMenu newContainer(@NotNull Direction side, @NotNull Player player) {
         return new ElectricalWatchContainer(player, inventory.getInventory());
     }
 

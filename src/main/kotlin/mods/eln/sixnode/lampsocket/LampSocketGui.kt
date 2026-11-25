@@ -1,10 +1,12 @@
 package mods.eln.sixnode.lampsocket
 
+import mods.eln.compat.*
+
 import mods.eln.gui.*
 import mods.eln.i18n.I18N
-import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.world.entity.player.Player
 
-class LampSocketGui(player: EntityPlayer, val render: LampSocketRender) :
+class LampSocketGui(player: Player, val render: LampSocketRender) :
     GuiContainerEln(LampSocketContainer(player, render.inventory, render.descriptor)) {
 
     companion object {

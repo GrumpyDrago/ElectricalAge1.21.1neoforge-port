@@ -1,14 +1,15 @@
 package mods.eln.gui;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.client.gui.Font;
+import mods.eln.compat.client.GuiTextField;
 
 import java.util.ArrayList;
 
 public class GuiTextFieldEln extends GuiTextField implements IGuiObject {
 
-    int xPos, yPos, width, height;
+    int xPos, yPos, height;
+    public int width;
     GuiTextFieldElnObserver observer;
     GuiHelper helper;
 
@@ -16,11 +17,11 @@ public class GuiTextFieldEln extends GuiTextField implements IGuiObject {
 
     IGuiObjectObserver iGuiObjectObserver;
 
-    public GuiTextFieldEln(FontRenderer par1FontRenderer, int x, int y, int w, int h, GuiHelper helper) {
+    public GuiTextFieldEln(Font par1FontRenderer, int x, int y, int w, int h, GuiHelper helper) {
         this(par1FontRenderer, x, y, w, h, helper, 150);
     }
 
-    public GuiTextFieldEln(FontRenderer par1FontRenderer, int x, int y, int w, int h, GuiHelper helper, int maxLength) {
+    public GuiTextFieldEln(Font par1FontRenderer, int x, int y, int w, int h, GuiHelper helper, int maxLength) {
         super(par1FontRenderer, x, y, w, h);
         setTextColor(-1);
         setDisabledTextColour(-1);
@@ -33,7 +34,7 @@ public class GuiTextFieldEln extends GuiTextField implements IGuiObject {
         this.helper = helper;
     }
 
-    public GuiTextFieldEln(FontRenderer par1FontRenderer, int x, int y, int w, GuiHelper helper) {
+    public GuiTextFieldEln(Font par1FontRenderer, int x, int y, int w, GuiHelper helper) {
         this(par1FontRenderer, x, y, w, 12, helper);
     }
 
@@ -87,7 +88,7 @@ public class GuiTextFieldEln extends GuiTextField implements IGuiObject {
     }
 
     public boolean textboxKeyTyped(char par1, int par2) {
-        if (getEnabled() && this.isFocused() && par1 == '\r') {
+        if (getEnabled() && this.isFocused() && par2 != 0 && par1 == '\r') {
             setFocused(false);
             return true;
         }
@@ -131,7 +132,7 @@ public class GuiTextFieldEln extends GuiTextField implements IGuiObject {
     @Override
     public void idraw2(int x, int y) {
         if (!isFocused() && getVisible() && x >= xPos && y >= yPos && x < xPos + width && y < yPos + height)
-            helper.drawHoveringText(comment, x, y, Minecraft.getMinecraft().fontRenderer);
+            helper.drawHoveringText(comment, x, y, Minecraft.getInstance().font);
 
     }
 
@@ -139,6 +140,7 @@ public class GuiTextFieldEln extends GuiTextField implements IGuiObject {
     public void translate(int x, int y) {
         this.xPos += x;
         this.yPos += y;
+        moveBy(x, y);
     }
 
     public int getHeight() {

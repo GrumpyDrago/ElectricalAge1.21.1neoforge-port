@@ -1,5 +1,7 @@
 package mods.eln.transparentnode
 
+import mods.eln.compat.*
+
 import mods.eln.gui.ISlotSkin
 import mods.eln.gui.ISlotWithComment
 import mods.eln.gui.SlotWithSkin
@@ -10,8 +12,7 @@ import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
 import mods.eln.sixnode.electricalcable.UtilityCableDescriptor
 import mods.eln.sim.IProcess
 import mods.eln.sim.nbt.NbtThermalLoad
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.ItemStack
+import net.minecraft.world.item.ItemStack
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.sqrt
@@ -42,7 +43,7 @@ internal fun dcDcWinding(stack: ItemStack?): DcDcWinding? {
     val amount = if (descriptor is UtilityCableDescriptor) {
         descriptor.getRemainingLengthMeters(stack)
     } else {
-        stack.stackSize.toDouble()
+        stack.count.toDouble()
     }
     if (!amount.isFinite() || amount <= UtilityCableDescriptor.LENGTH_METERS_EPSILON) return null
     return DcDcWinding(descriptor, amount)
@@ -119,7 +120,7 @@ private fun strictWindingConstructionProblem(stack: ItemStack?, label: String): 
     val amount = if (descriptor is UtilityCableDescriptor) {
         descriptor.getRemainingLengthMeters(stack)
     } else {
-        stack.stackSize.toDouble()
+        stack.count.toDouble()
     }
     if (!amount.isFinite() || amount <= UtilityCableDescriptor.LENGTH_METERS_EPSILON) {
         return WindingConstructionProblem(null, tr("Needs %1$ Winding", label))
@@ -158,7 +159,7 @@ private fun dcDcWindingRenderAmount(stack: ItemStack?): Double? {
     val amount = if (descriptor is UtilityCableDescriptor) {
         descriptor.getRemainingLengthMeters(stack)
     } else {
-        stack.stackSize.toDouble()
+        stack.count.toDouble()
     }
     return amount.takeIf { it.isFinite() && it > UtilityCableDescriptor.LENGTH_METERS_EPSILON }
 }
@@ -298,11 +299,11 @@ internal class DcDcWindingSlot(
     private val stackLimit: Int,
     private val comment: Array<String> = arrayOf(tr("Power cable or wire slot"))
 ) : SlotWithSkin(inventory, slot, x, y, ISlotSkin.SlotSkin.medium), ISlotWithComment {
-    override fun isItemValid(itemStack: ItemStack): Boolean {
+    override fun mayPlace(itemStack: ItemStack): Boolean {
         return dcDcWinding(itemStack) != null
     }
 
-    override fun getSlotStackLimit(): Int {
+    override fun getMaxStackSize(): Int {
         return stackLimit
     }
 

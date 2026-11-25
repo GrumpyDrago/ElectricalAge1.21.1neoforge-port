@@ -4,9 +4,9 @@ import mods.eln.gui.GuiContainerEln;
 import mods.eln.gui.GuiHelperContainer;
 import mods.eln.gui.GuiTextFieldEln;
 import mods.eln.gui.IGuiObject;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.entity.player.Player;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.item.ItemStack;
 
 import static mods.eln.i18n.I18N.tr;
 
@@ -15,7 +15,7 @@ public class ElectricalMathGui extends GuiContainerEln {
     GuiTextFieldEln expression;
     ElectricalMathRender render;
 
-    public ElectricalMathGui(EntityPlayer player, IInventory inventory, ElectricalMathRender render) {
+    public ElectricalMathGui(Player player, IInventory inventory, ElectricalMathRender render) {
         super(new ElectricalMathContainer(null, player, inventory));
         //this.inventory = (TransparentNodeElementInventory) inventory;
         this.render = render;
@@ -53,7 +53,7 @@ public class ElectricalMathGui extends GuiContainerEln {
         ItemStack stack = render.inventory.getStackInSlot(ElectricalMathContainer.restoneSlotId);
 
         if (stack != null)
-            redNbr = stack.stackSize;
+            redNbr = stack.getCount();
         if (!expression.getText().equals(render.expression)) {
             c = 0xFF404040;
             helper.drawString(8 + 44 / 2, 29, c, tr("Waiting for completion..."));

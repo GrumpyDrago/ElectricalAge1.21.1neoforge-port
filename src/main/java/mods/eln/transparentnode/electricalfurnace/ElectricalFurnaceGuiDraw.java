@@ -5,10 +5,10 @@ import mods.eln.generic.GenericItemUsingDamageDescriptor;
 import mods.eln.item.HeatingCorpElement;
 import mods.eln.misc.Utils;
 import mods.eln.node.transparent.TransparentNodeElementInventory;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
+import mods.eln.compat.client.GuiButton;
+import net.minecraft.world.entity.player.Player;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.item.ItemStack;
 
 import static mods.eln.i18n.I18N.tr;
 
@@ -21,7 +21,7 @@ public class ElectricalFurnaceGuiDraw extends GuiContainerEln {
 
     GuiVerticalVoltageSupplyBar supplyBar;
 
-    public ElectricalFurnaceGuiDraw(EntityPlayer player, IInventory inventory, ElectricalFurnaceRender render) {
+    public ElectricalFurnaceGuiDraw(Player player, IInventory inventory, ElectricalFurnaceRender render) {
         super(new ElectricalFurnaceContainer(null, player, inventory));
         this.inventory = (TransparentNodeElementInventory) inventory;
         this.render = render;

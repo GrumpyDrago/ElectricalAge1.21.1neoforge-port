@@ -1,7 +1,9 @@
 package mods.eln.node.six
 
-import cpw.mods.fml.relauncher.Side
-import cpw.mods.fml.relauncher.SideOnly
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import mods.eln.compat.*
+
 import mods.eln.cable.CableRender
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.cable.CableRenderType
@@ -20,11 +22,10 @@ import mods.eln.misc.UtilsClient.glGenListsSafe
 import mods.eln.sound.LoopedSound
 import mods.eln.sound.LoopedSoundManager
 import mods.eln.sound.SoundCommand
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.IInventory
-import net.minecraft.util.AxisAlignedBB
-import org.lwjgl.opengl.GL11
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.phys.AABB
+import mods.eln.compat.client.GL11
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -172,7 +173,7 @@ abstract class SixNodeElementRender(open var tileEntity: SixNodeEntity, @JvmFiel
         loopedSoundManager.dispose()
     }
 
-    open fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen? {
+    open fun newGuiDraw(side: Direction, player: Player): Screen? {
         return null
     }
 
@@ -309,7 +310,7 @@ abstract class SixNodeElementRender(open var tileEntity: SixNodeEntity, @JvmFiel
         return true
     }
 
-    open fun getRenderBoundingBox(@Suppress("UNUSED_PARAMETER") tileEntity: SixNodeEntity): AxisAlignedBB? {
+    open fun getRenderBoundingBox(@Suppress("UNUSED_PARAMETER") tileEntity: SixNodeEntity): AABB? {
         return null
     }
 
@@ -322,7 +323,7 @@ abstract class SixNodeElementRender(open var tileEntity: SixNodeEntity, @JvmFiel
     }
 
     private val loopedSoundManager = LoopedSoundManager()
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     protected fun addLoopedSound(loopedSound: LoopedSound?) {
         loopedSoundManager.add(loopedSound)
     }

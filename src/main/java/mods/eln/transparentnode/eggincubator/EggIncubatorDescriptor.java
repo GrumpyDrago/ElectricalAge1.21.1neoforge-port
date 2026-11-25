@@ -10,13 +10,13 @@ import mods.eln.sim.mna.misc.MnaConst;
 import mods.eln.sim.nbt.NbtElectricalLoad;
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor;
 import mods.eln.wiki.Data;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.world.World;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.level.Level;
+import mods.eln.compat.client.GL11;
 
 import java.util.List;
 
@@ -26,7 +26,7 @@ public class EggIncubatorDescriptor extends TransparentNodeDescriptor {
     Obj3D defaultFeroObj;
     public ElectricalCableDescriptor cable;
     private Obj3DPart lamp;
-    private EntityItem eggEntity;
+    private ItemEntity eggEntity;
     private Obj3DPart lampf;
 
     Obj3DPart main;
@@ -110,9 +110,8 @@ public class EggIncubatorDescriptor extends TransparentNodeDescriptor {
     }
 
     @Override
-    public void addCollisionBoxesToList(AxisAlignedBB par5AxisAlignedBB, List<AxisAlignedBB> list, World world, int x, int y, int z) {
-        AxisAlignedBB bb = Blocks.stone.getCollisionBoundingBoxFromPool(world, x, y, z);
-        bb.maxY -= 0.5;
-        if (par5AxisAlignedBB.intersectsWith(bb)) list.add(bb);
+    public void addCollisionBoxesToList(AABB par5AxisAlignedBB, List<AABB> list, Level world, int x, int y, int z) {
+        AABB bb = new AABB(x, y, z, x + 1, y + 0.5, z + 1);
+        if (par5AxisAlignedBB.intersects(bb)) list.add(bb);
     }
 }

@@ -1,5 +1,7 @@
 package mods.eln.mechanical
 
+import mods.eln.compat.*
+
 import mods.eln.i18n.I18N.tr
 import mods.eln.misc.Coordinate
 import mods.eln.misc.Direction
@@ -11,7 +13,7 @@ import mods.eln.node.transparent.TransparentNode
 import mods.eln.node.transparent.TransparentNodeDescriptor
 import mods.eln.sim.ElectricalLoad
 import mods.eln.sim.ThermalLoad
-import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.world.entity.player.Player
 
 open class StraightJointDescriptor(baseName: String, obj: Obj3D) : SimpleShaftDescriptor(baseName,
     StraightJointElement::class, ShaftRender::class, EntityMetaTag.Basic) {

@@ -1,5 +1,7 @@
 package mods.eln.sixnode.electricalmath;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.i18n.I18N;
 import mods.eln.item.ConfigCopyToolDescriptor;
 import mods.eln.item.IConfigurable;
@@ -19,12 +21,12 @@ import mods.eln.sim.nbt.NbtElectricalGateOutput;
 import mods.eln.sim.nbt.NbtElectricalGateOutputProcess;
 import mods.eln.solver.Equation;
 import mods.eln.solver.ISymbole;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import mods.eln.compat.IInventory;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -144,7 +146,7 @@ public class ElectricalMathElement extends SixNodeElement implements IConfigurab
 
         @Override
         public double getValue() {
-            return sixNode.coordinate.world().getWorldTime() / (24000.0 - 1.0);
+            return Mc.getWorldTime(sixNode.coordinate.world()) / (24000.0 - 1.0);
         }
 
         @Override
@@ -216,7 +218,7 @@ public class ElectricalMathElement extends SixNodeElement implements IConfigurab
         int redstoneInStack = 0;
 
         ItemStack stack = inventory.getStackInSlot(ElectricalMathContainer.restoneSlotId);
-        if (stack != null) redstoneInStack = stack.stackSize;
+        if (stack != null) redstoneInStack = stack.getCount();
 
         redstoneReady = redstoneRequired <= redstoneInStack;
         needPublish();
@@ -264,19 +266,19 @@ public class ElectricalMathElement extends SixNodeElement implements IConfigurab
 
     @Nullable
     @Override
-    public Container newContainer(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public AbstractContainerMenu newContainer(@NotNull Direction side, @NotNull Player player) {
         return new ElectricalMathContainer(sixNode, player, inventory);
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         super.writeToNBT(nbt);
-        nbt.setString("expression", expression);
+        nbt.putString("expression", expression);
         equation.writeToNBT(nbt, "equation");
     }
 
     @Override
-    public void readFromNBT(@NotNull NBTTagCompound nbt) {
+    public void readFromNBT(@NotNull CompoundTag nbt) {
         super.readFromNBT(nbt);
         expression = nbt.getString("expression");
         preProcessEquation(expression);
@@ -301,7 +303,7 @@ public class ElectricalMathElement extends SixNodeElement implements IConfigurab
     }
 
     @Override
-    public void networkUnserialize(DataInputStream stream, EntityPlayerMP player) {
+    public void networkUnserialize(DataInputStream stream, ServerPlayer player) {
         super.networkUnserialize(stream, player);
         try {
             switch (stream.readByte()) {
@@ -316,8 +318,8 @@ public class ElectricalMathElement extends SixNodeElement implements IConfigurab
     }
 
     @Override
-    public void readConfigTool(NBTTagCompound compound, EntityPlayer invoker) {
-        if(compound.hasKey("expression")) {
+    public void readConfigTool(CompoundTag compound, Player invoker) {
+        if(compound.contains("expression")) {
             preProcessEquation(compound.getString("expression"));
             reconnect();
         }
@@ -327,8 +329,8 @@ public class ElectricalMathElement extends SixNodeElement implements IConfigurab
     }
 
     @Override
-    public void writeConfigTool(NBTTagCompound compound, EntityPlayer invoker) {
-        compound.setString("expression", expression);
+    public void writeConfigTool(CompoundTag compound, Player invoker) {
+        compound.putString("expression", expression);
         ConfigCopyToolDescriptor.writeVanillaStack(compound, "redstone", inventory.getStackInSlot(0));
     }
 }

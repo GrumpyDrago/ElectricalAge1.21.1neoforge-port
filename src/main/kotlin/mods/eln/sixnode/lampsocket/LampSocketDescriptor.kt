@@ -1,5 +1,7 @@
 package mods.eln.sixnode.lampsocket
 
+import mods.eln.compat.*
+
 import mods.eln.i18n.I18N
 import mods.eln.item.lampitem.BoilerplateLampData
 import mods.eln.misc.RealisticEnum
@@ -8,12 +10,12 @@ import mods.eln.node.six.SixNodeDescriptor
 import mods.eln.sixnode.lampsocket.objrender.ILampSocketObjRender
 import mods.eln.sixnode.lampsocket.objrender.LampSocketSuspendedObjRender
 import mods.eln.wiki.Data
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraftforge.client.IItemRenderer.ItemRenderType
-import net.minecraftforge.client.IItemRenderer.ItemRendererHelper
-import org.lwjgl.opengl.GL11
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import mods.eln.compat.IItemRenderer.ItemRenderType
+import mods.eln.compat.IItemRenderer.ItemRendererHelper
+import mods.eln.compat.client.GL11
 import java.util.Collections
 import kotlin.text.split
 
@@ -70,7 +72,7 @@ class LampSocketDescriptor(itemName: String, val renderType: ILampSocketObjRende
         return hasGhostGroup()
     }
 
-    override fun addInformation(itemStack: ItemStack, entityPlayer: EntityPlayer, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack, entityPlayer: Player, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
 
         if (range != 0) list.add(I18N.tr("Spot range: %1$ blocks", range))

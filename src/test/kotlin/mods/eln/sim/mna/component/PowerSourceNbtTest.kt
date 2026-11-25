@@ -1,9 +1,11 @@
 package mods.eln.sim.mna.component
 
+import mods.eln.compat.*
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import mods.eln.sim.mna.state.VoltageState
-import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.nbt.CompoundTag
 
 class PowerSourceNbtTest {
     @Test
@@ -16,7 +18,7 @@ class PowerSourceNbtTest {
         source.setVoltage(48.0)
         source.currentState.state = -0.5
 
-        val nbt = NBTTagCompound()
+        val nbt = CompoundTag()
         source.writeToNBT(nbt, "pfx")
 
         val other = PowerSource("ps", node)
@@ -36,7 +38,7 @@ class PowerSourceNbtTest {
         val source = PowerSource("ps", node)
         source.setMaximums(11.0, 12.0)
 
-        val nbt = NBTTagCompound()
+        val nbt = CompoundTag()
         source.writeToNBT(nbt, "pfx")
 
         assertEquals(11.0, nbt.getDouble("pfxpsUmax"))

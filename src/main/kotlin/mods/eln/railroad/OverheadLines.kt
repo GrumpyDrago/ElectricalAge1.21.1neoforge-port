@@ -1,5 +1,7 @@
 package mods.eln.railroad
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.i18n.I18N

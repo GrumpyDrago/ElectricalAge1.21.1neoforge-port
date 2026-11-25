@@ -1,5 +1,7 @@
 package mods.eln.sixnode.electricalhumiditysensor
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.i18n.I18N.tr
 import mods.eln.misc.Direction
@@ -10,11 +12,10 @@ import mods.eln.misc.UtilsClient
 import mods.eln.misc.VoltageLevelColor
 import mods.eln.node.six.SixNodeDescriptor
 import mods.eln.wiki.Data
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraftforge.client.IItemRenderer
-import org.lwjgl.opengl.GL11
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import mods.eln.compat.client.GL11
 
 class ElectricalHumiditySensorDescriptor(name: String, private val obj: Obj3D?) : SixNodeDescriptor(
     name,
@@ -39,7 +40,7 @@ class ElectricalHumiditySensorDescriptor(name: String, private val obj: Obj3D?) 
         Data.addSignal(newItemStack())
     }
 
-    override fun addInformation(itemStack: ItemStack, entityPlayer: EntityPlayer, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack, entityPlayer: Player, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
         list.addAll(tr("Provides an electrical signal\nfor biome relative humidity.").split("\n"))
         list.addAll(tr("Humidity follows day/night\nand rises during rain or snow.").split("\n"))
@@ -70,7 +71,7 @@ class ElectricalHumiditySensorDescriptor(name: String, private val obj: Obj3D?) 
         }
     }
 
-    override fun getFrontFromPlace(side: Direction, player: EntityPlayer): LRDU {
+    override fun getFrontFromPlace(side: Direction, player: Player): LRDU {
         return super.getFrontFromPlace(side, player)!!.right()
     }
 }

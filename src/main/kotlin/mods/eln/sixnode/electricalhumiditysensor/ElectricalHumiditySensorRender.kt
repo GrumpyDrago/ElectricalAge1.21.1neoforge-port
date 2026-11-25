@@ -1,5 +1,7 @@
 package mods.eln.sixnode.electricalhumiditysensor
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRenderDescriptor
 import mods.eln.misc.Direction

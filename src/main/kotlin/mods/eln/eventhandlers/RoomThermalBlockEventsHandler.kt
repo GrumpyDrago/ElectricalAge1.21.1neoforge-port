@@ -1,35 +1,26 @@
 package mods.eln.eventhandlers
 
-import cpw.mods.fml.common.eventhandler.SubscribeEvent
 import mods.eln.environment.RoomThermalManager
-import net.minecraft.world.ChunkPosition
-import net.minecraftforge.event.world.BlockEvent
-import net.minecraftforge.event.world.ExplosionEvent
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.LevelAccessor
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.neoforge.event.level.BlockEvent
+import net.neoforged.neoforge.event.level.ExplosionEvent
 
 class RoomThermalBlockEventsHandler {
-    @SubscribeEvent
-    fun onBlockBreak(event: BlockEvent.BreakEvent) {
-        RoomThermalManager.onBlockChanged(event.world, event.x, event.y, event.z)
+    private fun changed(level: LevelAccessor, pos: BlockPos) {
+        if (level is Level && !level.isClientSide) RoomThermalManager.onBlockChanged(level, pos.x, pos.y, pos.z)
     }
 
     @SubscribeEvent
-    fun onBlockPlace(event: BlockEvent.PlaceEvent) {
-        RoomThermalManager.onBlockChanged(event.world, event.x, event.y, event.z)
-    }
+    fun onBlockBreak(event: BlockEvent.BreakEvent) = changed(event.level, event.pos)
 
     @SubscribeEvent
-    fun onBlockMultiPlace(event: BlockEvent.MultiPlaceEvent) {
-        RoomThermalManager.onBlockChanged(event.world, event.x, event.y, event.z)
-    }
+    fun onBlockPlace(event: BlockEvent.EntityPlaceEvent) = changed(event.level, event.pos)
 
     @SubscribeEvent
     fun onExplosionDetonate(event: ExplosionEvent.Detonate) {
-        val world = event.world
-        if (world == null || world.isRemote) return
-
-        for (obj in event.affectedBlocks) {
-            val pos = obj as? ChunkPosition ?: continue
-            RoomThermalManager.onBlockChanged(world, pos.chunkPosX, pos.chunkPosY, pos.chunkPosZ)
-        }
+        for (pos in event.affectedBlocks) changed(event.level, pos)
     }
 }

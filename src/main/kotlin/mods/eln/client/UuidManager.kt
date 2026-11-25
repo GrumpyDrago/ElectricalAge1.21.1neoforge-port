@@ -1,9 +1,9 @@
 package mods.eln.client
 
-import cpw.mods.fml.common.FMLCommonHandler
-import cpw.mods.fml.common.eventhandler.SubscribeEvent
-import cpw.mods.fml.common.gameevent.TickEvent
-import cpw.mods.fml.common.gameevent.TickEvent.Phase
+import net.neoforged.neoforge.client.event.ClientTickEvent
+import mods.eln.compat.*
+
+import net.neoforged.bus.api.SubscribeEvent
 import java.util.*
 
 class UuidManager {
@@ -22,8 +22,7 @@ class UuidManager {
     }
 
     @SubscribeEvent
-    fun tick(event: TickEvent.ClientTickEvent) {
-        if (event.phase == Phase.END) return
+    fun tick(event: ClientTickEvent.Post) {
 
         val i = entities.iterator()
 

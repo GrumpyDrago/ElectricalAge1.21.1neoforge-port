@@ -4,7 +4,7 @@ import mods.eln.misc.INBTTReady;
 import mods.eln.sim.mna.SubSystem;
 import mods.eln.sim.mna.misc.IRootSystemPreStepProcess;
 import mods.eln.sim.mna.state.State;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundTag;
 
 public class PowerSource extends VoltageSource implements IRootSystemPreStepProcess, INBTTReady {
 
@@ -48,7 +48,6 @@ public class PowerSource extends VoltageSource implements IRootSystemPreStepProc
     public void addToSubsystem(SubSystem s) {
         super.addToSubsystem(s);
         getSubSystem().getRoot().addProcess(this);
-        s.addProcess(this);
     }
 
     @Override
@@ -68,7 +67,7 @@ public class PowerSource extends VoltageSource implements IRootSystemPreStepProc
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound nbt, String str) {
+    public void readFromNBT(CompoundTag nbt, String str) {
         super.readFromNBT(nbt, str);
 
         str += name;
@@ -79,13 +78,13 @@ public class PowerSource extends VoltageSource implements IRootSystemPreStepProc
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt, String str) {
+    public void writeToNBT(CompoundTag nbt, String str) {
         super.writeToNBT(nbt, str);
 
         str += name;
 
-        nbt.setDouble(str + "P", getPower());
-        nbt.setDouble(str + "Umax", maximumVoltage);
-        nbt.setDouble(str + "Imax", maximumCurrent);
+        nbt.putDouble(str + "P", getPower());
+        nbt.putDouble(str + "Umax", maximumVoltage);
+        nbt.putDouble(str + "Imax", maximumCurrent);
     }
 }

@@ -1,9 +1,13 @@
 package mods.eln.server
 
-import cpw.mods.fml.common.FMLCommonHandler
-import cpw.mods.fml.common.eventhandler.SubscribeEvent
-import cpw.mods.fml.common.gameevent.TickEvent
-import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent
+import net.minecraft.nbt.NbtAccounter
+import net.minecraft.world.phys.Vec3
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent
+import net.neoforged.neoforge.event.level.LevelEvent
+import mods.eln.compat.*
+
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.neoforge.event.tick.ServerTickEvent
 import mods.eln.Eln
 import mods.eln.environment.RoomThermalManager
 import mods.eln.item.electricalitem.TreeCapitation.process
@@ -11,14 +15,11 @@ import mods.eln.misc.Coordinate
 import mods.eln.misc.Utils
 import mods.eln.mqtt.MqttManager
 import mods.eln.node.NodeManager
-import mods.eln.server.ElnWorldStorage.Companion.forWorld
-import net.minecraft.entity.effect.EntityLightningBolt
-import net.minecraft.nbt.CompressedStreamTools
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.world.World
-import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.event.entity.EntityEvent.EntityConstructing
-import net.minecraftforge.event.world.WorldEvent
+import net.minecraft.world.entity.LightningBolt
+import net.minecraft.nbt.NbtIo
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.level.Level
+import net.neoforged.neoforge.common.NeoForge
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -30,32 +31,32 @@ import java.nio.file.StandardCopyOption
 import java.util.*
 
 class ServerEventListener {
-    private var lightningListNext = LinkedList<EntityLightningBolt>()
-    private var lightningList = LinkedList<EntityLightningBolt>()
+    private var lightningListNext = LinkedList<LightningBolt>()
+    private var lightningList = LinkedList<LightningBolt>()
     @SubscribeEvent
-    fun tick(event: ServerTickEvent) {
-        if (event.phase != TickEvent.Phase.END) return
+    fun tick(event: ServerTickEvent.Post) {
         lightningList = lightningListNext
         lightningListNext = LinkedList()
         process(0.05)
     }
 
     @SubscribeEvent
-    fun onNewEntity(event: EntityConstructing) {
-        if (event.entity is EntityLightningBolt) {
-            lightningListNext.add(event.entity as EntityLightningBolt)
-        }
+    fun onNewEntity(event: EntityJoinLevelEvent) {
+        val entity = event.entity
+        if (entity is LightningBolt && !event.level.isClientSide) lightningListNext.add(entity)
     }
 
     fun clear() {
         lightningList.clear()
+        lightningListNext.clear()
+        loadedWorlds.clear()
     }
 
     fun getLightningClosestTo(c: Coordinate): Double {
         var best = 10000000.0
         for (l in lightningList) {
             if (c.world() !== l.worldObj) continue
-            val d = l.getDistance(c.x.toDouble(), c.y.toDouble(), c.z.toDouble())
+            val d = l.position().distanceTo(Vec3(c.x.toDouble(), c.y.toDouble(), c.z.toDouble()))
             if (d < best) best = d
         }
         return best
@@ -63,12 +64,14 @@ class ServerEventListener {
 
     private val loadedWorlds = HashSet<Int>()
     @SubscribeEvent
-    fun onWorldLoad(e: WorldEvent.Load) {
-        if (e.world.isRemote) return
-        loadedWorlds.add(e.world.provider.dimensionId)
-        val fileNames = FileNames(e)
-        val dimension = e.world.provider.dimensionId
+    fun onWorldLoad(e: LevelEvent.Load) {
+        val world = e.level as? Level ?: return
+        if (world.isClientSide) return
+        loadedWorlds.add(world.dimensionId)
+        val fileNames = FileNames(world)
+        val dimension = world.dimensionId
         try {
+            if (!Files.exists(fileNames.worldSave) && !Files.exists(fileNames.backupSave)) return
             readSave(fileNames.worldSave, dimension)
         } catch (ex: Exception) {
             try {
@@ -78,7 +81,6 @@ class ServerEventListener {
             } catch (ex2: Exception) {
                 ex2.printStackTrace()
                 println("Failed to read backup save!")
-                forWorld(e.world)
             }
         }
     }
@@ -86,38 +88,40 @@ class ServerEventListener {
     @Throws(IOException::class)
     private fun readSave(worldSave: Path, dimension: Int) {
         val inputStream = ByteArrayInputStream(Files.readAllBytes(worldSave))
-        val nbt = CompressedStreamTools.readCompressed(inputStream)
+        val nbt = NbtIo.readCompressed(inputStream, NbtAccounter.unlimitedHeap())
         readFromEaWorldNBT(nbt, dimension)
     }
 
     @SubscribeEvent
-    fun onWorldUnload(e: WorldEvent.Unload) {
-        if (e.world.isRemote) return
-        loadedWorlds.remove(e.world.provider.dimensionId)
+    fun onWorldUnload(e: LevelEvent.Unload) {
+        val world = e.level as? Level ?: return
+        if (world.isClientSide) return
+        loadedWorlds.remove(world.dimensionId)
         try {
-            NodeManager.instance!!.unload(e.world.provider.dimensionId)
-            Eln.ghostManager.unload(e.world.provider.dimensionId)
-            RoomThermalManager.unloadDimension(e.world.provider.dimensionId)
+            NodeManager.instance!!.unload(world.dimensionId)
+            Eln.ghostManager.unload(world.dimensionId)
+            RoomThermalManager.unloadDimension(world.dimensionId)
         } catch (ex: Exception) {
             ex.printStackTrace()
         }
     }
 
     @SubscribeEvent
-    fun onWorldSave(e: WorldEvent.Save) {
-        if (e.world.isRemote) return
-        if (!loadedWorlds.contains(e.world.provider.dimensionId)) {
+    fun onWorldSave(e: LevelEvent.Save) {
+        val world = e.level as? Level ?: return
+        if (world.isClientSide) return
+        if (!loadedWorlds.contains(world.dimensionId)) {
             //System.out.println("I hate you minecraft");
             return
         }
         try {
-            val nbt = NBTTagCompound()
-            writeToEaWorldNBT(nbt, e.world.provider.dimensionId)
-            val fileNames = FileNames(e)
+            val nbt = CompoundTag()
+            writeToEaWorldNBT(nbt, world.dimensionId)
+            val fileNames = FileNames(world)
 
             // Write a new save to a temporary file.
             val bytes = ByteArrayOutputStream(512 * 1024)
-            CompressedStreamTools.writeCompressed(nbt, bytes)
+            NbtIo.writeCompressed(nbt, bytes)
             Files.write(fileNames.tempSave, bytes.toByteArray())
 
             // Replace backup save with old save, and old save with new one.
@@ -137,36 +141,40 @@ class ServerEventListener {
         }
     }
 
-    private inner class FileNames internal constructor(e: WorldEvent) {
+    private inner class FileNames internal constructor(world: Level) {
         val worldSave: Path
         val tempSave: Path
         val backupSave: Path
-        private fun getEaWorldSaveName(w: World): String {
-            return Utils.mapFolder + "data/electricalAgeWorld" + w.provider.dimensionId + ".dat"
-        }
-
         init {
-            val saveName = getEaWorldSaveName(e.world)
-            worldSave = FileSystems.getDefault().getPath(saveName)
-            tempSave = FileSystems.getDefault().getPath("$saveName.tmp")
-            backupSave = FileSystems.getDefault().getPath("$saveName.bak")
+            worldSave = Utils.getMapFile("data/electricalAgeWorld" + world.dimensionId + ".dat").toPath()
+            tempSave = worldSave.resolveSibling(worldSave.fileName.toString() + ".tmp")
+            backupSave = worldSave.resolveSibling(worldSave.fileName.toString() + ".bak")
+            Files.createDirectories(worldSave.parent)
         }
     }
 
     companion object {
-        fun readFromEaWorldNBT(nbt: NBTTagCompound, dim: Int) {
+        /** True while the nodes of a world are being read. */
+        @JvmStatic
+        var loading = false
+            private set
+
+        fun readFromEaWorldNBT(nbt: CompoundTag, dim: Int) {
+            loading = true
             try {
-                NodeManager.instance!!.loadFromNbt(nbt.getCompoundTag("nodes"))
+                NodeManager.instance!!.loadFromNbt(nbt.getCompound("nodes"))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                loading = false
+            }
+            try {
+                Eln.ghostManager.loadFromNBT(nbt.getCompound("ghost"))
             } catch (e: Exception) {
                 e.printStackTrace()
             }
             try {
-                Eln.ghostManager.loadFromNBT(nbt.getCompoundTag("ghost"))
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            try {
-                MqttManager.readWorldData(nbt.getCompoundTag("mqtt"))
+                MqttManager.readWorldData(nbt.getCompound("mqtt"))
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -177,7 +185,7 @@ class ServerEventListener {
             }
         }
 
-        fun writeToEaWorldNBT(nbt: NBTTagCompound?, dim: Int) {
+        fun writeToEaWorldNBT(nbt: CompoundTag?, dim: Int) {
             try {
                 NodeManager.instance!!.saveToNbt(Utils.newNbtTagCompund(nbt, "nodes"), dim)
             } catch (e: Exception) {
@@ -203,7 +211,6 @@ class ServerEventListener {
     }
 
     init {
-        MinecraftForge.EVENT_BUS.register(this)
-        FMLCommonHandler.instance().bus().register(this)
+        NeoForge.EVENT_BUS.register(this)
     }
 }

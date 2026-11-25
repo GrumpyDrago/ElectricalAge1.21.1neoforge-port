@@ -7,7 +7,7 @@ with import <nixpkgs> {};
 with xlibs; stdenv.mkDerivation {
   name = "devenv";
 
-  buildInputs = [ gradle jdk ];
+  buildInputs = [ gradle jdk21 ];
 
   libraries = stdenv.lib.makeLibraryPath [
     stdenv.cc.cc libX11 libXext libXcursor libXrandr libXxf86vm mesa openal libpulseaudio

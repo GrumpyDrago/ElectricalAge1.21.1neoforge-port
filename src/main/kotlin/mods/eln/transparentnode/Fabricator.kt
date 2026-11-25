@@ -1,5 +1,7 @@
 package mods.eln.transparentnode
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.generic.GenericItemUsingDamageDescriptor
 import mods.eln.gui.*
@@ -15,16 +17,13 @@ import mods.eln.sim.ThermalLoad
 import mods.eln.sim.mna.component.Resistor
 import mods.eln.sim.mna.misc.MnaConst
 import mods.eln.sim.nbt.NbtElectricalLoad
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.client.renderer.RenderHelper
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.Container
-import net.minecraft.inventory.IInventory
-import net.minecraft.inventory.Slot
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraftforge.client.IItemRenderer
-import org.lwjgl.opengl.GL11
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.inventory.Slot
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import mods.eln.compat.client.GL11
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -57,7 +56,7 @@ class FabricatorDescriptor(
         draw()
     }
 
-    override fun addInformation(itemStack: ItemStack?, entityPlayer: EntityPlayer?, list: MutableList<String>?, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack?, entityPlayer: Player?, list: MutableList<String>?, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
         list?.addAll(tr("The Fabricator creates chips\nfrom silicon and copper plates").split("\n"))
         list?.add(tr("Nominal Ohms: %1$",Utils.plotOhm(40.0)))
@@ -90,7 +89,7 @@ class FabricatorElement(node: TransparentNode, descriptor: TransparentNodeDescri
     override fun thermoMeterString(side: Direction): String = ""
 
     override fun getWaila(): Map<String, String> {
-        return mapOf(Pair(tr("Operation"), operation?.outputItem?.displayName ?: "None"))
+        return mapOf(Pair(tr("Operation"), operation?.outputItem?.plainName ?: "None"))
     }
 
     override fun initialize() {
@@ -102,13 +101,13 @@ class FabricatorElement(node: TransparentNode, descriptor: TransparentNodeDescri
         connect()
     }
 
-    override fun onBlockActivated(player: EntityPlayer, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
+    override fun onBlockActivated(player: Player, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
         return false
     }
 
     override fun hasGui() = true
 
-    override fun newContainer(side: Direction, player: EntityPlayer): Container {
+    override fun newContainer(side: Direction, player: Player): AbstractContainerMenu {
         return FabricatorContainer(this.node, player, inventory, descriptor as FabricatorDescriptor)
     }
 
@@ -140,18 +139,18 @@ class FabricatorElement(node: TransparentNode, descriptor: TransparentNodeDescri
         return unserializeNulldId
     }
 
-    override fun readFromNBT(nbt: NBTTagCompound) {
+    override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
-        val id = nbt.getInteger("operation")
+        val id = nbt.getInt("operation")
         operation = FabricatorOperation.values().firstOrNull { it.nid == id }
         craftingProcess.powerConsumed = nbt.getDouble("powerConsumed")
     }
 
-    override fun writeToNBT(nbt: NBTTagCompound) {
+    override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
         if (operation != null)
-            nbt.setInteger("operation", operation?.nid?: 0)
-        nbt.setDouble("powerConsumed", craftingProcess.powerConsumed)
+            nbt.putInt("operation", operation?.nid?: 0)
+        nbt.putDouble("powerConsumed", craftingProcess.powerConsumed)
     }
 }
 
@@ -192,13 +191,11 @@ class FabricatorProcess(val element: FabricatorElement): IProcess {
         val siliconWaferSlot = element.inventory.getStackInSlot(FabricatorSlots.SILICON_WAFER.slotId)
         val plateCopperSlot = element.inventory.getStackInSlot(FabricatorSlots.COPPER_PLATE.slotId)
 
-        val siliconWaferName = "Silicon_Wafer"
-        val copperPlateName = "Copper_Plate"
 
         val canOutput = if (outputSlot != null) {
             val stack = element.inventory.getStackInSlot(FabricatorSlots.OUTPUT.slotId)
             if (operation != null)
-                stack!!.item == operation.outputItem.item && stack.stackSize + operation.perSheet < stack.maxStackSize
+                stack!!.item == operation.outputItem.item && stack.count + operation.perSheet < stack.maxStackSize
             else
                 true
         } else {
@@ -208,8 +205,8 @@ class FabricatorProcess(val element: FabricatorElement): IProcess {
         val hasInputs = (
             siliconWaferSlot != null &&
             plateCopperSlot != null &&
-            siliconWaferSlot.unlocalizedName == siliconWaferName &&
-            plateCopperSlot.unlocalizedName == copperPlateName
+            Eln.siliconWafer.checkSameItemStack(siliconWaferSlot) &&
+            Eln.plateCopper.checkSameItemStack(plateCopperSlot)
         )
 
         if (canOutput && hasInputs && operation != null) {
@@ -232,16 +229,16 @@ class FabricatorProcess(val element: FabricatorElement): IProcess {
             if (Math.random() <= operation.yieldPercentage) {
                 if (element.inventory.getStackInSlot(FabricatorSlots.OUTPUT.slotId) == null) {
                     val newStack = operation.outputItem.copy()
-                    newStack.stackSize = operation.perSheet
+                    newStack.count = operation.perSheet
                     element.inventory.setInventorySlotContents(FabricatorSlots.OUTPUT.slotId, newStack)
                     element.inventory.markDirty()
                     powerConsumed -= powerRequired
                     element.needPublish()
                 } else {
-                    val stackSize = element.inventory.getStackInSlot(FabricatorSlots.OUTPUT.slotId)!!.stackSize
+                    val stackSize = element.inventory.getStackInSlot(FabricatorSlots.OUTPUT.slotId)!!.count
                     if (stackSize in 0..63) {
                         val newStack = operation.outputItem.copy()
-                        newStack.stackSize = stackSize + operation.perSheet
+                        newStack.count = stackSize + operation.perSheet
                         element.inventory.setInventorySlotContents(FabricatorSlots.OUTPUT.slotId, newStack)
                         element.inventory.markDirty()
                         powerConsumed -= powerRequired
@@ -268,7 +265,7 @@ class FabricatorRender(entity: TransparentNodeEntity, descriptor: TransparentNod
         (this.transparentNodeDescriptor as FabricatorDescriptor).draw(isRunning)
     }
 
-    override fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen {
+    override fun newGuiDraw(side: Direction, player: Player): Screen {
         return FabricatorGui(player, inventory, this)
     }
 
@@ -282,7 +279,7 @@ class FabricatorRender(entity: TransparentNodeEntity, descriptor: TransparentNod
 const val slotSize = 16
 const val buttonWidth = 20
 
-class FabricatorGui(player: EntityPlayer, inventory: IInventory, val render: FabricatorRender): GuiContainerEln(FabricatorContainer(null, player, inventory, render.transparentNodeDescriptor as FabricatorDescriptor)) {
+class FabricatorGui(player: Player, inventory: IInventory, val render: FabricatorRender): GuiContainerEln(FabricatorContainer(null, player, inventory, render.transparentNodeDescriptor as FabricatorDescriptor)) {
 
     private val buttonsArray = mutableListOf<GuiButtonEln>()
 
@@ -302,14 +299,11 @@ class FabricatorGui(player: EntityPlayer, inventory: IInventory, val render: Fab
     override fun postDraw(f: Float, x: Int, y: Int) {
         super.postDraw(f, x, y)
         FabricatorOperation.values().forEachIndexed { idx, operation ->
-            RenderHelper.enableStandardItemLighting()
-            RenderHelper.enableGUIStandardItemLighting()
 
             val column: Int = idx / 3
             val row: Int = idx % 3
 
-            UtilsClient.drawItemStack(operation.outputItem, 6 + slotSize * 3 + 4 + this.guiLeft + 2 + (22 * column), 6 + this.guiTop + 2 + (22 * row), null, true)
-            RenderHelper.disableStandardItemLighting()
+            UtilsClient.drawItemStack(operation.outputItem, 6 + slotSize * 3 + 4 + this.leftPos + 2 + (22 * column), 6 + this.topPos + 2 + (22 * row), null, true)
         }
 
         buttonsArray.forEach { it.displayString = "" }
@@ -332,7 +326,7 @@ enum class FabricatorSlots(val slotId: Int) {
 
 class FabricatorContainer(
     override val node: NodeBase?,
-    player: EntityPlayer,
+    player: Player,
     inventory: IInventory,
     descriptor: FabricatorDescriptor
 ): BasicContainer(player, inventory, getSlot(inventory, descriptor)), INodeContainer {

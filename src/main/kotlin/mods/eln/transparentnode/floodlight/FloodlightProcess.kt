@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.floodlight
 
+import mods.eln.compat.*
+
 import mods.eln.item.lampitem.BoilerplateLampData
 import mods.eln.item.lampitem.LampDescriptor
 import mods.eln.lightblock.LightBlockEntity
@@ -8,8 +10,8 @@ import mods.eln.misc.HybridNodeDirection
 import mods.eln.misc.HybridNodeDirection.*
 import mods.eln.misc.Utils.getItemObject
 import mods.eln.sim.IProcess
-import net.minecraft.item.ItemStack
-import net.minecraft.util.Vec3
+import net.minecraft.world.item.ItemStack
+import mods.eln.misc.MutVec3
 import kotlin.math.*
 
 class FloodlightProcess(val element: FloodlightElement) : IProcess {
@@ -101,7 +103,7 @@ class FloodlightProcess(val element: FloodlightElement) : IProcess {
      * The logic and math are very complex, and it is easy to break everything if you don't know what you are doing!
      */
     private fun placeSpots(lightValue: Int, lightRange: Int) {
-        val rotationVectors = mutableListOf<Pair<Vec3, Double>>()
+        val rotationVectors = mutableListOf<Pair<MutVec3, Double>>()
         val fractionTable = mutableListOf<Double>()
 
         val rotationAxis = element.rotationAxis
@@ -142,8 +144,8 @@ class FloodlightProcess(val element: FloodlightElement) : IProcess {
         }
 
         for (idx in rotationVectors.indices) {
-            val lightVector = element.node!!.coordinate.toVec3()
-            val lbCoordinate = Coordinate(lightVector, element.node!!.coordinate.dimension)
+            val lightVector = MutVec3(element.node!!.coordinate.toVec3())
+            val lbCoordinate = Coordinate(lightVector.toVec3(), element.node!!.coordinate.dimension)
 
             // This forces the light cone to be "flat" on the end, instead of curved.
             val throwDistance = lightRange / cos(toRadians(rotationVectors[idx].second))
@@ -152,13 +154,13 @@ class FloodlightProcess(val element: FloodlightElement) : IProcess {
                 lightVector.xCoord += rotationVectors[idx].first.xCoord
                 lightVector.yCoord += rotationVectors[idx].first.yCoord
                 lightVector.zCoord += rotationVectors[idx].first.zCoord
-                lbCoordinate.setPosition(lightVector)
+                lbCoordinate.setPosition(lightVector.toVec3())
 
                 if (!lbCoordinate.blockExist || lbCoordinate.block.isOpaqueCube) {
                     lightVector.xCoord -= rotationVectors[idx].first.xCoord
                     lightVector.yCoord -= rotationVectors[idx].first.yCoord
                     lightVector.zCoord -= rotationVectors[idx].first.zCoord
-                    lbCoordinate.setPosition(lightVector)
+                    lbCoordinate.setPosition(lightVector.toVec3())
 
                     LightBlockEntity.addLight(lbCoordinate, lightValue, 5)
                     break
@@ -202,14 +204,14 @@ class FloodlightProcess(val element: FloodlightElement) : IProcess {
         return Pair(toDegrees(hAdj), toDegrees(kAdj))
     }
 
-    private fun getRawRotationVector(horzAngle: Double, vertAngle: Double): Vec3 {
+    private fun getRawRotationVector(horzAngle: Double, vertAngle: Double): MutVec3 {
         val horzSin = sin(toRadians(horzAngle))
         val horzCos = cos(toRadians(horzAngle))
 
         val vertSin = sin(toRadians(vertAngle))
         val vertCos = cos(toRadians(vertAngle))
 
-        val v = Vec3.createVectorHelper(0.0, 0.0, 0.0)
+        val v = MutVec3(0.0, 0.0, 0.0)
 
         v.xCoord = vertCos * horzSin
         v.yCoord = vertSin
@@ -218,9 +220,9 @@ class FloodlightProcess(val element: FloodlightElement) : IProcess {
         return v
     }
 
-    private fun createRotationVector(horzAngle: Double, vertAngle: Double, axis: HybridNodeDirection, facing: HybridNodeDirection): Vec3 {
+    private fun createRotationVector(horzAngle: Double, vertAngle: Double, axis: HybridNodeDirection, facing: HybridNodeDirection): MutVec3 {
         val oldV = getRawRotationVector(horzAngle, vertAngle)
-        val newV = Vec3.createVectorHelper(0.0, 0.0, 0.0)
+        val newV = MutVec3(0.0, 0.0, 0.0)
 
         when (axis) {
             XN -> {

@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.waterturbine;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.misc.Coordinate;
 import mods.eln.misc.Direction;
 import mods.eln.misc.RcInterpolator;
@@ -9,8 +11,8 @@ import mods.eln.node.transparent.TransparentNodeElementInventory;
 import mods.eln.node.transparent.TransparentNodeElementRender;
 import mods.eln.node.transparent.TransparentNodeEntity;
 import mods.eln.sound.SoundCommand;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,7 +46,7 @@ public class WaterTurbineRender extends TransparentNodeElementRender {
 
 
     public void refresh(float deltaT) {
-        float flowDir = waterCoord.getMeta() > waterCoordRight.getMeta() ? 1 : -1;
+        float flowDir = Utils.waterLevel(waterCoord) > Utils.waterLevel(waterCoordRight) ? 1 : -1;
         if (Utils.isWater(waterCoord) == false)
             flowDir = 0;
 
@@ -66,7 +68,7 @@ public class WaterTurbineRender extends TransparentNodeElementRender {
             play(new SoundCommand(descriptor.soundName)
                 .mulVolume(descriptor.nominalVolume * (0.007f + 0.2f * (float) powerFactorFilter.get() * (float) powerFactorFilter.get()),
                     1.1f));
-            //SoundClient.playFromBlock(tileEntity.worldObj,coord.x, coord.y, coord.z, descriptor.soundName,1,1,5,15);
+            //SoundClient.playFromBlock(Mc.worldObj(tileEntity),coord.x, coord.y, coord.z, descriptor.soundName,1,1,5,15);
             soundPlaying = true;
         } else
             soundPlaying = false;
@@ -79,7 +81,7 @@ public class WaterTurbineRender extends TransparentNodeElementRender {
 
     @Nullable
     @Override
-    public GuiScreen newGuiDraw(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public Screen newGuiDraw(@NotNull Direction side, @NotNull Player player) {
 
         return new WaterTurbineGuiDraw(player, inventory, this);
     }
@@ -101,11 +103,11 @@ public class WaterTurbineRender extends TransparentNodeElementRender {
             e.printStackTrace();
         }
 
-        waterCoord = this.descriptor.getWaterCoordonate(getTileEntity().getWorldObj());
-        waterCoord.setWorld(getTileEntity().getWorldObj());
+        waterCoord = this.descriptor.getWaterCoordonate(Mc.worldObj(getTileEntity()));
+        waterCoord.setWorld(Mc.worldObj(getTileEntity()));
         waterCoord.applyTransformation(front, coordinate());
         waterCoordRight = new Coordinate(waterCoord);
-        waterCoordRight.setWorld(getTileEntity().getWorldObj());
+        waterCoordRight.setWorld(Mc.worldObj(getTileEntity()));
         waterCoordRight.move(front.right());
     }
 }

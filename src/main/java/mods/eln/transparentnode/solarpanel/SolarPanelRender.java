@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.solarpanel;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.cable.CableRenderDescriptor;
 import mods.eln.cable.CableRenderType;
 import mods.eln.misc.Direction;
@@ -10,8 +12,8 @@ import mods.eln.node.transparent.TransparentNodeDescriptor;
 import mods.eln.node.transparent.TransparentNodeElementInventory;
 import mods.eln.node.transparent.TransparentNodeElementRender;
 import mods.eln.node.transparent.TransparentNodeEntity;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,7 +48,7 @@ public class SolarPanelRender extends TransparentNodeElementRender {
         if (hasTracker == false) {
             alpha = (float) descriptor.alphaTrunk(pannelAlphaSyncValue);
         } else {
-            alpha = (float) descriptor.alphaTrunk(SolarPannelSlowProcess.getSolarAlpha(getTileEntity().getWorldObj()));
+            alpha = (float) descriptor.alphaTrunk(SolarPannelSlowProcess.getSolarAlpha(Mc.worldObj(getTileEntity())));
         }
         interpol.setTarget(alpha);
         if (boot) {
@@ -117,7 +119,7 @@ public class SolarPanelRender extends TransparentNodeElementRender {
 
     @Nullable
     @Override
-    public GuiScreen newGuiDraw(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public Screen newGuiDraw(@NotNull Direction side, @NotNull Player player) {
         return new SolarPannelGuiDraw(player, inventory, this);
     }
 

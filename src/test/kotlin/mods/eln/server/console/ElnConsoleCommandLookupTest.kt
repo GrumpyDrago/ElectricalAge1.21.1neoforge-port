@@ -1,13 +1,15 @@
 package mods.eln.server.console
 
-import net.minecraft.command.ICommandSender
+import mods.eln.compat.*
+
+import net.minecraft.commands.CommandSourceStack
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class ElnConsoleCommandLookupTest {
     private class TestCommand(override val name: String) : IConsoleCommand {
-        override fun runCommand(ics: ICommandSender, args: List<String>) {
+        override fun runCommand(ics: CommandSourceStack, args: List<String>) {
             error("Not used in lookup tests.")
         }
     }

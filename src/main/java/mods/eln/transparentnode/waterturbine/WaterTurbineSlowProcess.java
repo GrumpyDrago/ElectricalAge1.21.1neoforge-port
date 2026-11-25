@@ -1,12 +1,14 @@
 package mods.eln.transparentnode.waterturbine;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.misc.INBTTReady;
 import mods.eln.misc.RcRcInterpolator;
 import mods.eln.misc.Utils;
 import mods.eln.sim.IProcess;
-import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.nbt.CompoundTag;
 
 public class WaterTurbineSlowProcess implements IProcess, INBTTReady {
 
@@ -45,9 +47,9 @@ public class WaterTurbineSlowProcess implements IProcess, INBTTReady {
         double time = 0;
         if (turbine.waterCoord.getBlockExist()) {
             Block block = turbine.waterCoord.getBlock();
-            int blockMeta = turbine.waterCoord.getMeta();
+            int blockMeta = Utils.waterLevel(turbine.waterCoord);
             //Utils.println("WATER : " + b + "    " + turbine.waterCoord.getMeta());
-            if (block != Blocks.flowing_water && block != Blocks.water) return -1;
+            if (block != Blocks.WATER) return -1;
             if (blockMeta == 0) return 0;
             time = Utils.getWorldTime(turbine.world());
         }
@@ -58,12 +60,12 @@ public class WaterTurbineSlowProcess implements IProcess, INBTTReady {
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound nbt, String str) {
+    public void readFromNBT(CompoundTag nbt, String str) {
         filter.readFromNBT(nbt, str + "filter");
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt, String str) {
+    public void writeToNBT(CompoundTag nbt, String str) {
 
         filter.writeToNBT(nbt, str + "filter");
 

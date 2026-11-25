@@ -4,9 +4,9 @@ import mods.eln.gui.GuiContainerEln;
 import mods.eln.gui.GuiHelperContainer;
 import mods.eln.gui.GuiVerticalTrackBar;
 import mods.eln.gui.IGuiObject;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
+import mods.eln.compat.client.GuiButton;
+import net.minecraft.world.entity.player.Player;
+import mods.eln.compat.IInventory;
 
 import static mods.eln.i18n.I18N.tr;
 
@@ -15,7 +15,7 @@ public class TurretGui extends GuiContainerEln {
     private GuiVerticalTrackBar chargePower;
     private final TurretRender render;
 
-    public TurretGui(EntityPlayer player, IInventory inventory, TurretRender render) {
+    public TurretGui(Player player, IInventory inventory, TurretRender render) {
         super(new TurretContainer(player, inventory));
         this.render = render;
     }

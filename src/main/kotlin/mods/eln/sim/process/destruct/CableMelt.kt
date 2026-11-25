@@ -1,14 +1,16 @@
 package mods.eln.sim.process.destruct
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.node.six.SixNodeElement
-import net.minecraft.init.Blocks
+import net.minecraft.world.level.block.Blocks
 
 class CableMelt(private val element: SixNodeElement) : IDestructible {
     override fun destructImpl() {
         val coordinate = element.coordinate ?: return
         element.sixNode?.dropItem(Eln.instance.wireScrapDescriptor?.newItemStack())
-        coordinate.world().setBlock(coordinate.x, coordinate.y, coordinate.z, Blocks.air)
+        coordinate.world().setBlock(coordinate.x, coordinate.y, coordinate.z, Blocks.AIR)
     }
 
     override fun describe(): String {

@@ -1,11 +1,13 @@
 package mods.eln.misc
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.sixnode.currentcable.CurrentCableDescriptor
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
-import net.minecraft.util.ResourceLocation
-import net.minecraftforge.client.IItemRenderer.ItemRenderType
-import org.lwjgl.opengl.GL11
+import net.minecraft.resources.ResourceLocation
+import mods.eln.compat.IItemRenderer.ItemRenderType
+import mods.eln.compat.client.GL11
 
 enum class VoltageLevelColor(private val voltageLevel: String?) {
     None(null),
@@ -20,7 +22,7 @@ enum class VoltageLevelColor(private val voltageLevel: String?) {
 
     fun drawIconBackground(type: ItemRenderType) {
         if (!Eln.config.getBooleanOrElse("ui.icons.noVoltageBackground", false) && voltageLevel != null && type == ItemRenderType.INVENTORY || type == ItemRenderType.FIRST_PERSON_MAP) {
-            UtilsClient.drawIcon(type, ResourceLocation("eln", "textures/voltages/$voltageLevel.png"))
+            UtilsClient.drawIcon(type, rl("eln", "textures/voltages/$voltageLevel.png"))
         }
     }
 

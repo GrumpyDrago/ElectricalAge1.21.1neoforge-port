@@ -1,11 +1,13 @@
 package mods.eln.config
 
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.ResourceLocation
+import net.neoforged.neoforge.common.Tags
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.item.electricalitem.OreScannerConfigElement
-import mods.eln.misc.Utils
-import cpw.mods.fml.common.registry.GameRegistry
-import net.minecraft.block.Block
-import net.minecraftforge.oredict.OreDictionary
+import net.minecraft.world.level.block.Block
 
 /**
  * Loads ore scanner configuration from JsonConfig and resolves ore entries
@@ -58,15 +60,11 @@ object OreScannerConfigLoader {
         val otherModFactor = config.getDoubleOrElse(AUTO_DISCOVERY_FACTOR_KEY, DEFAULT_OTHER_MOD_FACTOR).toFloat()
         val results = mutableListOf<OreScannerConfigElement>()
 
-        for (name in OreDictionary.getOreNames()) {
-            if (name == null || !name.startsWith("ore")) continue
-            for (stack in OreDictionary.getOres(name)) {
-                val damage = stack.itemDamage
-                val meta = if (damage == OreDictionary.WILDCARD_VALUE) 0 else stack.item.getMetadata(damage)
-                val blockKey = Utils.getItemId(stack) + (meta shl 12)
-                if (blockKey !in existingBlockKeys) {
-                    results.add(OreScannerConfigElement(blockKey, otherModFactor))
-                }
+        for (block in BuiltInRegistries.BLOCK) {
+            if (!block.defaultBlockState().`is`(Tags.Blocks.ORES)) continue
+            val blockKey = blockId(block)
+            if (blockKey !in existingBlockKeys) {
+                results.add(OreScannerConfigElement(blockKey, otherModFactor))
             }
         }
 
@@ -78,30 +76,20 @@ object OreScannerConfigLoader {
         if (parts.size < 2) {
             return
         }
-        val modid = parts[0]
-        val name = parts[1]
-        val meta = if (parts.size >= 3) parts[2].toIntOrNull() ?: 0 else 0
-
-        val block = GameRegistry.findBlock(modid, name)
-        if (block == null) {
-            return
-        }
-
-        val blockKey = Block.getIdFromBlock(block) + (meta shl 12)
-        blockKeyMap[blockKey] = factor
+        val id = ResourceLocation.tryBuild(parts[0], parts[1]) ?: return
+        if (!BuiltInRegistries.BLOCK.containsKey(id)) return
+        blockKeyMap[blockId(BuiltInRegistries.BLOCK.get(id))] = factor
     }
 
     private fun resolveOreDictionaryName(key: String, factor: Float, blockKeyMap: MutableMap<Int, Float>) {
-        val ores = OreDictionary.getOres(key)
+        val ores = OreDict.getOres(key)
         if (ores.isEmpty()) {
             return
         }
 
         for (stack in ores) {
-            val damage = stack.itemDamage
-            val meta = if (damage == OreDictionary.WILDCARD_VALUE) 0 else stack.item.getMetadata(damage)
-            val blockKey = Utils.getItemId(stack) + (meta shl 12)
-            blockKeyMap[blockKey] = factor
+            val block = Block.byItem(stack.item)
+            if (!isAir(block)) blockKeyMap[blockId(block)] = factor
         }
     }
 }

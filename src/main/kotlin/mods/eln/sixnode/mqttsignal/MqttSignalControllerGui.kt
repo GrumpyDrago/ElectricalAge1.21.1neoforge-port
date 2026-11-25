@@ -1,5 +1,7 @@
 package mods.eln.sixnode.mqttsignal
 
+import mods.eln.compat.*
+
 import mods.eln.gui.GuiButtonEln
 import mods.eln.gui.GuiContainerEln
 import mods.eln.gui.GuiHelperContainer
@@ -8,11 +10,10 @@ import mods.eln.gui.IGuiObject
 import mods.eln.i18n.I18N.tr
 import mods.eln.mqtt.SignalPort
 import mods.eln.mqtt.SignalPortMode
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.inventory.IInventory
+import net.minecraft.world.entity.player.Player
 
 class MqttSignalControllerGui(
-    player: EntityPlayer,
+    player: Player,
     inventory: IInventory,
     private val render: MqttSignalControllerRender
 ) : GuiContainerEln(MqttSignalControllerContainer(player, inventory)) {

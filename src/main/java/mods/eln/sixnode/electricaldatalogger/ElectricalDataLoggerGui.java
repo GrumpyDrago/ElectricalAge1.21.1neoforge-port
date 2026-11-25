@@ -7,10 +7,10 @@ import mods.eln.gui.GuiTextFieldEln.GuiTextFieldElnObserver;
 import mods.eln.gui.IGuiObject;
 import mods.eln.misc.FC;
 import mods.eln.misc.UtilsClient;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
-import org.lwjgl.opengl.GL11;
+import mods.eln.compat.client.GuiButton;
+import net.minecraft.world.entity.player.Player;
+import mods.eln.compat.IInventory;
+import mods.eln.compat.client.GL11;
 
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -36,7 +36,7 @@ public class ElectricalDataLoggerGui extends GuiContainerEln implements GuiTextF
 
     State state = State.display;
 
-    public ElectricalDataLoggerGui(EntityPlayer player, IInventory inventory, ElectricalDataLoggerRender render) {
+    public ElectricalDataLoggerGui(Player player, IInventory inventory, ElectricalDataLoggerRender render) {
         super(new ElectricalDataLoggerContainer(player, inventory));
         this.render = render;
     }
@@ -234,8 +234,8 @@ public class ElectricalDataLoggerGui extends GuiContainerEln implements GuiTextF
             pause.displayString = FC.BRIGHT_GREEN + "Running";
         zeroLineToggle.displayString = render.log.showZeroLine ? tr("0 Line On") : tr("0 Line Off");
 
-        boolean a = inventorySlots.getSlot(ElectricalDataLoggerContainer.paperSlotId).getStack() != null;
-        boolean b = inventorySlots.getSlot(ElectricalDataLoggerContainer.printSlotId).getStack() == null;
+        boolean a = inventorySlots.getSlot(ElectricalDataLoggerContainer.paperSlotId).hasItem();
+        boolean b = !inventorySlots.getSlot(ElectricalDataLoggerContainer.printSlotId).hasItem();
         printBt.enabled = a && b;
     }
 
@@ -247,7 +247,7 @@ public class ElectricalDataLoggerGui extends GuiContainerEln implements GuiTextF
         if (state == State.display) {
 
             GL11.glPushMatrix();
-            GL11.glTranslatef(guiLeft + 8, guiTop + GRAPH_TOP, 0);
+            GL11.glTranslatef(leftPos + 8, topPos + GRAPH_TOP, 0);
             GL11.glScalef(50, 50, 1f);
 
             GL11.glColor4f(0.15f, 0.15f, 0.15f, 1.0f);

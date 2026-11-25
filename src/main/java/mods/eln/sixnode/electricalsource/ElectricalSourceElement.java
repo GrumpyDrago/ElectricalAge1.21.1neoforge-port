@@ -1,5 +1,7 @@
 package mods.eln.sixnode.electricalsource;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.i18n.I18N;
 import mods.eln.item.IConfigurable;
@@ -22,8 +24,8 @@ import mods.eln.sim.mna.component.VoltageSource;
 import mods.eln.sim.nbt.NbtElectricalLoad;
 import mods.eln.sixnode.electricalcable.UtilityCableDescriptor;
 import mods.eln.sixnode.electricalcable.UtilityCableElement;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,10 +42,10 @@ public class ElectricalSourceElement extends SixNodeElement implements IConfigur
     NbtElectricalLoad electricalLoadRed = new NbtElectricalLoad("electricalLoadRed");
     NbtElectricalLoad electricalLoadWhite = new NbtElectricalLoad("electricalLoadWhite");
     NbtElectricalLoad electricalLoadGround = new NbtElectricalLoad("electricalLoadGround");
-    VoltageSource voltageSource = new VoltageSource("voltSrc", electricalLoad, null);
-    VoltageSource voltageSourceRed = new VoltageSource("voltSrcRed", electricalLoadRed, null);
-    VoltageSource voltageSourceWhite = new VoltageSource("voltSrcWhite", electricalLoadWhite, null);
-    VoltageSource voltageSourceGround = new VoltageSource("voltSrcGround", electricalLoadGround, null);
+    public VoltageSource voltageSource = new VoltageSource("voltSrc", electricalLoad, null);
+    public VoltageSource voltageSourceRed = new VoltageSource("voltSrcRed", electricalLoadRed, null);
+    public VoltageSource voltageSourceWhite = new VoltageSource("voltSrcWhite", electricalLoadWhite, null);
+    public VoltageSource voltageSourceGround = new VoltageSource("voltSrcGround", electricalLoadGround, null);
 
     public static final int setVoltageId = 1;
 
@@ -60,7 +62,7 @@ public class ElectricalSourceElement extends SixNodeElement implements IConfigur
     }
 
     @Override
-    public void readFromNBT(@NotNull NBTTagCompound nbt) {
+    public void readFromNBT(@NotNull CompoundTag nbt) {
         super.readFromNBT(nbt);
         setConfiguredVoltage(nbt.getDouble("voltage"));
     }
@@ -70,9 +72,9 @@ public class ElectricalSourceElement extends SixNodeElement implements IConfigur
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         super.writeToNBT(nbt);
-        nbt.setDouble("voltage", voltageSource.getVoltage());
+        nbt.putDouble("voltage", voltageSource.getVoltage());
     }
 
     @Override
@@ -149,7 +151,7 @@ public class ElectricalSourceElement extends SixNodeElement implements IConfigur
     }
 
     @Override
-    public boolean onBlockActivated(EntityPlayer entityPlayer, Direction side, float vx, float vy, float vz) {
+    public boolean onBlockActivated(Player entityPlayer, Direction side, float vx, float vy, float vz) {
         return onBlockActivatedRotate(entityPlayer);
     }
 
@@ -174,16 +176,16 @@ public class ElectricalSourceElement extends SixNodeElement implements IConfigur
     }
 
     @Override
-    public void readConfigTool(NBTTagCompound compound, EntityPlayer invoker) {
-        if(compound.hasKey("voltage")) {
+    public void readConfigTool(CompoundTag compound, Player invoker) {
+        if(compound.contains("voltage")) {
             setConfiguredVoltage(compound.getDouble("voltage"));
             needPublish();
         }
     }
 
     @Override
-    public void writeConfigTool(NBTTagCompound compound, EntityPlayer invoker) {
-        compound.setDouble("voltage", voltageSource.getVoltage());
+    public void writeConfigTool(CompoundTag compound, Player invoker) {
+        compound.putDouble("voltage", voltageSource.getVoltage());
     }
 
     @Override
@@ -337,11 +339,11 @@ public class ElectricalSourceElement extends SixNodeElement implements IConfigur
         Direction worldDirection = side.applyLRDU(lrdu);
         Coordinate neighborCoordinate = base.moved(worldDirection);
         if (!neighborCoordinate.getBlockExist()) return null;
-        if (!(neighborCoordinate.world().getTileEntity(neighborCoordinate.x, neighborCoordinate.y, neighborCoordinate.z) instanceof NodeBlockEntity)) {
+        if (!(Mc.getTileEntity(neighborCoordinate.world(), neighborCoordinate.x, neighborCoordinate.y, neighborCoordinate.z) instanceof NodeBlockEntity)) {
             return null;
         }
 
-        Node node = ((NodeBlockEntity) neighborCoordinate.world().getTileEntity(neighborCoordinate.x, neighborCoordinate.y, neighborCoordinate.z)).getNode();
+        Node node = ((NodeBlockEntity) Mc.getTileEntity(neighborCoordinate.world(), neighborCoordinate.x, neighborCoordinate.y, neighborCoordinate.z)).getNode();
         if (!(node instanceof SixNode)) return null;
 
         return ((SixNode) node).getElement(worldDirection.getInverse());

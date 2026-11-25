@@ -1,13 +1,16 @@
 package mods.eln.i18n
 
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
-import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 
 internal object LanguageFileGenerator {
-    private const val FILE_HEADER = "#<ELN_LANGFILE_V1_1>\n"
+    private val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
+
+    /** Keys Minecraft itself derives from registry names; they do not appear in the source code. */
+    private val registryKey = Regex("^(item|block|entity|fluid_type|death\\.attack|key)\\.eln.*|^ElectricalAge$|^Wrench$|^Wiki$")
 
     @Throws(IOException::class)
     @JvmStatic
@@ -16,23 +19,17 @@ internal object LanguageFileGenerator {
         strings: Map<String, Set<TranslationItem>>,
         existingTranslations: Map<String, String>?
     ) {
-        OutputStreamWriter(FileOutputStream(file), StandardCharsets.UTF_8).use { writer ->
-            // Write header.
-            writer.append(FILE_HEADER)
-
-            // For each source file with translations create the file comment.
-            for (sourceFile in strings.keys) {
-                // Standardise file paths for every platforms
-                val sourcePath = sourceFile.replace("\\", "/")
-                writer.append("\n# ").append(sourcePath).append("\n")
-
-                // For each translated string in that source file, add translation text.
-                for (text2Translate in strings[sourceFile]!!) {
-                    val effectiveText = existingTranslations?.get(text2Translate.key) ?: text2Translate.text
-                    val resolvedText = I18N.resolveUnicodeEscapes(effectiveText).replace("\\\"", "\"")
-                    writer.append("${text2Translate.key}=$resolvedText\n")
-                }
+        val json = JsonObject()
+        for (items in strings.values) {
+            for (item in items) {
+                val existing = existingTranslations?.get(item.key)
+                json.addProperty(
+                    item.key,
+                    existing ?: I18N.resolveUnicodeEscapes(item.text).replace("\\\"", "\"").replace("\\n", "\n")
+                )
             }
         }
+        existingTranslations?.forEach { (key, value) -> if (registryKey.matches(key)) json.addProperty(key, value) }
+        file.writeText(gson.toJson(json) + "\n", StandardCharsets.UTF_8)
     }
 }

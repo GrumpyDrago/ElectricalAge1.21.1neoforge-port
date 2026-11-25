@@ -1,40 +1,40 @@
 package mods.eln.item.electricalitem
 
+import mods.eln.compat.*
+
 import mods.eln.generic.GenericItemUsingDamageDescriptor
 import mods.eln.lightblock.LightBlockEntity
-import net.minecraft.entity.Entity
-import net.minecraft.item.ItemStack
-import net.minecraft.util.MathHelper
-import net.minecraft.world.World
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.item.ItemStack
+import net.minecraft.util.Mth
+import net.minecraft.world.level.Level
 
 abstract class FlashlightItem(name: String?) : GenericItemUsingDamageDescriptor(name!!) {
     abstract fun getLightState(stack: ItemStack): Int
     abstract fun getRange(stack: ItemStack): Int
     abstract fun getLight(stack: ItemStack): Int
-    override fun onUpdate(stack: ItemStack, world: World, entity: Entity, par4: Int, par5: Boolean) {
-        if (world.isRemote) return
+    private fun isFree(world: Level, x: Int, y: Int, z: Int) = world.isAirBlock(x, y, z)
+
+    override fun onUpdate(stack: ItemStack, world: Level, entity: Entity, par4: Int, par5: Boolean) {
+        if (world.isClientSide) return
         if (getLightState(stack) == 0) return
         val light = getLight(stack)
         if (light == 0) return
         for (yOffset in 0..1) {
-            var x = entity.posX
-            var y = entity.posY + 1.62 - yOffset
-            var z = entity.posZ
-            val v = entity.lookVec
-            v.xCoord *= 0.25
-            v.yCoord *= 0.25
-            v.zCoord *= 0.25
+            var x = entity.x
+            var y = entity.y + 1.62 - yOffset
+            var z = entity.z
+            val v = entity.lookAngle.scale(0.25)
             val range = getRange(stack) + 1
             var rCount = 0
             for (idx in 0 until range) {
                 x += v.xCoord
                 y += v.yCoord
                 z += v.zCoord
-                val fx = MathHelper.floor_double(x)
-                val fy = MathHelper.floor_double(y)
-                val fz = MathHelper.floor_double(z)
-                val block = world.getBlock(fx, fy, fz)
-                if (!block.isAir(world, fx, fy, fz)) {
+                val fx = Mth.floor(x)
+                val fy = Mth.floor(y)
+                val fz = Mth.floor(z)
+                if (!isFree(world, fx, fy, fz)) {
                     x -= v.xCoord
                     y -= v.yCoord
                     z -= v.zCoord
@@ -44,11 +44,10 @@ abstract class FlashlightItem(name: String?) : GenericItemUsingDamageDescriptor(
             }
             while (rCount > 0) {
                 var stride = 1
-                val fx = MathHelper.floor_double(x)
-                val fy = MathHelper.floor_double(y)
-                val fz = MathHelper.floor_double(z)
-                val block = world.getBlock(fx, fy, fz)
-                if (block.isAir(world, fx, fy, fz)) {
+                val fx = Mth.floor(x)
+                val fy = Mth.floor(y)
+                val fz = Mth.floor(z)
+                if (isFree(world, fx, fy, fz)) {
                     LightBlockEntity.addLight(world, fx, fy, fz, light, 5)
                     stride = 3
                 }

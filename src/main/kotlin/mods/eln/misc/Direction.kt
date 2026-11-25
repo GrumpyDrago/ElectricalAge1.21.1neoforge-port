@@ -1,12 +1,14 @@
 @file:Suppress("NAME_SHADOWING")
 package mods.eln.misc
 
+import mods.eln.compat.*
+
 import mods.eln.misc.Utils.isTheClass
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.tileentity.TileEntity
-import net.minecraft.util.Vec3
-import net.minecraftforge.common.util.ForgeDirection
-import org.lwjgl.opengl.GL11
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.phys.Vec3
+import net.minecraft.core.Direction as McDirection
+import mods.eln.compat.client.GL11
 
 /**
  * Represents the 6 possible directions along the axis of a block.
@@ -87,18 +89,18 @@ enum class Direction(var int: Int) {
      * @param tileEntity tile entity to check
      * @return Adjacent tile entity or null if none exists
      */
-    fun applyToTileEntity(tileEntity: TileEntity?): TileEntity? {
+    fun applyToTileEntity(tileEntity: BlockEntity?): BlockEntity? {
         if (tileEntity == null) return null
         val coords = intArrayOf(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord)
         coords[int / 2] += sign
-        return if (tileEntity.worldObj != null && tileEntity.worldObj.blockExists(coords[0], coords[1], coords[2])) {
+        return if (tileEntity.level != null && tileEntity.worldObj.blockExists(coords[0], coords[1], coords[2])) {
             tileEntity.worldObj.getTileEntity(coords[0], coords[1], coords[2])
         } else {
             null
         }
     }
 
-    fun applyToTileEntityAndSameClassThan(tileEntity: TileEntity?, c: Class<*>?): TileEntity? {
+    fun applyToTileEntityAndSameClassThan(tileEntity: BlockEntity?, c: Class<*>?): BlockEntity? {
         if (tileEntity == null) return null
         val findedEntity = applyToTileEntity(tileEntity) ?: return null
         return if (!isTheClass(findedEntity, c!!)) null else findedEntity
@@ -309,7 +311,7 @@ enum class Direction(var int: Int) {
         }
     }
 
-    fun getTileEntity(coordinate: Coordinate): TileEntity {
+    fun getTileEntity(coordinate: Coordinate): BlockEntity? {
         var x = coordinate.x
         var y = coordinate.y
         var z = coordinate.z
@@ -324,8 +326,8 @@ enum class Direction(var int: Int) {
         return coordinate.world().getTileEntity(x, y, z)
     }
 
-    fun writeToNBT(nbt: NBTTagCompound, name: String?) {
-        nbt.setByte(name, int.toByte())
+    fun writeToNBT(nbt: CompoundTag, name: String?) {
+        nbt.putByte(name, int.toByte())
     }
 
     fun rotateFromXN(p: DoubleArray) {
@@ -392,36 +394,11 @@ enum class Direction(var int: Int) {
         }
     }
 
-    fun rotateFromXN(p: Vec3) {
-        val x = p.xCoord
-        val y = p.yCoord
-        val z = p.zCoord
-        when (this) {
-            XN -> {
-            }
-            XP -> {
-                p.xCoord = -x
-                p.zCoord = -z
-            }
-            YN -> {
-                p.xCoord = y
-                p.yCoord = x
-                p.zCoord = -z
-            }
-            YP -> {
-                p.xCoord = y
-                p.yCoord = -x
-                p.zCoord = z
-            }
-            ZN -> {
-                p.xCoord = -z
-                p.zCoord = x
-            }
-            ZP -> {
-                p.xCoord = z
-                p.zCoord = -x
-            }
-        }
+    /** [p] rotated like the array variants do in place. */
+    fun rotateFromXN(p: Vec3): Vec3 {
+        val v = doubleArrayOf(p.x, p.y, p.z)
+        rotateFromXN(v)
+        return Vec3(v[0], v[1], v[2])
     }
 
     fun rotateFromXN(p: Coordinate) {
@@ -467,14 +444,14 @@ enum class Direction(var int: Int) {
         }
     }
 
-    fun toForge(): ForgeDirection {
+    fun toForge(): McDirection {
         return when (this) {
-            YN -> ForgeDirection.DOWN
-            XP -> ForgeDirection.EAST
-            ZN -> ForgeDirection.NORTH
-            ZP -> ForgeDirection.SOUTH
-            YP -> ForgeDirection.UP
-            XN -> ForgeDirection.WEST
+            YN -> McDirection.DOWN
+            XP -> McDirection.EAST
+            ZN -> McDirection.NORTH
+            ZP -> McDirection.SOUTH
+            YP -> McDirection.UP
+            XN -> McDirection.WEST
         }
     }
 
@@ -541,18 +518,19 @@ enum class Direction(var int: Int) {
         }
 
         @JvmStatic
-        fun readFromNBT(nbt: NBTTagCompound, name: String): Direction? {
+        fun readFromNBT(nbt: CompoundTag, name: String): Direction? {
             return fromInt(nbt.getByte(name).toInt())
         }
 
-        fun from(direction: ForgeDirection?): Direction {
+        @JvmStatic
+        fun from(direction: McDirection?): Direction {
             return when (direction) {
-                ForgeDirection.DOWN -> YN
-                ForgeDirection.EAST -> XP
-                ForgeDirection.NORTH -> ZN
-                ForgeDirection.SOUTH -> ZP
-                ForgeDirection.UP -> YP
-                ForgeDirection.WEST -> XN
+                McDirection.DOWN -> YN
+                McDirection.EAST -> XP
+                McDirection.NORTH -> ZN
+                McDirection.SOUTH -> ZP
+                McDirection.UP -> YP
+                McDirection.WEST -> XN
                 else -> YN
             }
         }

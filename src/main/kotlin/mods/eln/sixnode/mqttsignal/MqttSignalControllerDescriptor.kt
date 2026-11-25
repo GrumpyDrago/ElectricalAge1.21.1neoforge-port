@@ -1,5 +1,7 @@
 package mods.eln.sixnode.mqttsignal
 
+import mods.eln.compat.*
+
 import mods.eln.misc.Obj3D
 import mods.eln.misc.Obj3D.Obj3DPart
 import mods.eln.misc.Utils
@@ -7,12 +9,12 @@ import mods.eln.misc.UtilsClient
 import mods.eln.misc.VoltageLevelColor
 import mods.eln.node.six.SixNodeDescriptor
 import mods.eln.wiki.Data
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraftforge.client.IItemRenderer.ItemRenderType
-import net.minecraftforge.client.IItemRenderer.ItemRendererHelper
-import org.lwjgl.opengl.GL11
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import mods.eln.compat.IItemRenderer.ItemRenderType
+import mods.eln.compat.IItemRenderer.ItemRendererHelper
+import mods.eln.compat.client.GL11
 
 class MqttSignalControllerDescriptor(name: String?, private val obj: Obj3D?) :
     SixNodeDescriptor(name, MqttSignalControllerElement::class.java, MqttSignalControllerRender::class.java) {

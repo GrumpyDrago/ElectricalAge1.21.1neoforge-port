@@ -1,5 +1,7 @@
 package mods.eln.sixnode.lampsocket
 
+import mods.eln.compat.*
+
 import mods.eln.item.lampitem.BoilerplateLampData
 import mods.eln.item.lampitem.LampDescriptor
 import mods.eln.lightblock.LightBlockEntity
@@ -7,8 +9,9 @@ import mods.eln.misc.Coordinate
 import mods.eln.misc.Utils
 import mods.eln.sim.IProcess
 import mods.eln.sixnode.lampsupply.LampSupplyElement
-import net.minecraft.item.ItemStack
-import net.minecraft.util.Vec3
+import net.minecraft.world.item.ItemStack
+import mods.eln.misc.MutVec3
+import net.minecraft.server.level.ServerLevel
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -130,23 +133,26 @@ class LampSocketProcess(var element: LampSocketElement) : IProcess {
         val randTarget = growRate * deltaT * (actualLight.toDouble() / nominalLight.toDouble())
 
         if (randTarget > Math.random()) {
-            val rotationVector = Vec3.createVectorHelper(1.0, 0.0, 0.0)
+            val rotationVector = MutVec3(1.0, 0.0, 0.0)
             rotationVector.rotateAroundZ((element.projectionRotationAngle * (Math.PI / 180.0)).toFloat())
             rotationVector.rotateAroundY(((Math.random() - 0.5) * Math.PI / 2.0).toFloat())
             rotationVector.rotateAroundZ(((Math.random() - 0.5) * Math.PI / 2.0).toFloat())
-            element.front.rotateOnXnLeft(rotationVector)
-            element.side.rotateFromXN(rotationVector)
+            rotationVector.set(element.front.rotateOnXnLeft(rotationVector.toVec3()))
+            rotationVector.set(element.side.rotateFromXN(rotationVector.toVec3()))
 
             val lbCoordinate = raytrace(rotationVector, actualLight)
-            lbCoordinate.block.updateTick(lbCoordinate.world(), lbCoordinate.x, lbCoordinate.y, lbCoordinate.z, lbCoordinate.world().rand)
+            val world = lbCoordinate.world()
+            if (world is ServerLevel && lbCoordinate.blockExist) {
+                lbCoordinate.state.randomTick(world, lbCoordinate.blockPos, world.random)
+            }
         }
     }
 
     private fun placeSpot(lightValue: Int) {
-        val rotationVector = Vec3.createVectorHelper(1.0, 0.0, 0.0)
+        val rotationVector = MutVec3(1.0, 0.0, 0.0)
         rotationVector.rotateAroundZ((element.projectionRotationAngle * (Math.PI / 180.0)).toFloat())
-        element.front.rotateOnXnLeft(rotationVector)
-        element.side.rotateFromXN(rotationVector)
+        rotationVector.set(element.front.rotateOnXnLeft(rotationVector.toVec3()))
+        rotationVector.set(element.side.rotateFromXN(rotationVector.toVec3()))
 
         val lbCoordinate = raytrace(rotationVector, 0)
 
@@ -158,21 +164,21 @@ class LampSocketProcess(var element: LampSocketElement) : IProcess {
         LightBlockEntity.addLight(lbCoordinate, lightValue, lightTimeout)
     }
 
-    private fun raytrace(rotationVector: Vec3, vectorLengthModifier: Int): Coordinate {
-        val lightVector = element.sixNode!!.coordinate.toVec3()
-        val lbCoordinate = Coordinate(lightVector, element.sixNode!!.coordinate.dimension)
+    private fun raytrace(rotationVector: MutVec3, vectorLengthModifier: Int): Coordinate {
+        val lightVector = MutVec3(element.sixNode!!.coordinate.toVec3())
+        val lbCoordinate = Coordinate(lightVector.toVec3(), element.sixNode!!.coordinate.dimension)
 
         for (idx in 0 until element.descriptor.range + vectorLengthModifier) {
             lightVector.xCoord += rotationVector.xCoord
             lightVector.yCoord += rotationVector.yCoord
             lightVector.zCoord += rotationVector.zCoord
-            lbCoordinate.setPosition(lightVector)
+            lbCoordinate.setPosition(lightVector.toVec3())
 
             if (!lbCoordinate.blockExist || lbCoordinate.block.isOpaqueCube) {
                 lightVector.xCoord -= rotationVector.xCoord
                 lightVector.yCoord -= rotationVector.yCoord
                 lightVector.zCoord -= rotationVector.zCoord
-                lbCoordinate.setPosition(lightVector)
+                lbCoordinate.setPosition(lightVector.toVec3())
                 break
             }
         }

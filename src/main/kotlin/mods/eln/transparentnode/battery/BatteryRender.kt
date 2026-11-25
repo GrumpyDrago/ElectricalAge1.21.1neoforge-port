@@ -1,12 +1,14 @@
 package mods.eln.transparentnode.battery
 
+import mods.eln.compat.*
+
 import mods.eln.misc.Direction
 import mods.eln.misc.LRDUMask
 import mods.eln.node.transparent.TransparentNodeDescriptor
 import mods.eln.node.transparent.TransparentNodeElementRender
 import mods.eln.node.transparent.TransparentNodeEntity
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.world.entity.player.Player
 import java.io.DataInputStream
 import java.io.IOException
 
@@ -38,7 +40,7 @@ class BatteryRender(tileEntity: TransparentNodeEntity, descriptor: TransparentNo
         }
     }
 
-    override fun newGuiDraw(side: Direction, player: EntityPlayer): GuiScreen {
+    override fun newGuiDraw(side: Direction, player: Player): Screen {
         return BatteryGuiDraw(this)
     }
 }

@@ -1,5 +1,9 @@
 package mods.eln.falstad
 
+import net.minecraft.core.BlockPos
+import net.minecraft.core.registries.BuiltInRegistries
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.generic.GenericItemBlockUsingDamageDescriptor
 import mods.eln.generic.GenericItemUsingDamageDescriptor
@@ -30,14 +34,13 @@ import mods.eln.sixnode.electricalswitch.ElectricalSwitchElement
 import mods.eln.sixnode.logicgate.LogicGateDescriptor
 import mods.eln.sixnode.resistor.ResistorDescriptor
 import mods.eln.sixnode.resistor.ResistorElement
-import net.minecraft.block.Block
-import net.minecraft.entity.player.EntityPlayerMP
-import net.minecraft.init.Blocks
-import net.minecraft.init.Items
-import net.minecraft.inventory.IInventory
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.world.World
+import net.minecraft.world.level.block.Block
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.item.Items
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.level.Level
 import mods.eln.i18n.I18N.tr
 import java.util.concurrent.Executors
 import kotlin.math.abs
@@ -66,16 +69,16 @@ object FalstadImporter {
         Thread(runnable, "eln-falstad-import").apply { isDaemon = true }
     }
 
-    fun importFromClipboardAsync(player: EntityPlayerMP, netlist: String) {
-        val playerName = player.commandSenderName
-        val dimension = player.worldObj.provider.dimensionId
+    fun importFromClipboardAsync(player: ServerPlayer, netlist: String) {
+        val playerId = player.uuid
+        val dimension = player.worldObj.dimensionId
         planningExecutor.execute {
             val parseResult = try {
                 FalstadDeviceParser.parse(netlist)
             } catch (_: Exception) {
                 Eln.delayedTask.add(object : mods.eln.server.DelayedTaskManager.ITask {
                     override fun run() {
-                        val livePlayer = player.mcServer.configurationManager.func_152612_a(playerName)
+                        val livePlayer = player.server.playerList.getPlayer(playerId)
                         if (livePlayer != null) {
                             addChatMessage(livePlayer, tr("Falstad import: clipboard is not valid Falstad data."))
                         }
@@ -86,8 +89,8 @@ object FalstadImporter {
             val plan = FalstadLayoutPlanner.plan(parseResult)
             Eln.delayedTask.add(object : mods.eln.server.DelayedTaskManager.ITask {
                 override fun run() {
-                    val livePlayer = player.mcServer.configurationManager.func_152612_a(playerName)
-                    if (livePlayer == null || livePlayer.worldObj.provider.dimensionId != dimension) {
+                    val livePlayer = player.server.playerList.getPlayer(playerId)
+                    if (livePlayer == null || livePlayer.worldObj.dimensionId != dimension) {
                         return
                     }
                     importPlanned(livePlayer, plan)
@@ -96,7 +99,7 @@ object FalstadImporter {
         }
     }
 
-    private fun importPlanned(player: EntityPlayerMP, plan: FalstadLayoutPlan) {
+    private fun importPlanned(player: ServerPlayer, plan: FalstadLayoutPlan) {
         if (plan.width <= 0 || plan.height <= 0) {
             addChatMessage(player, tr("Falstad import: no components found."))
             return
@@ -340,7 +343,7 @@ object FalstadImporter {
     }
 
     private fun placeVoltageSource(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         area: Area,
         component: FalstadPlacedComponent,
         messages: MutableList<String>
@@ -356,8 +359,8 @@ object FalstadImporter {
             return PlacementResult(true)
         }
 
-        val compound = NBTTagCompound()
-        compound.setDouble("voltage", placement.voltage)
+        val compound = CompoundTag()
+        compound.putDouble("voltage", placement.voltage)
         element.readConfigTool(compound, player)
 
         val waveform = component.source.params.getOrNull(1)?.toIntOrNull() ?: 0
@@ -369,7 +372,7 @@ object FalstadImporter {
     }
 
     private fun placeSinglePortVoltageSource(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         area: Area,
         component: FalstadPlacedComponent,
         messages: MutableList<String>
@@ -385,14 +388,14 @@ object FalstadImporter {
             return PlacementResult(true)
         }
 
-        val compound = NBTTagCompound()
-        compound.setDouble("voltage", placement.voltage)
+        val compound = CompoundTag()
+        compound.putDouble("voltage", placement.voltage)
         element.readConfigTool(compound, player)
         return PlacementResult(true)
     }
 
     private fun placeCurrentSource(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         area: Area,
         component: FalstadPlacedComponent,
         messages: MutableList<String>
@@ -408,14 +411,14 @@ object FalstadImporter {
             return PlacementResult(true)
         }
 
-        val compound = NBTTagCompound()
-        compound.setDouble("current", placement.current)
+        val compound = CompoundTag()
+        compound.putDouble("current", placement.current)
         element.readConfigTool(compound, player)
         return PlacementResult(true)
     }
 
     private fun placeProbeDisplay(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         area: Area,
         component: FalstadPlacedComponent,
         maxValue: Double,
@@ -436,20 +439,20 @@ object FalstadImporter {
         }
         probeElement.inventory?.setInventorySlotContents(0, Eln.instance.lowVoltageCableDescriptor.newItemStack(1))
         probeElement.inventory?.markDirty()
-        val probeConfig = NBTTagCompound()
-        probeConfig.setFloat("min", (-maxValue).toFloat())
-        probeConfig.setFloat("max", maxValue.toFloat())
+        val probeConfig = CompoundTag()
+        probeConfig.putFloat("min", (-maxValue).toFloat())
+        probeConfig.putFloat("max", maxValue.toFloat())
         probeElement.readConfigTool(probeConfig, player)
 
         val displayElement = getTopElement(player.worldObj, area, placement.displayPoint) as? ElectricalDataLoggerElement
         if (displayElement == null) {
             return PlacementResult(false, tr("placed Industrial Data Logger but couldn't find top element"))
         }
-        val displayConfig = NBTTagCompound()
-        displayConfig.setFloat("min", (-maxValue).toFloat())
-        displayConfig.setFloat("max", maxValue.toFloat())
-        displayConfig.setByte("unit", DataLogs.voltageType)
-        displayConfig.setFloat("period", 0.1f)
+        val displayConfig = CompoundTag()
+        displayConfig.putFloat("min", (-maxValue).toFloat())
+        displayConfig.putFloat("max", maxValue.toFloat())
+        displayConfig.putByte("unit", DataLogs.voltageType)
+        displayConfig.putFloat("period", 0.1f)
         displayElement.readConfigTool(displayConfig, player)
 
         messages += tr("Falstad scope output substituted with Voltage Probe + Industrial Data Logger")
@@ -488,8 +491,8 @@ object FalstadImporter {
     }
 
     private fun placeSixNode(
-        world: World,
-        player: EntityPlayerMP,
+        world: Level,
+        player: ServerPlayer,
         area: Area,
         point: FalstadPoint,
         descriptor: GenericItemBlockUsingDamageDescriptor,
@@ -499,7 +502,7 @@ object FalstadImporter {
         val y = area.groundY
         val z = area.originZ + point.y
         val stack = descriptor.newItemStack(1)
-        val placed = Eln.sixNodeItem.onItemUse(stack, player, world, x, y, z, 1, 0.5f, 1.0f, 0.5f)
+        val placed = Eln.sixNodeItem.onItemUse(stack, player, world, x, y, z, 1)
         if (!placed) {
             val failureSummary = logPlacementFailure(world, player, x, y, z, descriptor, front, stack)
             return PlacementResult(false, failureSummary)
@@ -515,8 +518,8 @@ object FalstadImporter {
     }
 
     private fun logPlacementFailure(
-        world: World,
-        player: EntityPlayerMP,
+        world: Level,
+        player: ServerPlayer,
         x: Int,
         y: Int,
         z: Int,
@@ -525,9 +528,9 @@ object FalstadImporter {
         stack: ItemStack
     ): String {
         val supportBlock = world.getBlock(x, y, z)
-        val supportMeta = world.getBlockMetadata(x, y, z)
+        val supportMeta = world.getState(x, y, z)
         val resolvedX = x
-        val resolvedY = if (supportBlock === Blocks.snow_layer && world.getBlockMetadata(x, y, z) and 0x7 < 1) {
+        val resolvedY = if (supportBlock === Blocks.SNOW && supportMeta.canBeReplaced()) {
             y
         } else if (!supportBlock.isReplaceable(world, x, y, z)) {
             y + 1
@@ -537,10 +540,10 @@ object FalstadImporter {
         val resolvedZ = z
         val targetY = resolvedY
         val targetBlock = world.getBlock(x, targetY, z)
-        val targetMeta = world.getBlockMetadata(x, targetY, z)
+        val targetMeta = world.getState(x, targetY, z)
         val targetTile = world.getTileEntity(x, targetY, z)?.javaClass?.simpleName ?: "none"
-        val canEdit = player.canPlayerEdit(x, y, z, 1, stack)
-        val canPlaceOnSide = Eln.sixNodeItem.func_150936_a(world, x, y, z, 1, player, stack)
+        val canEdit = player.mayUseItemAt(BlockPos(x, y, z), net.minecraft.core.Direction.UP, stack)
+        val canPlaceOnSide = Eln.sixNodeItem.canPlaceItemBlockOnSide(world, x, y, z, 1, player, stack)
         val supportReplaceable = supportBlock.isReplaceable(world, x, y, z)
         val targetReplaceable = targetBlock.isReplaceable(world, x, targetY, z)
         val sixNodeDescriptor = Eln.sixNodeItem.getDescriptor(stack) as? SixNodeDescriptor
@@ -556,24 +559,24 @@ object FalstadImporter {
             descriptor.name,
             front,
             resolvedFront,
-            world.provider.dimensionId,
-            player.posX,
-            player.posY,
-            player.posZ,
+            world.dimensionId,
+            player.x,
+            player.y,
+            player.z,
             canEdit,
             canPlaceOnSide,
             precheck,
             x,
             y,
             z,
-            Block.blockRegistry.getNameForObject(supportBlock),
+            BuiltInRegistries.BLOCK.getKey(supportBlock),
             supportMeta,
-            supportBlock.material.isSolid,
+            supportMeta.isOpaqueCubeState,
             supportReplaceable,
             resolvedX,
             targetY,
             resolvedZ,
-            Block.blockRegistry.getNameForObject(targetBlock),
+            BuiltInRegistries.BLOCK.getKey(targetBlock),
             targetMeta,
             targetReplaceable,
             targetTile
@@ -586,14 +589,14 @@ object FalstadImporter {
             canEdit,
             canPlaceOnSide,
             precheck,
-            Block.blockRegistry.getNameForObject(supportBlock),
-            Block.blockRegistry.getNameForObject(targetBlock),
+            BuiltInRegistries.BLOCK.getKey(supportBlock),
+            BuiltInRegistries.BLOCK.getKey(targetBlock),
             targetTile
         )
-        return "desc=${descriptor.name}, front=$front->$resolvedFront, canEdit=$canEdit, canPlace=$canPlaceOnSide, precheck=$precheck, target=${Block.blockRegistry.getNameForObject(targetBlock)}, tile=$targetTile"
+        return "desc=${descriptor.name}, front=$front->$resolvedFront, canEdit=$canEdit, canPlace=$canPlaceOnSide, precheck=$precheck, target=${BuiltInRegistries.BLOCK.getKey(targetBlock)}, tile=$targetTile"
     }
 
-    private fun getTopElement(world: World, area: Area, point: FalstadPoint): SixNodeElement? {
+    private fun getTopElement(world: Level, area: Area, point: FalstadPoint): SixNodeElement? {
         val x = area.originX + point.x
         val y = area.groundY + 1
         val z = area.originZ + point.y
@@ -654,7 +657,7 @@ object FalstadImporter {
     }
 
     private fun placeSignalInput(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         area: Area,
         component: FalstadPlacedComponent,
         rotatedPlacement: Boolean,
@@ -676,7 +679,7 @@ object FalstadImporter {
     }
 
     private fun placeSignalOutput(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         area: Area,
         component: FalstadPlacedComponent,
         rotatedPlacement: Boolean,
@@ -689,7 +692,7 @@ object FalstadImporter {
     }
 
     private fun placeFalstadNandGate(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         area: Area,
         component: FalstadPlacedComponent,
         rotatedPlacement: Boolean,
@@ -702,7 +705,7 @@ object FalstadImporter {
     }
 
     private fun configureElement(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         element: SixNodeElement,
         component: FalstadPlacedComponent,
         messages: MutableList<String>
@@ -726,7 +729,7 @@ object FalstadImporter {
     }
 
     private fun configureCurrentSource(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         element: CurrentSourceElement,
         component: FalstadPlacedComponent,
         messages: MutableList<String>
@@ -735,8 +738,8 @@ object FalstadImporter {
             messages += tr("Line %1$: invalid current value.", component.source.lineNumber)
             return
         }
-        val compound = NBTTagCompound()
-        compound.setDouble("current", current)
+        val compound = CompoundTag()
+        compound.putDouble("current", current)
         element.readConfigTool(compound, player)
     }
 
@@ -783,7 +786,7 @@ object FalstadImporter {
     }
 
     private fun configureCreativeResistor(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         element: CreativePowerResistorElement,
         component: FalstadPlacedComponent,
         messages: MutableList<String>
@@ -792,8 +795,8 @@ object FalstadImporter {
             messages += tr("Line %1$: invalid resistance value.", component.source.lineNumber)
             return
         }
-        val compound = NBTTagCompound()
-        compound.setDouble("resistance", target)
+        val compound = CompoundTag()
+        compound.putDouble("resistance", target)
         element.readConfigTool(compound, player)
     }
 
@@ -817,7 +820,7 @@ object FalstadImporter {
         var bestError = Double.POSITIVE_INFINITY
         for (redstone in 1..13) {
             for (dielectricCount in 1..20) {
-                inventory.setInventorySlotContents(PowerCapacitorSixContainer.redId, ItemStack(Items.redstone, redstone))
+                inventory.setInventorySlotContents(PowerCapacitorSixContainer.redId, ItemStack(Items.REDSTONE, redstone))
                 inventory.setInventorySlotContents(PowerCapacitorSixContainer.dielectricId, dielectric.newItemStack(dielectricCount))
                 val error = abs(descriptor.getCValue(inventory) - target)
                 if (error < bestError) {
@@ -828,13 +831,13 @@ object FalstadImporter {
             }
         }
 
-        inventory.setInventorySlotContents(PowerCapacitorSixContainer.redId, ItemStack(Items.redstone, bestRedstone))
+        inventory.setInventorySlotContents(PowerCapacitorSixContainer.redId, ItemStack(Items.REDSTONE, bestRedstone))
         inventory.setInventorySlotContents(PowerCapacitorSixContainer.dielectricId, dielectric.newItemStack(bestDielectric))
         inventory.markDirty()
     }
 
     private fun configureCreativeCapacitor(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         element: CreativePowerCapacitorElement,
         component: FalstadPlacedComponent,
         messages: MutableList<String>
@@ -843,8 +846,8 @@ object FalstadImporter {
             messages += tr("Line %1$: invalid capacitance value.", component.source.lineNumber)
             return
         }
-        val compound = NBTTagCompound()
-        compound.setDouble("capacitance", target)
+        val compound = CompoundTag()
+        compound.putDouble("capacitance", target)
         element.readConfigTool(compound, player)
     }
 
@@ -881,7 +884,7 @@ object FalstadImporter {
     }
 
     private fun configureCreativeInductor(
-        player: EntityPlayerMP,
+        player: ServerPlayer,
         element: CreativePowerInductorElement,
         component: FalstadPlacedComponent,
         messages: MutableList<String>
@@ -890,15 +893,15 @@ object FalstadImporter {
             messages += tr("Line %1$: invalid inductance value.", component.source.lineNumber)
             return
         }
-        val compound = NBTTagCompound()
-        compound.setDouble("inductance", target)
+        val compound = CompoundTag()
+        compound.putDouble("inductance", target)
         element.readConfigTool(compound, player)
     }
 
-    private fun findPlacementArea(world: World, player: EntityPlayerMP, plan: FalstadLayoutPlan): PlacementSearchResult {
-        val centerX = floor(player.posX).toInt()
-        val centerZ = floor(player.posZ).toInt()
-        val baseY = floor(player.posY).toInt() - 1
+    private fun findPlacementArea(world: Level, player: ServerPlayer, plan: FalstadLayoutPlan): PlacementSearchResult {
+        val centerX = floor(player.x).toInt()
+        val centerZ = floor(player.z).toInt()
+        val baseY = floor(player.y).toInt() - 1
         val rotatedPlan = if (plan.width != plan.height) plan.rotatedClockwise() else null
         var bestNearbyArea: Footprint? = null
 
@@ -931,7 +934,7 @@ object FalstadImporter {
         return PlacementSearchResult(null, bestNearbyArea)
     }
 
-    private fun measureClearFootprint(world: World, originX: Int, groundY: Int, originZ: Int, maxX: Int, maxZ: Int): Footprint {
+    private fun measureClearFootprint(world: Level, originX: Int, groundY: Int, originZ: Int, maxX: Int, maxZ: Int): Footprint {
         var width = 0
         while (originX + width <= maxX && isClearTile(world, originX + width, groundY, originZ)) {
             width++
@@ -950,14 +953,14 @@ object FalstadImporter {
         return Footprint(width, height)
     }
 
-    private fun isClearTile(world: World, x: Int, groundY: Int, z: Int): Boolean {
+    private fun isClearTile(world: Level, x: Int, groundY: Int, z: Int): Boolean {
         val block = world.getBlock(x, groundY, z)
         return isSolidSupport(world, x, groundY, z, block) &&
             isReplaceableAbove(world, x, groundY + 1, z) &&
             world.getTileEntity(x, groundY + 1, z) == null
     }
 
-    private fun findGroundY(world: World, x: Int, z: Int, preferredY: Int): Int? {
+    private fun findGroundY(world: Level, x: Int, z: Int, preferredY: Int): Int? {
         for (y in preferredY + 3 downTo maxOf(1, preferredY - 8)) {
             val block = world.getBlock(x, y, z)
             if (isSolidSupport(world, x, y, z, block)) {
@@ -967,7 +970,7 @@ object FalstadImporter {
         return null
     }
 
-    private fun isFlatClearArea(world: World, originX: Int, groundY: Int, originZ: Int, width: Int, height: Int): Boolean {
+    private fun isFlatClearArea(world: Level, originX: Int, groundY: Int, originZ: Int, width: Int, height: Int): Boolean {
         for (x in originX until originX + width) {
             for (z in originZ until originZ + height) {
                 if (!isClearTile(world, x, groundY, z)) return false
@@ -976,12 +979,12 @@ object FalstadImporter {
         return true
     }
 
-    private fun isSolidSupport(world: World, x: Int, y: Int, z: Int, block: Block): Boolean {
-        return block !== Blocks.air && block.material.isSolid && !block.isReplaceable(world, x, y, z)
+    private fun isSolidSupport(world: Level, x: Int, y: Int, z: Int, block: Block): Boolean {
+        return !isAir(block) && block.isOpaqueCube && !block.isReplaceable(world, x, y, z)
     }
 
-    private fun isReplaceableAbove(world: World, x: Int, y: Int, z: Int): Boolean {
+    private fun isReplaceableAbove(world: Level, x: Int, y: Int, z: Int): Boolean {
         val block = world.getBlock(x, y, z)
-        return block === Blocks.air || block.isReplaceable(world, x, y, z)
+        return block === Blocks.AIR || block.isReplaceable(world, x, y, z)
     }
 }

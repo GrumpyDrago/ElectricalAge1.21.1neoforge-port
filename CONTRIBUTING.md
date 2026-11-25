@@ -6,7 +6,7 @@ This is an open source project. We appreciate any help from the community to imp
 
 Did you find a bug or do you have an idea how to improve the mod? We are happy to hear from you.
 
-- Report issues or propose features through the [GitHub issue tracker](https://github.com/age-series/ElectricalAge/issues).
+- Report issues or propose features through the [GitHub issue tracker](https://github.com/GrumpyDrago/ElectricalAge1.21.1neoforge-port/issues).
 - Chat with the team in the [Discord server](https://discord.gg/YjK2JAD) if you want help reproducing or validating an idea before opening a pull request.
 - Pull requests are reviewed via GitHub — please include links to any relevant issues or design discussions.
 
@@ -15,13 +15,12 @@ Did you find a bug or do you have an idea how to improve the mod? We are happy t
 If you would like to test changes locally, you can build and run the mod with Gradle:
 
 ```bash
-git clone https://github.com/age-series/ElectricalAge.git
-cd ElectricalAge
-./gradlew setupDecompWorkspace
+git clone https://github.com/GrumpyDrago/ElectricalAge1.21.1neoforge-port.git
+cd ElectricalAge1.21.1neoforge-port
 ./gradlew runClient
 ```
 
-`setupDecompWorkspace` only needs to be executed the first time (or after updating Forge/Minecraft dependencies). After that you can iterate using `./gradlew runClient` or other Gradle tasks as needed.
+You need JDK 21. The first build downloads and decompiles Minecraft, which takes a few minutes. The other useful Gradle tasks, and an overview of the code, are in [docs/neoforge-port.md](docs/neoforge-port.md).
 
 ## Translations
 

@@ -1,30 +1,51 @@
 package mods.eln;
 
-import cpw.mods.fml.common.*;
-import cpw.mods.fml.common.Mod.EventHandler;
-import cpw.mods.fml.common.Mod.Instance;
-import cpw.mods.fml.common.event.*;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.network.FMLEventChannel;
-import cpw.mods.fml.common.network.NetworkRegistry;
-import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
-import cpw.mods.fml.common.registry.GameRegistry;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import mods.eln.block.ArcClayBlock;
-import mods.eln.block.ArcClayItemBlock;
 import mods.eln.block.ArcMetalBlock;
-import mods.eln.block.ArcMetalItemBlock;
+import mods.eln.client.ClientProxy;
+import mods.eln.compat.OreDict;
+import mods.eln.craft.RecipeInjector;
+import mods.eln.datagen.ElnDataGenerator;
+import mods.eln.entity.ElnEntities;
+import mods.eln.gametest.ClientSmokeTest;
+import mods.eln.generic.DescriptorCollection;
+import mods.eln.integration.cc.ComputerCraftIntegration;
+import mods.eln.ore.ConfigPlacement;
+import mods.eln.packets.ElnPayload;
+import mods.eln.registration.ElnBlockEntities;
+import mods.eln.registration.ElnRegistry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.item.ArmorItem;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.data.event.GatherDataEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
+import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.items.wrapper.SidedInvWrapper;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.registries.RegisterEvent;
+
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import mods.eln.compat.Mc;
+
+import net.neoforged.bus.api.SubscribeEvent;
+import mods.eln.compat.Side;
 import mods.eln.cable.CableRenderDescriptor;
 import mods.eln.client.ClientKeyHandler;
-import mods.eln.client.SoundLoader;
 import mods.eln.config.JsonConfig;
 import mods.eln.craft.CraftingRecipes;
 import mods.eln.entity.ReplicatorPopProcess;
-import mods.eln.eventhandlers.ElnFMLEventsHandler;
-import mods.eln.eventhandlers.ElnForgeEventsHandler;
 import mods.eln.eventhandlers.RoomThermalBlockEventsHandler;
-import mods.eln.fluid.ElnFluidRegistry;
 import mods.eln.fluid.FuelRegistry;
 import mods.eln.fluid.ThermalRegistry;
 import mods.eln.fluid.FluidRegistrationKt;
@@ -35,7 +56,6 @@ import mods.eln.generic.GenericItemUsingDamageDescriptorWithComment;
 import mods.eln.generic.SharedItem;
 import mods.eln.ghost.GhostBlock;
 import mods.eln.ghost.GhostManager;
-import mods.eln.ghost.GhostManagerNbt;
 import mods.eln.item.*;
 import mods.eln.item.electricalinterface.ItemEnergyInventoryProcess;
 import mods.eln.item.lampitem.LampLists;
@@ -46,7 +66,6 @@ import mods.eln.mqtt.MqttManager;
 import mods.eln.metrics.MetricsSubsystem;
 import mods.eln.node.NodeBlockEntity;
 import mods.eln.node.NodeManager;
-import mods.eln.node.NodeManagerNbt;
 import mods.eln.node.NodeServer;
 import mods.eln.node.six.*;
 import mods.eln.node.transparent.*;
@@ -77,27 +96,20 @@ import mods.eln.sixnode.modbusrtu.ModbusTcpServer;
 import mods.eln.sixnode.tutorialsign.TutorialSignElement;
 import mods.eln.sixnode.wirelesssignal.IWirelessSignalSpot;
 import mods.eln.sixnode.wirelesssignal.tx.WirelessSignalTxElement;
-import mods.eln.transparentnode.computercraftio.PeripheralHandler;
 import mods.eln.transparentnode.electricalfurnace.ElectricalFurnaceDescriptor;
 import mods.eln.transparentnode.teleporter.TeleporterElement;
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.command.ICommandManager;
-import net.minecraft.command.ServerCommandManager;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.Items;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemArmor;
-import net.minecraft.item.ItemStack;
-import net.minecraft.launchwrapper.Launch;
+import net.minecraft.world.level.block.Block;
+import mods.eln.generic.GenericCreativeTab;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.WorldServer;
-import net.minecraftforge.client.event.TextureStitchEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.server.level.ServerLevel;
+import net.neoforged.neoforge.common.NeoForge;
+import net.minecraft.world.level.material.Fluid;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Level;
@@ -114,18 +126,11 @@ import static mods.eln.i18n.I18N.TR;
 import static mods.eln.i18n.I18N.TR_GROUP;
 import static mods.eln.i18n.I18N.tr;
 
-@Mod(
-        modid = Eln.MODID,
-        name = Eln.NAME,
-        version = Tags.VERSION,
-        dependencies = "required-after:CoFHCore")
+@Mod(Eln.MODID)
 public class Eln {
-    @Instance("Eln")
     public static Eln instance;
-    @SidedProxy(clientSide = "mods.eln.client.ClientProxy", serverSide = "mods.eln.CommonProxy")
-    public static CommonProxy proxy;
-    public final static String MODID = "Eln";
-    public final static Logger LOGGER = LogManager.getLogger(MODID);
+    public final static String MODID = "eln";
+    public final static Logger LOGGER = LogManager.getLogger("Eln");
     public final static String NAME = "Electrical Age - jrddunbr's build";
     public final static String UPDATE_URL = "https://github.com/age-series/ElectricalAge/releases";
     public final static String[] AUTHORS = {"Dolu1990", "jrddunbr", "Baughn", "Grissess", "Caeleron", "Omega_Haxors",
@@ -160,39 +165,35 @@ public class Eln {
     public static final HashMap<String, ItemStack> dictionnaryOreFromMod = new HashMap<>();
     public static Logger logger = LogManager.getLogger("ELN");
     public static JsonConfig config = new JsonConfig(new File("config/Eln.cfg"));
-    public static SimpleNetworkWrapper elnNetwork;
     public static PacketHandler packetHandler;
     public static LiveDataManager clientLiveDataManager;
     public static ClientKeyHandler clientKeyHandler;
     public static SaveConfig saveConfig;
     public static GhostManager ghostManager;
-    public static GhostManagerNbt ghostManagerNbt;
     public static ModbusTcpServer modbusServer;
-    public static NodeManagerNbt nodeManagerNbt;
     public static Simulator simulator = null;
     public static DelayedTaskManager delayedTask;
     public static ItemEnergyInventoryProcess itemEnergyInventoryProcess;
-    public static CreativeTabs creativeTab;
-    public static CreativeTabs creativeTabPowerElectronics;
-    public static CreativeTabs creativeTabSignalProcessing;
-    public static CreativeTabs creativeTabLighting;
-    public static CreativeTabs creativeTabCables;
-    public static CreativeTabs creativeTabPowerDistribution;
-    public static CreativeTabs creativeTabToolsArmor;
-    public static CreativeTabs creativeTabOresMaterials;
-    public static CreativeTabs creativeTabMachines;
-    public static CreativeTabs creativeTabCreative;
-    public static CreativeTabs creativeTabOther;
+    public static GenericCreativeTab creativeTab;
+    public static GenericCreativeTab creativeTabPowerElectronics;
+    public static GenericCreativeTab creativeTabSignalProcessing;
+    public static GenericCreativeTab creativeTabLighting;
+    public static GenericCreativeTab creativeTabCables;
+    public static GenericCreativeTab creativeTabPowerDistribution;
+    public static GenericCreativeTab creativeTabToolsArmor;
+    public static GenericCreativeTab creativeTabOresMaterials;
+    public static GenericCreativeTab creativeTabMachines;
+    public static GenericCreativeTab creativeTabCreative;
+    public static GenericCreativeTab creativeTabOther;
     public static Item swordCopper, hoeCopper, shovelCopper, pickaxeCopper, axeCopper;
     public static GenericItemUsingDamageDescriptorWithComment plateCopper;
-    public static ItemArmor helmetCopper, chestplateCopper, legsCopper, bootsCopper;
-    public static ItemArmor helmetECoal, plateECoal, legsECoal, bootsECoal;
+    public static ArmorItem helmetCopper, chestplateCopper, legsCopper, bootsCopper;
+    public static ArmorItem helmetECoal, plateECoal, legsECoal, bootsECoal;
     public static SharedItem sharedItem;
     public static SharedItem sharedItemStackOne;
     public static ItemStack wrenchItemStack;
     public static SixNodeBlock sixNodeBlock;
     public static TransparentNodeBlock transparentNodeBlock;
-    public static OreBlock oreBlock;
     public static GhostBlock ghostBlock;
     public static LightBlock lightBlock;
     public static ArcClayBlock arcClayBlock;
@@ -218,9 +219,6 @@ public class Eln {
     public static String dictThermistor;
     public static String dictNibbleMemory;
     public static String dictALU;
-    public static FMLEventChannel eventChannel;
-    public static Map<ElnFluidRegistry, Fluid> fluids = new EnumMap<ElnFluidRegistry, Fluid>(ElnFluidRegistry.class);
-    public static Map<ElnFluidRegistry, Block> fluidBlocks = new EnumMap<ElnFluidRegistry, Block>(ElnFluidRegistry.class);
     public static WindProcess wind;
     static public GenericItemUsingDamageDescriptor multiMeterElement, thermometerElement, allMeterElement;
     static public GenericItemUsingDamageDescriptor configCopyToolElement;
@@ -275,8 +273,6 @@ public class Eln {
     public static final double SVP = gateOutputCurrent * SVU;
     public ElectricalFurnaceDescriptor electricalFurnace;
 
-    public static HashSet<String> oreNames = new HashSet<>();
-
     public static BrushDescriptor whiteDesc;
 
     public static List<String> brushSubNames;
@@ -294,57 +290,30 @@ public class Eln {
     }
 
     public static ItemStack findItemStack(String name, int stackSize) {
-        ItemStack stack = GameRegistry.findItemStack("Eln", name, stackSize);
-        if (stack == null) {
-            stack = dictionnaryOreFromMod.get(name);
-            stack = Utils.newItemStack(Item.getIdFromItem(stack.getItem()), stackSize, stack.getItemDamage());
-        }
-        return stack;
+        ItemStack stack = ElnRegistry.findStack(name, stackSize);
+        if (stack != null) return stack;
+        stack = dictionnaryOreFromMod.get(name);
+        if (stack != null) return stack.copyWithCount(stackSize);
+        logger.warn("There is no item called '{}'", name);
+        return ItemStack.EMPTY;
     }
 
-    @EventHandler
-    public void preInit(FMLPreInitializationEvent event) {
-        configureElnLogFile(event);
+    private boolean contentCreated = false;
 
-        elnNetwork = NetworkRegistry.INSTANCE.newSimpleChannel("electrical-age");
-        elnNetwork.registerMessage(AchievePacketHandler.class, AchievePacket.class, 0, Side.SERVER);
-        elnNetwork.registerMessage(TransparentNodeRequestPacketHandler.class, TransparentNodeRequestPacket.class, 1,
-                Side.SERVER);
-        elnNetwork.registerMessage(TransparentNodeResponsePacketHandler.class, TransparentNodeResponsePacket.class, 2,
-                Side.CLIENT);
-        elnNetwork.registerMessage(GhostNodeWailaRequestPacketHandler.class, GhostNodeWailaRequestPacket.class, 3,
-                Side.SERVER);
-        elnNetwork.registerMessage(GhostNodeWailaResponsePacketHandler.class, GhostNodeWailaResponsePacket.class, 4,
-                Side.CLIENT);
-        elnNetwork.registerMessage(SixNodeWailaRequestPacketHandler.class, SixNodeWailaRequestPacket.class, 5,
-                Side.SERVER);
-        elnNetwork.registerMessage(SixNodeWailaResponsePacketHandler.class, SixNodeWailaResponsePacket.class, 6,
-                Side.CLIENT);
+    public Eln(IEventBus modBus, ModContainer container) {
+        instance = this;
 
-        ModContainer container = FMLCommonHandler.instance().findContainerFor(this);
-        ModMetadata meta = event.getModMetadata();
-        meta.modId = MODID;
-        meta.version = Version.INSTANCE.getSimpleVersionName();
-        meta.name = NAME;
-        meta.description = tr("mod.meta.desc");
-        meta.updateUrl = UPDATE_URL;
-        meta.authorList = Arrays.asList(AUTHORS);
-        meta.autogenerated = false; // Force to update from code
-
+        configureElnLogFile();
         Utils.println(Version.print());
 
-        Side side = FMLCommonHandler.instance().getEffectiveSide();
-        if (side == Side.CLIENT) MinecraftForge.EVENT_BUS.register(new SoundLoader());
-
-        config = new JsonConfig(event.getSuggestedConfigurationFile());
+        File configFile = FMLPaths.CONFIGDIR.get().resolve("Eln.cfg").toFile();
+        config = new JsonConfig(configFile);
         config.loadConfig();
         config.writeExampleFile();
-        FuelRegistry.init(event.getSuggestedConfigurationFile());
-        ThermalRegistry.init(event.getSuggestedConfigurationFile());
+        FuelRegistry.init(configFile);
+        ThermalRegistry.init(configFile);
         MqttManager.init();
         MetricsSubsystem.refreshFromConfig();
-
-        eventChannel = NetworkRegistry.INSTANCE.newEventDrivenChannel(channelName);
 
         simulator = new Simulator(
             0.05,
@@ -352,158 +321,57 @@ public class Eln {
             config.getIntOrElse("simulation.electrical.interSystemOverSampling", 50),
             1 / config.getDoubleOrElse("simulation.thermal.frequency", 400.0)
         );
-        nodeManager = new NodeManager("caca");
-        ghostManager = new GhostManager("caca2");
+        nodeManager = new NodeManager();
+        ghostManager = new GhostManager();
         delayedTask = new DelayedTaskManager();
-
         nodeServer = new NodeServer();
-        clientLiveDataManager = new LiveDataManager();
-
+        if (FMLEnvironment.dist.isClient()) clientLiveDataManager = new LiveDataManager();
         packetHandler = new PacketHandler();
-        instance = this;
+        serverEventListener = new ServerEventListener();
 
-        NetworkRegistry.INSTANCE.registerGuiHandler(this, new GuiHandler());
+        // Registries open in an unspecified order; everything is created when the first one does.
+        modBus.addListener(RegisterEvent.class, event -> {
+            if (!contentCreated) {
+                contentCreated = true;
+                createContent();
+            }
+            ElnRegistry.INSTANCE.onRegister(event);
+        });
+        modBus.addListener(RegisterPayloadHandlersEvent.class, ElnPayload.Companion::register);
+        modBus.addListener(RegisterCapabilitiesEvent.class, Eln::registerCapabilities);
+        modBus.addListener(EntityAttributeCreationEvent.class, ElnEntities.INSTANCE::onAttributes);
+        modBus.addListener(GatherDataEvent.class, event -> ElnDataGenerator.INSTANCE.gather(event));
+        modBus.addListener(FMLCommonSetupEvent.class, event -> {
+            AnalyticsHandler.INSTANCE.submitUpstreamAnalytics();
+            AnalyticsHandler.INSTANCE.submitAgeSeriesAnalytics();
+        });
+        if (FMLEnvironment.dist.isClient()) {
+            ClientProxy.register(modBus);
+            if (!FMLEnvironment.production && Boolean.getBoolean("eln.clientSmokeTest")) ClientSmokeTest.start();
+        }
 
-        Item itemCreativeTab = new Item().setUnlocalizedName("eln:elncreativetab").setTextureName("eln:elncreativetab");
-        GameRegistry.registerItem(itemCreativeTab, "eln.itemCreativeTab");
+        NeoForge.EVENT_BUS.register(RecipeInjector.INSTANCE);
+        NeoForge.EVENT_BUS.register(new RoomThermalBlockEventsHandler());
+        NeoForge.EVENT_BUS.register(new ElectricMinecartChargeReporter());
+        NeoForge.EVENT_BUS.register(this);
+    }
 
-        creativeTabPowerElectronics = new GenericCreativeTab("ElnPowerElectronics", Items.redstone);
-        creativeTabCables = new GenericCreativeTab("ElnCables", Items.string);
-        creativeTabPowerDistribution = new GenericCreativeTab("ElnPowerDistribution", Items.string);
-        creativeTabSignalProcessing = new GenericCreativeTab("ElnSignalProcessing", Items.comparator);
-        creativeTabLighting = new GenericCreativeTab("ElnLighting", Item.getItemFromBlock(Blocks.redstone_lamp));
-        creativeTabToolsArmor = new GenericCreativeTab("ElnToolsArmor", Items.iron_pickaxe);
-        creativeTabOresMaterials = new GenericCreativeTab("ElnOresMaterials", Items.iron_ingot);
-        creativeTabMachines = new GenericCreativeTab("ElnMachines", Item.getItemFromBlock(Blocks.dispenser));
-        creativeTabCreative = new GenericCreativeTab("ElnCreative", Items.nether_star);
+    /**
+     * Creates and queues all blocks, items and so on.
+     */
+    private void createContent() {
+        creativeTabPowerElectronics = new GenericCreativeTab("ElnPowerElectronics", Items.REDSTONE);
+        creativeTabCables = new GenericCreativeTab("ElnCables", Items.STRING);
+        creativeTabPowerDistribution = new GenericCreativeTab("ElnPowerDistribution", Items.STRING);
+        creativeTabSignalProcessing = new GenericCreativeTab("ElnSignalProcessing", Items.COMPARATOR);
+        creativeTabLighting = new GenericCreativeTab("ElnLighting", Items.REDSTONE_LAMP);
+        creativeTabToolsArmor = new GenericCreativeTab("ElnToolsArmor", Items.IRON_PICKAXE);
+        creativeTabOresMaterials = new GenericCreativeTab("ElnOresMaterials", Items.IRON_INGOT);
+        creativeTabMachines = new GenericCreativeTab("ElnMachines", Items.DISPENSER);
+        creativeTabCreative = new GenericCreativeTab("ElnCreative", Items.NETHER_STAR);
         creativeTabOther = creativeTabOresMaterials;
         creativeTab = creativeTabOther;
 
-        oreBlock = (OreBlock) new OreBlock().setCreativeTab(creativeTabOresMaterials).setBlockName("OreEln");
-
-        arcClayBlock = new ArcClayBlock();
-        arcMetalBlock = new ArcMetalBlock();
-
-        sharedItem =
-                (SharedItem) new SharedItem().setCreativeTab(creativeTabOther).setMaxStackSize(64).setUnlocalizedName("sharedItem");
-
-        sharedItemStackOne =
-                (SharedItem) new SharedItem().setCreativeTab(creativeTabOther).setMaxStackSize(1).setUnlocalizedName(
-                        "sharedItemStackOne");
-
-        transparentNodeBlock = (TransparentNodeBlock) new TransparentNodeBlock(Material.iron,
-                TransparentNodeEntity.class).setCreativeTab(creativeTabOther).setBlockTextureName("iron_block");
-        sixNodeBlock =
-                (SixNodeBlock) new SixNodeBlock(Material.plants, SixNodeEntity.class).setCreativeTab(creativeTabOther).setBlockTextureName("iron_block");
-
-        ghostBlock = (GhostBlock) new GhostBlock().setBlockTextureName("iron_block");
-        lightBlock = new LightBlock();
-
-        obj.loadAllElnModels();
-
-        GameRegistry.registerItem(sharedItem, "Eln.sharedItem");
-        GameRegistry.registerItem(sharedItemStackOne, "Eln.sharedItemStackOne");
-        GameRegistry.registerBlock(ghostBlock, "Eln.ghostBlock");
-        GameRegistry.registerBlock(lightBlock, "Eln.lightBlock");
-        GameRegistry.registerBlock(sixNodeBlock, SixNodeItem.class, "Eln.SixNode");
-        GameRegistry.registerBlock(transparentNodeBlock, TransparentNodeItem.class, "Eln.TransparentNode");
-        GameRegistry.registerBlock(oreBlock, OreItem.class, "Eln.Ore");
-        GameRegistry.registerBlock(arcClayBlock, ArcClayItemBlock.class, "Eln.arc_clay_block");
-        GameRegistry.registerBlock(arcMetalBlock, ArcMetalItemBlock.class, "Eln.arc_metal_block");
-        TileEntity.addMapping(TransparentNodeEntity.class, "TransparentNodeEntity");
-        TileEntity.addMapping(TransparentNodeEntityWithFluid.class, "TransparentNodeEntityWF");
-        TileEntity.addMapping(SixNodeEntity.class, "SixNodeEntity");
-        TileEntity.addMapping(LightBlockEntity.class, "LightBlockEntity");
-
-        NodeManager.registerUuid(sixNodeBlock.getNodeUuid(), SixNode.class);
-        NodeManager.registerUuid(transparentNodeBlock.getNodeUuid(), TransparentNode.class);
-
-        sixNodeItem = (SixNodeItem) Item.getItemFromBlock(sixNodeBlock);
-        transparentNodeItem = (TransparentNodeItem) Item.getItemFromBlock(transparentNodeBlock);
-
-        oreItem = (OreItem) Item.getItemFromBlock(oreBlock);
-
-        SixNode.sixNodeCacheList.add(new SixNodeCacheStd());
-
-        LampLists.translateLampTypes(); // This MUST be called before block/item registration!
-
-        SingleNodeRegistration.INSTANCE.registerSingle();
-        SixNodeRegistration.INSTANCE.registerSix();
-        TransparentNodeRegistration.INSTANCE.registerTransparent();
-        ItemRegistration.INSTANCE.registerItem();
-
-        updateCreativeTabIcons();
-
-        OreDictionary.registerOre("blockAluminum", arcClayBlock);
-        OreDictionary.registerOre("blockSteel", arcMetalBlock);
-
-        AnalyticsHandler.INSTANCE.submitUpstreamAnalytics();
-        AnalyticsHandler.INSTANCE.submitAgeSeriesAnalytics();
-    }
-
-    private void configureElnLogFile(FMLPreInitializationEvent event) {
-        File runtimeDir = event.getSuggestedConfigurationFile().getParentFile().getParentFile();
-        if (runtimeDir == null) return;
-
-        File logDir = new File(runtimeDir, "logs");
-        if (!logDir.exists() && !logDir.mkdirs()) return;
-
-        LoggerContext context = (LoggerContext) LogManager.getContext(false);
-        Configuration configuration = context.getConfiguration();
-        final String appenderName = "ELN_FILE";
-        if (configuration.getAppenders().containsKey(appenderName)) return;
-
-        PatternLayout layout = PatternLayout.createLayout(
-            "[%d{HH:mm:ss}] [%t/%level] [%logger]: %msg%n",
-            configuration,
-            null,
-            null,
-            null
-        );
-
-        FileAppender appender = FileAppender.createAppender(
-            new File(logDir, "eln.log").getAbsolutePath(),
-            "true",
-            "false",
-            appenderName,
-            "true",
-            "false",
-            "false",
-            layout,
-            null,
-            "false",
-            null,
-            configuration
-        );
-        if (appender == null) return;
-
-        appender.start();
-
-        LoggerConfig loggerConfig = configuration.getLoggerConfig("ELN");
-        loggerConfig.addAppender(appender, Level.INFO, null);
-        context.updateLoggers();
-    }
-
-    @EventHandler
-    public void modsLoaded(FMLPostInitializationEvent event) {
-        Other.check();
-        if (Other.ccLoaded) {
-            PeripheralHandler.register();
-        }
-        registerCraftingRecipes();
-    }
-
-    private static void registerCraftingRecipes() {
-        // Ensure every recipe defined in CraftingRecipes is registered.
-        CraftingRecipes.INSTANCE.itemCrafting();
-    }
-
-    @EventHandler
-    public void load(FMLInitializationEvent event) {
-        final String[] names = OreDictionary.getOreNames();
-        Collections.addAll(oreNames, names);
-        proxy.registerRenderers();
-        TR_GROUP("Eln", "Electrical Age");
         TR_GROUP("ElnPowerElectronics", "Electrical Age - Power Electronics");
         TR_GROUP("ElnSignalProcessing", "Electrical Age - Signal Processing");
         TR_GROUP("ElnLighting", "Electrical Age - Lighting");
@@ -513,28 +381,97 @@ public class Eln {
         TR_GROUP("ElnOresMaterials", "Electrical Age - Ores & Materials");
         TR_GROUP("ElnMachines", "Electrical Age - Machines");
         TR_GROUP("ElnCreative", "Electrical Age - Creative");
-        TR_GROUP("ElnOther", "Electrical Age - Other");
-        if (isDevelopmentRun()) {
-            Achievements.init();
-        }
+
+        arcClayBlock = ElnRegistry.registerBlockWithItem("arc_clay_block", new ArcClayBlock());
+        arcMetalBlock = ElnRegistry.registerBlockWithItem("arc_metal_block", new ArcMetalBlock());
+        creativeTabOresMaterials.add(() -> new ItemStack(arcClayBlock));
+        creativeTabOresMaterials.add(() -> new ItemStack(arcMetalBlock));
+
+        transparentNodeBlock = ElnRegistry.registerBlock("transparent_node", new TransparentNodeBlock());
+        sixNodeBlock = ElnRegistry.registerBlock("six_node", new SixNodeBlock());
+        ghostBlock = ElnRegistry.registerBlock("ghost_block", new GhostBlock());
+        lightBlock = ElnRegistry.registerBlock("light_block", new LightBlock());
+        ElnBlockEntities.register();
+
+        sharedItem = new SharedItem(64);
+        sharedItemStackOne = new SharedItem(1);
+        sixNodeItem = new SixNodeItem();
+        transparentNodeItem = new TransparentNodeItem();
+        oreItem = new OreItem();
+
+        obj.loadAllElnModels();
+
+        NodeManager.registerUuid(sixNodeBlock.getNodeUuid(), SixNode.class);
+        NodeManager.registerUuid(transparentNodeBlock.getNodeUuid(), TransparentNode.class);
+
+        SixNode.sixNodeCacheList.add(new SixNodeCacheStd());
+
+        LampLists.translateLampTypes(); // This MUST be called before block/item registration!
+
+        SingleNodeRegistration.INSTANCE.registerSingle();
+        SixNodeRegistration.INSTANCE.registerSix();
+        TransparentNodeRegistration.INSTANCE.registerTransparent();
+        ItemRegistration.INSTANCE.registerItem();
         FluidRegistrationKt.registerElnFluids();
-        MinecraftForge.EVENT_BUS.register(new ElnForgeEventsHandler());
-        MinecraftForge.EVENT_BUS.register(new RoomThermalBlockEventsHandler());
-        MinecraftForge.EVENT_BUS.register(new ElectricMinecartChargeReporter());
-        FMLCommonHandler.instance().bus().register(new ElnFMLEventsHandler());
-        MinecraftForge.EVENT_BUS.register(this);
-        FMLInterModComms.sendMessage("Waila", "register", "mods.eln.integration.waila.WailaIntegration" +
-                ".callbackRegister");
-        Utils.println("Electrical age init done");
+        ElnEntities.register();
+        ConfigPlacement.Companion.register();
+        ElnRegistry.register(Registries.MENU, "node", GuiHandler.menuType);
+
+        OreDict.registerOre("blockAluminum", arcClayBlock);
+        OreDict.registerOre("blockSteel", arcMetalBlock);
+
+        updateCreativeTabIcons();
+        for (GenericCreativeTab tab : List.of(creativeTabCables, creativeTabPowerElectronics, creativeTabPowerDistribution,
+            creativeTabSignalProcessing, creativeTabLighting, creativeTabMachines, creativeTabToolsArmor,
+            creativeTabOresMaterials, creativeTabCreative)) {
+            ElnRegistry.register(Registries.CREATIVE_MODE_TAB, Mc.registryPath(tab.getLabel()), tab.build());
+        }
     }
 
-    @EventHandler
-    public void postInit(FMLPostInitializationEvent event) {
-        serverEventListener = new ServerEventListener();
+    private static void registerCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ElnBlockEntities.getTransparentNodeWithFluid(),
+            (entity, side) -> entity.fluidHandler(side));
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ElnBlockEntities.getTransparentNode(),
+            (entity, side) -> new SidedInvWrapper(entity, side));
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ElnBlockEntities.getTransparentNodeWithFluid(),
+            (entity, side) -> new SidedInvWrapper(entity, side));
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, SingleNodeRegistration.getEnergyConverter(),
+            (entity, side) -> entity.getEnergyStorage());
+        if (Other.getCcLoaded()) ComputerCraftIntegration.INSTANCE.register(event);
     }
 
-    @EventHandler
-    public void onServerStopped(FMLServerStoppedEvent ev) {
+    private void configureElnLogFile() {
+        File logDir = FMLPaths.GAMEDIR.get().resolve("logs").toFile();
+        if (!logDir.exists() && !logDir.mkdirs()) return;
+
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        Configuration configuration = context.getConfiguration();
+        final String appenderName = "ELN_FILE";
+        if (configuration.getAppenders().containsKey(appenderName)) return;
+
+        PatternLayout layout = PatternLayout.newBuilder()
+            .withPattern("[%d{HH:mm:ss}] [%t/%level] [%logger]: %msg%n")
+            .withConfiguration(configuration)
+            .build();
+
+        FileAppender appender = FileAppender.newBuilder()
+            .setName(appenderName)
+            .withFileName(new File(logDir, "eln.log").getAbsolutePath())
+            .withAppend(true)
+            .setLayout(layout)
+            .setConfiguration(configuration)
+            .build();
+
+        appender.start();
+
+        LoggerConfig loggerConfig = new LoggerConfig("ELN", Level.INFO, true);
+        loggerConfig.addAppender(appender, Level.INFO, null);
+        configuration.addLogger("ELN", loggerConfig);
+        context.updateLoggers();
+    }
+
+    @SubscribeEvent
+    public void onServerStopped(ServerStoppedEvent ev) {
         TutorialSignElement.resetBalise();
         if (modbusServer != null) {
             modbusServer.destroy();
@@ -544,7 +481,7 @@ public class Eln {
         NodeBlockEntity.clientList.clear();
         TeleporterElement.teleporterList.clear();
         IWirelessSignalSpot.spots.clear();
-        clientLiveDataManager.stop();
+        if (clientLiveDataManager != null) clientLiveDataManager.stop();
         nodeManager.clear();
         ghostManager.clear();
         saveConfig = null;
@@ -560,14 +497,14 @@ public class Eln {
         MetricsSubsystem.shutdown();
     }
 
-    @EventHandler
-    public void onServerStart(FMLServerAboutToStartEvent ev) {
+    @SubscribeEvent
+    public void onServerStart(ServerAboutToStartEvent ev) {
         modbusServer = new ModbusTcpServer(config.getIntOrElse("integrations.modbus.port", 1502));
         TeleporterElement.teleporterList.clear();
         LightBlockEntity.observers.clear();
         WirelessSignalTxElement.channelMap.clear();
         LampSupplyElement.channelMap.clear();
-        clientLiveDataManager.start();
+        if (clientLiveDataManager != null) clientLiveDataManager.start();
         simulator.init();
         simulator.addSlowProcess(wind = new WindProcess());
 
@@ -575,36 +512,17 @@ public class Eln {
         simulator.addSlowProcess(itemEnergyInventoryProcess = new ItemEnergyInventoryProcess());
     }
 
-    @EventHandler
-    public void onServerStarting(FMLServerStartingEvent ev) {
-        {
-            MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
-            WorldServer worldServer = server.worldServers[0];
-            ghostManagerNbt = (GhostManagerNbt) worldServer.mapStorage.loadData(GhostManagerNbt.class, "GhostManager");
-            if (ghostManagerNbt == null) {
-                ghostManagerNbt = new GhostManagerNbt("GhostManager");
-                worldServer.mapStorage.setData("GhostManager", ghostManagerNbt);
-            }
-            saveConfig = (SaveConfig) worldServer.mapStorage.loadData(SaveConfig.class, "SaveConfig");
-            if (saveConfig == null) {
-                saveConfig = new SaveConfig("SaveConfig");
-                worldServer.mapStorage.setData("SaveConfig", saveConfig);
-            }
-            nodeManagerNbt = (NodeManagerNbt) worldServer.mapStorage.loadData(NodeManagerNbt.class, "NodeManager");
-            if (nodeManagerNbt == null) {
-                nodeManagerNbt = new NodeManagerNbt("NodeManager");
-                worldServer.mapStorage.setData("NodeManager", nodeManagerNbt);
-            }
-            nodeServer.init();
-        }
-        {
-            MinecraftServer s = MinecraftServer.getServer();
-            ICommandManager command = s.getCommandManager();
-            ServerCommandManager manager = (ServerCommandManager) command;
-            manager.registerCommand(new ElnConsoleCommands());
-        }
+    @SubscribeEvent
+    public void onServerStarting(ServerStartingEvent ev) {
+        saveConfig = SaveConfig.load(ev.getServer());
+        nodeServer.init();
         OreScannerManager.regenOreScannerFactors();
         BiomeClimateService.auditMissingBiomeProfilesAtStartup();
+    }
+
+    @SubscribeEvent
+    public void onRegisterCommands(RegisterCommandsEvent ev) {
+        ElnConsoleCommands.register(ev.getDispatcher());
     }
 
     public double LVP() {
@@ -621,47 +539,26 @@ public class Eln {
     }
 
     private void updateCreativeTabIcons() {
-        setTabIcon(creativeTabPowerElectronics, stack(sixNodeItem, meta(33, 1)));
-        setTabIcon(creativeTabSignalProcessing, stack(sixNodeItem, meta(32, 0)));
-        setTabIcon(creativeTabLighting, stack(sharedItem, meta(4, 37)));
-        setTabIcon(creativeTabCables, stack(sixNodeItem, meta(34, 2)));
-        setTabIcon(creativeTabToolsArmor, stack(sharedItem, meta(14, 0)));
-        setTabIcon(creativeTabOresMaterials, stack(sharedItem, meta(8, 7)));
-        setTabIcon(creativeTabMachines, stack(transparentNodeItem, meta(33, 4)));
-        setTabIcon(creativeTabCreative, stack(sixNodeItem, meta(3, 0)));
-        if (creativeTabOther != creativeTabOresMaterials) {
-            setTabIcon(creativeTabOther, stack(sharedItem, meta(8, 0)));
-        }
+        setTabIcon(creativeTabPowerElectronics, sixNodeItem, meta(33, 1));
+        setTabIcon(creativeTabSignalProcessing, sixNodeItem, meta(32, 0));
+        setTabIcon(creativeTabLighting, sharedItem, meta(4, 37));
+        setTabIcon(creativeTabCables, sixNodeItem, meta(34, 2));
+        setTabIcon(creativeTabToolsArmor, sharedItem, meta(14, 0));
+        setTabIcon(creativeTabOresMaterials, sharedItem, meta(8, 7));
+        setTabIcon(creativeTabMachines, transparentNodeItem, meta(33, 4));
+        setTabIcon(creativeTabCreative, sixNodeItem, meta(3, 0));
     }
 
-    private void setTabIcon(CreativeTabs tab, ItemStack stack) {
-        if (tab instanceof GenericCreativeTab && stack != null && stack.getItem() != null) {
-            ((GenericCreativeTab) tab).setIcon(stack);
-        }
-    }
-
-    private static ItemStack stack(Item item, int damage) {
-        if (item == null) return null;
-        return new ItemStack(item, 1, damage);
+    private void setTabIcon(GenericCreativeTab tab, DescriptorCollection<?> family, int number) {
+        ItemStack stack = family.stackOf(number);
+        if (stack != null) tab.setIcon(stack);
     }
 
     private static int meta(int group, int subId) {
         return subId + (group << 6);
     }
 
-    @SubscribeEvent
-    @SideOnly(Side.CLIENT)
-    public void textureHook(TextureStitchEvent.Post event) {
-        if (event.map.getTextureType() == 0) {
-            for (ElnFluidRegistry name : fluids.keySet()) {
-                Block block = fluidBlocks.get(name);
-                Fluid fluid = fluids.get(name);
-                fluid.setIcons(block.getBlockTextureFromSide(1), block.getBlockTextureFromSide(2));
-            }
-        }
-    }
-
     public boolean isDevelopmentRun() {
-        return (Boolean) Launch.blackboard.get("fml.deobfuscatedEnvironment");
+        return !FMLEnvironment.production;
     }
 }

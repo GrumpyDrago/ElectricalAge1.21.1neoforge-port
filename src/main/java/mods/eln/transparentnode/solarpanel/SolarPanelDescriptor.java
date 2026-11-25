@@ -7,12 +7,12 @@ import mods.eln.misc.Obj3D.Obj3DPart;
 import mods.eln.node.transparent.TransparentNodeDescriptor;
 import mods.eln.sim.ElectricalLoad;
 import mods.eln.wiki.Data;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.world.World;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.level.Level;
+import mods.eln.compat.client.GL11;
 
 import java.util.List;
 
@@ -67,7 +67,7 @@ public class SolarPanelDescriptor extends TransparentNodeDescriptor {
     }
 
 
-    public void setParent(net.minecraft.item.Item item, int damage) {
+    public void setParent(net.minecraft.world.item.Item item, int damage) {
         super.setParent(item, damage);
         Data.addEnergy(newItemStack());
     }
@@ -131,7 +131,7 @@ public class SolarPanelDescriptor extends TransparentNodeDescriptor {
     }
 
     @Override
-    public void addInformation(ItemStack itemStack, EntityPlayer entityPlayer, List<String> list, boolean par4) {
+    public void addInformation(ItemStack itemStack, Player entityPlayer, List<String> list, boolean par4) {
         super.addInformation(itemStack, entityPlayer, list, par4);
 
         list.add(tr("Produces power from solar radiation."));
@@ -144,13 +144,12 @@ public class SolarPanelDescriptor extends TransparentNodeDescriptor {
     }
 
     @Override
-    public void addCollisionBoxesToList(AxisAlignedBB par5AxisAlignedBB, List<AxisAlignedBB> list, World world, int x, int y, int z) {
+    public void addCollisionBoxesToList(AABB par5AxisAlignedBB, List<AABB> list, Level world, int x, int y, int z) {
         if (canRotate) {
             super.addCollisionBoxesToList(par5AxisAlignedBB, list, world, x, y, z);
             return;
         }
-        AxisAlignedBB bb = Blocks.stone.getCollisionBoundingBoxFromPool(world, x, y, z);
-        bb.maxY -= 0.5;
-        if (par5AxisAlignedBB.intersectsWith(bb)) list.add(bb);
+        AABB bb = new AABB(x, y, z, x + 1, y + 0.5, z + 1);
+        if (par5AxisAlignedBB.intersects(bb)) list.add(bb);
     }
 }

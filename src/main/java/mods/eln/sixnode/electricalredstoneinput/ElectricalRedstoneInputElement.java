@@ -1,5 +1,7 @@
 package mods.eln.sixnode.electricalredstoneinput;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.i18n.I18N;
 import mods.eln.misc.Direction;
 import mods.eln.misc.LRDU;
@@ -12,10 +14,10 @@ import mods.eln.sim.ElectricalLoad;
 import mods.eln.sim.ThermalLoad;
 import mods.eln.sim.nbt.NbtElectricalGateOutput;
 import mods.eln.sim.nbt.NbtElectricalGateOutputProcess;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,16 +54,16 @@ public class ElectricalRedstoneInputElement extends SixNodeElement {
     }
 
     @Override
-    public void readFromNBT(@NotNull NBTTagCompound nbt) {
+    public void readFromNBT(@NotNull CompoundTag nbt) {
         super.readFromNBT(nbt);
         byte value = nbt.getByte("front");
         front = LRDU.fromInt((value >> 0) & 0x3);
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         super.writeToNBT(nbt);
-        nbt.setByte("front", (byte) (front.toInt() << 0));
+        nbt.putByte("front", (byte) (front.toInt() << 0));
     }
 
     @Override
@@ -124,25 +126,25 @@ public class ElectricalRedstoneInputElement extends SixNodeElement {
     }
 
     @Override
-    public boolean onBlockActivated(EntityPlayer entityPlayer, Direction side, float vx, float vy, float vz) {
+    public boolean onBlockActivated(Player entityPlayer, Direction side, float vx, float vy, float vz) {
         if (onBlockActivatedRotate(entityPlayer)) return true;
-        ItemStack currentItemStack = entityPlayer.getCurrentEquippedItem();
+        ItemStack currentItemStack = Mc.getCurrentEquippedItem(entityPlayer);
         if (currentItemStack != null) {
             Item item = currentItemStack.getItem();
             /*if (item== Eln.toolsSetItem) {
 				colorCare = colorCare ^ 1;
-				entityPlayer.addChatMessage("Wire color care " + colorCare);
+				Mc.addChatMessage(entityPlayer, "Wire color care " + colorCare);
 				sixNode.reconnect();
 			}
 			if (item == Eln.brushItem) {
-				if (currentItemStack.getItemDamage() < BrushItem.maximalUse) {
-					color = currentItemStack.getItemDamage() & 0xF;
+				if (Mc.getItemDamage(currentItemStack) < BrushItem.maximalUse) {
+					color = Mc.getItemDamage(currentItemStack) & 0xF;
 					
-					currentItemStack.setItemDamage(currentItemStack.getItemDamage() + 16);
+					Mc.setItemDamage(currentItemStack, Mc.getItemDamage(currentItemStack) + 16);
 					
 					sixNode.reconnect();
 				} else {
-					entityPlayer.addChatMessage("Brush is empty");
+					Mc.addChatMessage(entityPlayer, "Brush is empty");
 				}
 			}*/
         }

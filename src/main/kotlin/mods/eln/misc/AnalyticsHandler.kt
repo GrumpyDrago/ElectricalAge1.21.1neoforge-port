@@ -1,27 +1,24 @@
 package mods.eln.misc
 
-import cpw.mods.fml.common.FMLCommonHandler
-import cpw.mods.fml.relauncher.Side
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.i18n.I18N
 import mods.eln.misc.Version.simpleVersionName
 import net.minecraft.client.Minecraft
-import org.apache.http.HttpStatus
-import org.apache.http.client.methods.HttpGet
-import org.apache.http.impl.client.HttpClientBuilder
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URI
 
 object AnalyticsHandler {
     private fun sendHttpRequest(url: String) {
         try {
-            val client = HttpClientBuilder.create().build()
-            val response = client.execute(HttpGet(url))
-
-            val repCode = response.statusLine.statusCode
-            if (repCode != HttpStatus.SC_OK) throw IOException("HTTP error $repCode")
-
-            response.close()
-            client.close()
+            val connection = URI(url).toURL().openConnection() as HttpURLConnection
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+            val code = connection.responseCode
+            connection.disconnect()
+            if (code != HttpURLConnection.HTTP_OK) throw IOException("HTTP error $code")
         } catch (e: Exception) {
             val error = "Unable to send analytics data: " + e.message + "."
             System.err.println(error)
@@ -37,6 +34,7 @@ object AnalyticsHandler {
             val url = String.format(URL, Eln.config.getStringOrElse("analytics.playerUuid", ""), version, lang)
             sendHttpRequest(url)
         }
+        analyticsThread.isDaemon = true
         analyticsThread.start()
     }
 
@@ -69,8 +67,8 @@ object AnalyticsHandler {
                     Eln.config.getStringOrElse("analytics.endpointUrl", "http://eln.ja13.org/stat"),
                     version,
                     lang,
-                    Minecraft.getMinecraft().session.func_148256_e().id.toString(),
-                    Minecraft.getMinecraft().session.playerID
+                    Minecraft.getInstance().user.profileId.toString(),
+                    Minecraft.getInstance().user.name
                 )
             } else {
                 // PLAYER HAS NOT OPTED INTO SENDING THEIR UUID
@@ -79,6 +77,7 @@ object AnalyticsHandler {
             }
             sendHttpRequest(url)
         }
+        ageSeriesAnalyticsThread.isDaemon = true
         ageSeriesAnalyticsThread.start()
     }
 }

@@ -20,10 +20,10 @@ import mods.eln.sim.process.destruct.VoltageStateWatchDog;
 import mods.eln.sim.process.destruct.WorldExplosion;
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor;
 import mods.eln.sound.SoundCommand;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -177,7 +177,7 @@ public class EnergyMeterElement extends SixNodeElement {
         if (state == shunt.getState()) return;
         //	if (energyStack <= 0 && mod == Mod.ModPrepay) return;
         shunt.setState(state);
-        play(new SoundCommand("random.click").mulVolume(0.3F, 0.6f).smallRange());
+        play(new SoundCommand("minecraft:block.lever.click").mulVolume(0.3F, 0.6f).smallRange());
         needPublish();
     }
 
@@ -257,12 +257,12 @@ public class EnergyMeterElement extends SixNodeElement {
 
     @Nullable
     @Override
-    public Container newContainer(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public AbstractContainerMenu newContainer(@NotNull Direction side, @NotNull Player player) {
         return new EnergyMeterContainer(player, inventory);
     }
 
     @Override
-    public void readFromNBT(@NotNull NBTTagCompound nbt) {
+    public void readFromNBT(@NotNull CompoundTag nbt) {
         super.readFromNBT(nbt);
 
         try {
@@ -279,15 +279,15 @@ public class EnergyMeterElement extends SixNodeElement {
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         super.writeToNBT(nbt);
 
-        nbt.setString("mode", mod.toString());
-        nbt.setDouble("energyStack", energyStack);
-        nbt.setDouble("timeCounter", timeCounter);
-        nbt.setString("password", password);
-        nbt.setByte("energyUnit", (byte) energyUnit);
-        nbt.setByte("timeUnit", (byte) timeUnit);
+        nbt.putString("mode", mod.toString());
+        nbt.putDouble("energyStack", energyStack);
+        nbt.putDouble("timeCounter", timeCounter);
+        nbt.putString("password", password);
+        nbt.putByte("energyUnit", (byte) energyUnit);
+        nbt.putByte("timeUnit", (byte) timeUnit);
     }
 
     class SlowProcess implements IProcess {

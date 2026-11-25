@@ -1,11 +1,15 @@
 package mods.eln.misc;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.GL11;
+import mods.eln.compat.client.GL11;
+import mods.eln.compat.client.GlMesh;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class Obj3D {
@@ -26,7 +30,7 @@ public class Obj3D {
     private String dirPath;
 
     public void bindTexture(String texFilename) {
-        ResourceLocation textureResource = new ResourceLocation("eln", "model/" + dirPath + "/" + texFilename);
+        ResourceLocation textureResource = Mc.rl("eln", "model/" + dirPath + "/" + texFilename);
         UtilsClient.bindTexture(textureResource);
     }
 
@@ -34,8 +38,6 @@ public class Obj3D {
         String mtlName = null;
         public ResourceLocation textureResource;
         List<Face> face = new ArrayList<Face>();
-        boolean listReady = false;
-        int glList;
 
         public void bindTexture() {
             UtilsClient.bindTexture(textureResource);
@@ -75,58 +77,33 @@ public class Obj3D {
             }
         }
 
-        private void drawVertex() {
-            drawVertex(0, 0);
+        private GlMesh mesh;
+
+        private GlMesh mesh() {
+            if (mesh == null) {
+                GlMesh m = new GlMesh();
+                for (Face f : face) {
+                    // Faces are triangles; meshes are quads, so the last corner is repeated.
+                    for (int corner = 0; corner < 4; corner++) {
+                        int idx = Math.min(corner, f.vertexNbr - 1);
+                        Vertex v = f.vertex[idx];
+                        Uv t = f.uv[idx];
+                        m.add(v.x, v.y, v.z, t == null ? 0f : t.u, t == null ? 0f : t.v,
+                            f.normal.x, f.normal.y, f.normal.z, 1f, 1f, 1f, 1f, false);
+                    }
+                }
+                mesh = m.mergeTriangles();
+                mesh.setFinished(true);
+            }
+            return mesh;
         }
 
         private void drawVertex(float offsetX, float offsetY) {
-            int mode = 0;
-
-            for (Face f : face) {
-                if (f.vertexNbr != mode) {
-                    if (mode != 0)
-                        GL11.glEnd();
-                    switch (f.vertexNbr) {
-                        case 3:
-                            GL11.glBegin(GL11.GL_TRIANGLES);
-                            break;
-                        case 4:
-                            GL11.glBegin(GL11.GL_QUADS);
-                            break;
-                        case 6:
-                            //	GL11.glBegin(GL11.GL_TRIANGLE_STRIP);
-                            break;
-                        case 8:
-                            //	GL11.glBegin(GL11.GL_TRIANGLE_STRIP);
-                            break;
-                    }
-
-                    mode = f.vertexNbr;
-                }
-
-                GL11.glNormal3f(f.normal.x, f.normal.y, f.normal.z);
-                for (int idx = 0; idx < mode; idx++) {
-                    if (f.uv[idx] != null)
-                        GL11.glTexCoord2f(f.uv[idx].u + offsetX, f.uv[idx].v + offsetY);
-                    GL11.glVertex3f(f.vertex[idx].x, f.vertex[idx].y, f.vertex[idx].z);
-                }
-            }
-
-            if (mode != 0)
-                GL11.glEnd();
+            GL11.drawMesh(mesh(), offsetX, offsetY);
         }
 
         public void drawNoBind() {
-            if (!listReady) {
-                listReady = true;
-                glList = GL11.glGenLists(1);
-
-                GL11.glNewList(glList, GL11.GL_COMPILE);
-                drawVertex();
-                GL11.glEndList();
-            }
-
-            GL11.glCallList(glList);
+            GL11.drawMesh(mesh());
         }
     }
 
@@ -244,21 +221,17 @@ public class Obj3D {
         public void draw() {
             if (locked) return;
 
-            //	Minecraft.getMinecraft().mcProfiler.startSection("OBJ");
             for (FaceGroup fg : faceGroup) {
                 fg.draw();
             }
-            //	Minecraft.getMinecraft().mcProfiler.endSection();
         }
 
         public void draw(float texOffsetX, float texOffsetY) {
             if (locked) return;
 
-            //	Minecraft.getMinecraft().mcProfiler.startSection("OBJ");
             for (FaceGroup fg : faceGroup) {
                 fg.drawVertex(texOffsetX, texOffsetY);
             }
-            //	Minecraft.getMinecraft().mcProfiler.endSection();
         }
 
         // Returns the bounding box of the vertices we'd draw.
@@ -357,7 +330,7 @@ public class Obj3D {
     }
 
     public ResourceLocation getModelResourceLocation(String name) {
-        return new ResourceLocation("eln", "model/" + dirPath + "/" + name);
+        return Mc.rl("eln", "model/" + dirPath + "/" + name);
     }
 
     /**
@@ -378,15 +351,16 @@ public class Obj3D {
             }
         }
 
-        final String path = "assets/eln/" + filePath;
         try {
-            InputStream in = getClass().getClassLoader().getResourceAsStream(path);
-            reader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-        } catch (Exception e) {
-            // txt files are optional.
-            if (!filePath.endsWith(".txt")) {
-                System.out.println(e);
+            InputStream in = ElnAssets.open(filePath);
+            if (in != null) {
+                reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            } else if (!filePath.endsWith(".txt")) {
+                // txt files are optional.
+                Utils.println("Missing asset " + filePath);
             }
+        } catch (IOException e) {
+            Utils.println(e);
         }
 
         return reader;

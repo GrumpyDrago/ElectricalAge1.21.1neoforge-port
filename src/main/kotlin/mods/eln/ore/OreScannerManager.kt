@@ -1,5 +1,6 @@
 package mods.eln.ore
 
+import net.minecraft.core.registries.BuiltInRegistries
 import mods.eln.config.OreScannerConfigLoader
 import mods.eln.item.electricalitem.OreScannerConfigElement
 
@@ -49,12 +50,7 @@ object OreColorMapping {
 
     @JvmStatic
     fun updateColorMapping(): FloatArray {
-        val blockKeyMapping = FloatArray(1024 * 64)
-        for (blockId in 0..4095) {
-            for (meta in 0..15) {
-                blockKeyMapping[blockId + (meta shl 12)] = 0f
-            }
-        }
+        val blockKeyMapping = FloatArray(BuiltInRegistries.BLOCK.size())
 
         for (c in OreScannerManager.oreScannerConfig) {
             if (c.blockKey >= 0 && c.blockKey < blockKeyMapping.size)

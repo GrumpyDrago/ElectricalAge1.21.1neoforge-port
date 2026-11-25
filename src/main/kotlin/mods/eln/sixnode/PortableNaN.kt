@@ -1,5 +1,7 @@
 package mods.eln.sixnode
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.cable.CableRender
 import mods.eln.cable.CableRenderDescriptor
@@ -14,11 +16,10 @@ import mods.eln.sim.nbt.NbtElectricalLoad
 import mods.eln.sim.nbt.NbtThermalLoad
 import mods.eln.sixnode.genericcable.GenericCableDescriptor
 import net.minecraft.client.Minecraft
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.ItemStack
-import net.minecraft.util.ResourceLocation
-import net.minecraftforge.client.IItemRenderer
-import org.lwjgl.opengl.GL11
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.resources.ResourceLocation
+import mods.eln.compat.client.GL11
 import java.util.HashMap
 
 class PortableNaNDescriptor(name: String, renderIn: CableRenderDescriptor): GenericCableDescriptor(name, PortableNaNElement::class.java, PortableNaNRender::class.java) {
@@ -46,7 +47,7 @@ class PortableNaNDescriptor(name: String, renderIn: CableRenderDescriptor): Gene
 
     override fun applyTo(thermalLoad: ThermalLoad) = thermalLoad.set(Double.NaN, Double.NaN, Double.NaN)
 
-    override fun addInformation(itemStack: ItemStack, entityPlayer: EntityPlayer, list: MutableList<String>, par4: Boolean) {
+    override fun addInformation(itemStack: ItemStack, entityPlayer: Player, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
 
         list.add(tr("Nominal Ratings:"))
@@ -72,7 +73,7 @@ class PortableNaNDescriptor(name: String, renderIn: CableRenderDescriptor): Gene
         if (icon == null)
             return
         val icon = icon.iconName.substring(4)
-        UtilsClient.drawIcon(type, ResourceLocation("eln", "textures/blocks/$icon.png"))
+        UtilsClient.drawIcon(type, rl("eln", "textures/block/$icon.png"))
     }
 }
 
@@ -139,13 +140,11 @@ class PortableNaNRender(tileEntity: SixNodeEntity, side: Direction, descriptor: 
     }
 
     override fun draw() {
-        Minecraft.getMinecraft().mcProfiler.startSection("ACable")
 
         UtilsClient.bindTexture(descriptor.render?.cableTexture)
         glListCall()
 
         GL11.glColor3f(1f, 1f, 1f)
-        Minecraft.getMinecraft().mcProfiler.endSection()
     }
 
     override fun glListDraw() {

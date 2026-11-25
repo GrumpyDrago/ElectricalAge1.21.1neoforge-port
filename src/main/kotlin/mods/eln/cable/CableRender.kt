@@ -1,5 +1,7 @@
 package mods.eln.cable
 
+import mods.eln.compat.*
+
 import mods.eln.misc.Direction
 import mods.eln.misc.LRDU
 import mods.eln.misc.LRDUMask
@@ -7,8 +9,8 @@ import mods.eln.node.NodeBase.Companion.isBlockWrappable
 import mods.eln.node.NodeBlockEntity
 import mods.eln.node.six.SixNodeElementRender
 import mods.eln.node.six.SixNodeEntity
-import net.minecraft.tileentity.TileEntity
-import org.lwjgl.opengl.GL11
+import net.minecraft.world.level.block.entity.BlockEntity
+import mods.eln.compat.client.GL11
 
 object CableRender {
     @JvmStatic
@@ -17,7 +19,7 @@ object CableRender {
         var y2: Int
         var z2: Int
         val connectionTypeBuild = CableRenderType()
-        var otherTileEntity: TileEntity?
+        var otherTileEntity: BlockEntity?
         for (lrdu in LRDU.values()) {
             //noConnection
             if (!connectedSide[lrdu]) continue
@@ -106,7 +108,7 @@ object CableRender {
         var y2: Int
         var z2: Int
         val connectionTypeBuild = CableRenderType()
-        var otherTileEntity: TileEntity?
+        var otherTileEntity: BlockEntity?
         for (lrdu in LRDU.values()) {
             //noConnection
             if (!element.connectedSide[lrdu]) continue

@@ -1,6 +1,8 @@
 package mods.eln.environment
 
-import net.minecraft.nbt.NBTTagCompound
+import mods.eln.compat.*
+
+import net.minecraft.nbt.CompoundTag
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -17,8 +19,8 @@ class RoomThermalManagerTest {
 
     @Test
     fun readFromNbtPopulatesRoomsAndFastInteriorIndex() {
-        val nbt = NBTTagCompound()
-        nbt.setTag("roomThermal", buildRootNbt(version = 1, rooms = listOf(
+        val nbt = CompoundTag()
+        nbt.put("roomThermal", buildRootNbt(version = 1, rooms = listOf(
             roomTag(
                 id = "room-a",
                 dim = 0,
@@ -43,8 +45,8 @@ class RoomThermalManagerTest {
 
     @Test
     fun writeToNbtRoundTripPreservesRoomData() {
-        val source = NBTTagCompound()
-        source.setTag("roomThermal", buildRootNbt(version = 1, rooms = listOf(
+        val source = CompoundTag()
+        source.put("roomThermal", buildRootNbt(version = 1, rooms = listOf(
             roomTag(
                 id = "room-roundtrip",
                 dim = 3,
@@ -57,24 +59,24 @@ class RoomThermalManagerTest {
         )))
         RoomThermalManager.readFromNbt(source, 3)
 
-        val target = NBTTagCompound()
+        val target = CompoundTag()
         RoomThermalManager.writeToNbt(target, 3)
 
-        val root = target.getCompoundTag("roomThermal")
-        assertEquals(1, root.getInteger("version"))
-        assertEquals(1, root.getInteger("count"))
+        val root = target.getCompound("roomThermal")
+        assertEquals(1, root.getInt("version"))
+        assertEquals(1, root.getInt("count"))
 
-        val room = root.getCompoundTag("room_0")
+        val room = root.getCompound("room_0")
         assertEquals("room-roundtrip", room.getString("id"))
-        assertEquals(3, room.getInteger("dim"))
-        assertEquals(3, room.getInteger("interiorCount"))
+        assertEquals(3, room.getInt("dim"))
+        assertEquals(3, room.getInt("interiorCount"))
         assertEquals(9, room.getIntArray("interiorCells").size)
     }
 
     @Test
     fun readFromNbtIgnoresUnsupportedVersion() {
-        val nbt = NBTTagCompound()
-        nbt.setTag("roomThermal", buildRootNbt(version = 99, rooms = listOf(
+        val nbt = CompoundTag()
+        nbt.put("roomThermal", buildRootNbt(version = 99, rooms = listOf(
             roomTag(
                 id = "room-invalid-version",
                 dim = 0,
@@ -94,8 +96,8 @@ class RoomThermalManagerTest {
 
     @Test
     fun readFromNbtRejectsMalformedInteriorCellEncoding() {
-        val nbt = NBTTagCompound()
-        nbt.setTag("roomThermal", buildRootNbt(version = 1, rooms = listOf(
+        val nbt = CompoundTag()
+        nbt.put("roomThermal", buildRootNbt(version = 1, rooms = listOf(
             roomTag(
                 id = "room-malformed",
                 dim = 0,
@@ -114,8 +116,8 @@ class RoomThermalManagerTest {
 
     @Test
     fun exchangeLoadWithRoomTransfersPowerAndWarmsRoomAir() {
-        val nbt = NBTTagCompound()
-        nbt.setTag("roomThermal", buildRootNbt(version = 1, rooms = listOf(
+        val nbt = CompoundTag()
+        nbt.put("roomThermal", buildRootNbt(version = 1, rooms = listOf(
             roomTag(
                 id = "room-exchange",
                 dim = 0,
@@ -149,8 +151,8 @@ class RoomThermalManagerTest {
 
     @Test
     fun exchangeLoadWithRoomReturnsNullOutsideRoom() {
-        val nbt = NBTTagCompound()
-        nbt.setTag("roomThermal", buildRootNbt(version = 1, rooms = listOf(
+        val nbt = CompoundTag()
+        nbt.put("roomThermal", buildRootNbt(version = 1, rooms = listOf(
             roomTag(
                 id = "room-nonhit",
                 dim = 2,
@@ -178,8 +180,8 @@ class RoomThermalManagerTest {
 
     @Test
     fun exchangeLoadWithRoomWorksForThermalAnchorAdjacentToInteriorAir() {
-        val nbt = NBTTagCompound()
-        nbt.setTag("roomThermal", buildRootNbt(version = 1, rooms = listOf(
+        val nbt = CompoundTag()
+        nbt.put("roomThermal", buildRootNbt(version = 1, rooms = listOf(
             roomTag(
                 id = "room-anchor",
                 dim = 7,
@@ -212,8 +214,8 @@ class RoomThermalManagerTest {
 
     @Test
     fun advanceRoomAmbientExchangeLeaksFasterWhenDoorCountIsHigher() {
-        val nbt = NBTTagCompound()
-        nbt.setTag("roomThermal", buildRootNbt(version = 1, rooms = listOf(
+        val nbt = CompoundTag()
+        nbt.put("roomThermal", buildRootNbt(version = 1, rooms = listOf(
             roomTag(
                 id = "room-door-leak",
                 dim = 4,
@@ -242,12 +244,12 @@ class RoomThermalManagerTest {
         assertTrue(openTemp < closedTemp, "Open doors should increase room-to-ambient heat loss.")
     }
 
-    private fun buildRootNbt(version: Int, rooms: List<NBTTagCompound>): NBTTagCompound {
-        val root = NBTTagCompound()
-        root.setInteger("version", version)
-        root.setInteger("count", rooms.size)
+    private fun buildRootNbt(version: Int, rooms: List<CompoundTag>): CompoundTag {
+        val root = CompoundTag()
+        root.putInt("version", version)
+        root.putInt("count", rooms.size)
         for ((index, room) in rooms.withIndex()) {
-            root.setTag("room_$index", room)
+            root.put("room_$index", room)
         }
         return root
     }
@@ -260,23 +262,23 @@ class RoomThermalManagerTest {
         bounds: IntArray,
         interiorCells: IntArray,
         thermalNodes: IntArray
-    ): NBTTagCompound {
-        val room = NBTTagCompound()
-        room.setString("id", id)
-        room.setInteger("dim", dim)
-        room.setDouble("tempC", tempC)
-        room.setLong("lastSeen", 0L)
-        room.setInteger("interiorCount", interiorCount)
-        room.setTag("bounds", NBTTagCompound().apply {
-            setInteger("minX", bounds[0])
-            setInteger("minY", bounds[1])
-            setInteger("minZ", bounds[2])
-            setInteger("maxX", bounds[3])
-            setInteger("maxY", bounds[4])
-            setInteger("maxZ", bounds[5])
+    ): CompoundTag {
+        val room = CompoundTag()
+        room.putString("id", id)
+        room.putInt("dim", dim)
+        room.putDouble("tempC", tempC)
+        room.putLong("lastSeen", 0L)
+        room.putInt("interiorCount", interiorCount)
+        room.put("bounds", CompoundTag().apply {
+            putInt("minX", bounds[0])
+            putInt("minY", bounds[1])
+            putInt("minZ", bounds[2])
+            putInt("maxX", bounds[3])
+            putInt("maxY", bounds[4])
+            putInt("maxZ", bounds[5])
         })
-        room.setIntArray("interiorCells", interiorCells)
-        room.setIntArray("thermalNodes", thermalNodes)
+        room.putIntArray("interiorCells", interiorCells)
+        room.putIntArray("thermalNodes", thermalNodes)
         return room
     }
 

@@ -1,16 +1,18 @@
 package mods.eln.transparentnode.teleporter;
 
+import mods.eln.compat.Mc;
+
 import mods.eln.Eln;
 import mods.eln.misc.*;
 import mods.eln.node.transparent.TransparentNodeDescriptor;
 import mods.eln.node.transparent.TransparentNodeElementRender;
 import mods.eln.node.transparent.TransparentNodeEntity;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.GL11;
+import mods.eln.compat.client.GL11;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -46,7 +48,7 @@ public class TeleporterRender extends TransparentNodeElementRender {
         Coordinate lightCoordinate = new Coordinate(this.d.lightCoordinate);
         lightCoordinate.applyTransformation(front, c);
 
-        boolean lightEnable = getTileEntity().getWorldObj().getBlock(lightCoordinate.x, lightCoordinate.y, lightCoordinate.z) == Eln.lightBlock;
+        boolean lightEnable = Mc.getBlock(Mc.worldObj(getTileEntity()), lightCoordinate.x, lightCoordinate.y, lightCoordinate.z) == Eln.lightBlock;
 
 
         front.glRotateXnRef();
@@ -118,7 +120,7 @@ public class TeleporterRender extends TransparentNodeElementRender {
             d.scr1_cables.draw();
             d.scr2_transporter.draw();
 
-            if (!getTileEntity().getWorldObj().getEntitiesWithinAABB(Entity.class, d.getBB(c, front)).isEmpty())
+            if (!Mc.getEntitiesWithinAABB(Mc.worldObj(getTileEntity()), Entity.class, d.getBB(c, front)).isEmpty())
                 d.scr3_userin.draw();
 
             if (doorState)
@@ -235,7 +237,7 @@ public class TeleporterRender extends TransparentNodeElementRender {
 
     @Nullable
     @Override
-    public GuiScreen newGuiDraw(@NotNull Direction side, @NotNull EntityPlayer player) {
+    public Screen newGuiDraw(@NotNull Direction side, @NotNull Player player) {
 
         return new TeleporterGui(player, this);
     }

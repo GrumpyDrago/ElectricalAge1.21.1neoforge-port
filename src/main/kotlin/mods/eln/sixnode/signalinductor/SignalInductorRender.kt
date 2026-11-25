@@ -1,11 +1,13 @@
 package mods.eln.sixnode.signalinductor
 
+import mods.eln.compat.*
+
 import mods.eln.misc.Direction
 import mods.eln.node.six.SixNodeDescriptor
 import mods.eln.node.six.SixNodeElementRender
 import mods.eln.node.six.SixNodeEntity
 import net.minecraft.client.Minecraft
-import org.lwjgl.opengl.GL11
+import mods.eln.compat.client.GL11
 
 class SignalInductorRender(tileEntity: SixNodeEntity?, side: Direction?, descriptor: SixNodeDescriptor?) :
     SixNodeElementRender(

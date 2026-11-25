@@ -1,5 +1,7 @@
 package mods.eln.registration
 
+import mods.eln.compat.*
+
 import mods.eln.Eln
 import mods.eln.Eln.instance
 import mods.eln.Eln.transparentNodeItem
@@ -51,9 +53,9 @@ import mods.eln.transparentnode.turbine.TurbineDescriptor
 import mods.eln.transparentnode.turret.TurretDescriptor
 import mods.eln.transparentnode.waterturbine.WaterTurbineDescriptor
 import mods.eln.transparentnode.windturbine.WindTurbineDescriptor
-import net.minecraft.init.Blocks
-import net.minecraft.item.ItemStack
-import net.minecraft.util.Vec3
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.phys.Vec3
 import kotlin.math.pow
 
 object TransparentNodeRegistration {
@@ -736,7 +738,7 @@ object TransparentNodeRegistration {
     private fun registerElectricalFurnace(id: Int) {
         var subId: Int
         var name: String?
-        instance.furnaceList.add(ItemStack(Blocks.furnace))
+        instance.furnaceList.add(ItemStack(Blocks.FURNACE))
         run {
             subId = 0
             name = TR_NAME(I18N.Type.NONE, "Electrical Furnace")
@@ -1532,7 +1534,7 @@ object TransparentNodeRegistration {
                 40,
                 51200.0
             ).powerDistribution()
-            descriptor.renderOffset = Vec3.createVectorHelper(0.0, -0.1, 0.0)
+            descriptor.renderOffset = Vec3(0.0, -0.1, 0.0)
             val g = GhostGroup()
             g.addElement(0, 1, 0)
             g.addElement(0, 2, 0)

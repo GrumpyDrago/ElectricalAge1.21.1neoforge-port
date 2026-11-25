@@ -1,6 +1,8 @@
 package mods.eln.misc
 
-import net.minecraft.item.ItemStack
+import mods.eln.compat.*
+
+import net.minecraft.world.item.ItemStack
 import java.util.*
 
 class Recipe {
@@ -24,7 +26,7 @@ class Recipe {
     }
 
     fun canBeCraftedBy(stack: ItemStack?): Boolean {
-        return if (stack == null) false else input.stackSize <= stack.stackSize && Utils.areSame(stack, input)
+        return if (stack == null) false else input.count <= stack.count && Utils.areSame(stack, input)
     }
 
     val outputCopy: Array<ItemStack?>
