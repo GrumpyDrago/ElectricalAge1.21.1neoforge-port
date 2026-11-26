@@ -471,6 +471,11 @@ class ElnMatrixCommand: IConsoleCommand {
         } catch (e: Exception) {
             println("Failed to write to " + f.absolutePath + " because " + e)
         }
+        if (ssc == 0) {
+            // A world without circuits yet; there is no average to give.
+            cprint(ics, FC.BRIGHT_YELLOW + "There are no subsystems.")
+            return
+        }
         if (ssc == 1) {
             cprint(ics, FC.BRIGHT_YELLOW + "There is 1 subsystem.")
         } else {
