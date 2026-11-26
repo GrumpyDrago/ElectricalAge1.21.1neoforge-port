@@ -174,6 +174,7 @@ object CraftingRecipes {
         recipeDynamo()
         recipeWindRotor()
         recipeMeter()
+        recipeExpansion()
         recipeElectricalDrill()
         recipeOreScanner()
         recipeMiningPipe()
@@ -1235,6 +1236,64 @@ object CraftingRecipes {
     }
 
     private fun recipeWindRotor() {
+    }
+
+    /** The parts added on the expansion-testing branch. */
+    private fun recipeExpansion() {
+        val probe = findItemStack("Electrical Probe Chip")
+        val relay = findItemStack("High Voltage Relay")
+        addRecipe(
+            findItemStack("Overcurrent Protection Relay"), " P ", "CBC", 'P', probe, 'C', Eln.dictCheapChip,
+            'B', findItemStack("Electrical Breaker")
+        )
+        addRecipe(
+            findItemStack("Battery Management System"), "PCP", " R ", 'P', probe, 'C', Eln.dictCheapChip, 'R', relay
+        )
+        addRecipe(
+            findItemStack("Automatic Transfer Switch"), "RCR", " P ", 'R', relay, 'C', Eln.dictCheapChip, 'P', probe
+        )
+        addRecipe(
+            findItemStack("MPPT Charge Controller"), "IAI", "cPc", "III", 'I', "plateIron", 'A', Eln.dictAdvancedChip,
+            'c', findItemStack("Copper Cable"), 'P', probe
+        )
+        addRecipe(
+            findItemStack("Oscilloscope"), "GGG", "PCP", "III", 'G', ItemStack(Blocks.GLASS_PANE), 'P', probe,
+            'C', Eln.dictAdvancedChip, 'I', "plateIron"
+        )
+        addRecipe(
+            findItemStack("Thermal Camera"), "RAR", "RTR", "RCR", 'A', ItemStack(Items.AMETHYST_SHARD),
+            'T', findItemStack("Thermal Probe Chip"), 'C', Eln.dictCheapChip, 'R', "itemRubber"
+        )
+
+        val cable = findItemStack("Low Voltage Cable")
+        addRecipe(
+            findItemStack("Lead-Acid Battery"), "C C", "PSP", "PPP", 'C', cable, 'P', "ingotLead",
+            'S', ItemStack(Items.GUNPOWDER)
+        )
+        addRecipe(
+            findItemStack("Nickel-Cadmium Battery"), "C C", "IRI", "IRI", 'C', cable, 'I', ItemStack(Items.IRON_INGOT),
+            'R', ItemStack(Items.REDSTONE)
+        )
+        val lithium: Any = if (OreDict.doesOreNameExist("dustLithium")) "dustLithium" else findItemStack("Lapis Dust")
+        addRecipe(
+            findItemStack("Lithium-Ion Battery"), "CBC", "LGL", "LGL", 'C', cable, 'B', Eln.dictCheapChip,
+            'L', lithium, 'G', ItemStack(Items.COAL)
+        )
+        addRecipe(
+            findItemStack("LiFePO4 Battery"), "CBC", "LIL", "LIL", 'C', cable, 'B', Eln.dictCheapChip,
+            'L', lithium, 'I', ItemStack(Items.IRON_INGOT)
+        )
+
+        for (metal in arrayOf("blockSteel", "blockAluminum", "casingMachineAdvanced")) {
+            addRecipe(
+                findItemStack("Monocrystalline Solar Panel"), "SSS", "SSS", "I I", 'S', "plateSilicon", 'I', metal
+            )
+        }
+        addRecipe(
+            findItemStack("Permanent-Magnet Wind Turbine"), "PIP", "IMI", " B ", 'P', "plateIron",
+            'I', findItemStack("Alloy Plate"), 'M', findItemStack("Advanced Electrical Motor"),
+            'B', findItemStack("Advanced Machine Block")
+        )
     }
 
     private fun recipeMeter() {

@@ -23,6 +23,11 @@ import mods.eln.sixnode.currentrelay.CurrentRelayDescriptor
 import mods.eln.sixnode.diode.DiodeDescriptor
 import mods.eln.sixnode.electricalalarm.ElectricalAlarmDescriptor
 import mods.eln.sixnode.electricalbreaker.ElectricalBreakerDescriptor
+import mods.eln.sixnode.mppt.MpptControllerDescriptor
+import mods.eln.sixnode.oscilloscope.OscilloscopeDescriptor
+import mods.eln.sixnode.protection.BatteryManagementDescriptor
+import mods.eln.sixnode.protection.OvercurrentRelayDescriptor
+import mods.eln.sixnode.protection.TransferSwitchDescriptor
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
 import mods.eln.sixnode.electricalcable.ElectricalSignalBusCableElement
 import mods.eln.sixnode.electricaldatalogger.ElectricalDataLoggerDescriptor
@@ -149,6 +154,37 @@ object SixNodeRegistration {
 
         registerTreeResinCollector(116)
         registerPortableNaN() // 125
+
+        // Added on the expansion-testing branch.
+        Eln.sixNodeItem.setCreativeTabForGroup(80, Eln.creativeTabPowerElectronics)
+        registerSwitchgear(80)
+        Eln.sixNodeItem.setCreativeTabForGroup(81, Eln.creativeTabPowerElectronics)
+        run {
+            val name = I18N.TR_NAME(I18N.Type.NONE, "MPPT Charge Controller")
+            Eln.sixNodeItem.addDescriptor(0 + (81 shl 6), MpptControllerDescriptor(
+                name, Eln.obj.getObj("MpptController"), 200.0, 40.0, 60.0, Eln.LVU * 1.05
+            ))
+        }
+        Eln.sixNodeItem.setCreativeTabForGroup(82, Eln.creativeTabSignalProcessing)
+        run {
+            val name = I18N.TR_NAME(I18N.Type.NONE, "Oscilloscope")
+            Eln.sixNodeItem.addDescriptor(0 + (82 shl 6), OscilloscopeDescriptor(name, Eln.obj.getObj("Oscilloscope")))
+        }
+    }
+
+    private fun registerSwitchgear(id: Int) {
+        run {
+            val name = I18N.TR_NAME(I18N.Type.NONE, "Overcurrent Protection Relay")
+            Eln.sixNodeItem.addDescriptor(0 + (id shl 6), OvercurrentRelayDescriptor(name, Eln.obj.getObj("ProtectionRelay")))
+        }
+        run {
+            val name = I18N.TR_NAME(I18N.Type.NONE, "Battery Management System")
+            Eln.sixNodeItem.addDescriptor(1 + (id shl 6), BatteryManagementDescriptor(name, Eln.obj.getObj("Bms")))
+        }
+        run {
+            val name = I18N.TR_NAME(I18N.Type.NONE, "Automatic Transfer Switch")
+            Eln.sixNodeItem.addDescriptor(2 + (id shl 6), TransferSwitchDescriptor(name, Eln.obj.getObj("TransferSwitch")))
+        }
     }
 
     private fun registerGround(id: Int) {

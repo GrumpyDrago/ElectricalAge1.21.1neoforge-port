@@ -68,6 +68,8 @@ class BatteryDescriptor(
     var currentDropVoltage = 1000000.0
     @JvmField
     var currentDropFactor = 0.0
+    /** The kind of cells, for batteries that simulate one; null for the original batteries. */
+    var chemistry: BatteryChemistry? = null
     fun draw(plus: Boolean, minus: Boolean) {
         when (renderType) {
             0 -> {
@@ -132,12 +134,20 @@ class BatteryDescriptor(
         list.add(Utils.plotPower(tr("Nominal power: "), electricalStdP))
         list.add(Utils.plotEnergy(tr("Energy capacity: "), electricalStdDischargeTime * electricalStdP))
         list.add(Utils.plotOhm(tr("Internal resistance: "), electricalRs * 2))
+        chemistry?.addInformation(list, electricalU)
         list.add("")
         list.add(Utils.plotPercent(tr("Actual charge: "), getChargeInTag(itemStack)))
         if (lifeEnable) list.add(Utils.plotPercent(tr("Life: "), getLifeInTag(itemStack)))
     }
 
     override fun addRealismContext(list: MutableList<String>?): RealisticEnum {
+        if (chemistry != null) {
+            list?.add(tr("Simulates a battery chemistry:"))
+            list?.add(tr("  * Its own voltage curve and internal resistance"))
+            list?.add(tr("  * Cold raises the internal resistance"))
+            list?.add(tr("  * Heat and the state of charge wear it out"))
+            return RealisticEnum.REALISTIC
+        }
         list?.add(tr("Battery could be realistic in the future"))
         list?.add(tr("  * Batteries have internal resistance"))
         list?.add(tr("  * Not currently simulating any particular chemistry of battery"))

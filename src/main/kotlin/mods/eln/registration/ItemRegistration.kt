@@ -13,6 +13,7 @@ import net.minecraft.world.item.ShovelItem
 import net.minecraft.world.item.SwordItem
 import net.minecraft.world.item.Tiers
 import net.minecraft.world.item.crafting.Ingredient
+import mods.eln.item.ThermalCameraDescriptor
 import mods.eln.item.ElnArmorItem
 import mods.eln.compat.*
 
@@ -988,6 +989,14 @@ object ItemRegistration {
                 GenericItemUsingDamageDescriptor(I18N.TR_NAME(I18N.Type.NONE, "AllMeter"))
             Eln.sharedItem.addElement(completId, element)
             Eln.allMeterElement = element
+        }
+        run {
+            // Added on the expansion-testing branch.
+            subId = 3
+            completId = subId + (id shl 6)
+            element = ThermalCameraDescriptor(I18N.TR_NAME(I18N.Type.NONE, "Thermal Camera"))
+            Eln.sharedItem.addElement(completId, element)
+            Eln.thermalCameraElement = element
         }
         run {
             subId = 8

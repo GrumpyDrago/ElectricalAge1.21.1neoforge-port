@@ -29,6 +29,7 @@ import mods.eln.sim.ThermalLoadInitializerByPowerDrop
 import mods.eln.sound.SoundCommand
 import mods.eln.transparentnode.*
 import mods.eln.transparentnode.autominer.AutoMinerDescriptor
+import mods.eln.transparentnode.battery.BatteryChemistry
 import mods.eln.transparentnode.battery.BatteryDescriptor
 import mods.eln.transparentnode.eggincubator.EggIncubatorDescriptor
 import mods.eln.transparentnode.electricalantennarx.ElectricalAntennaRxDescriptor
@@ -895,6 +896,23 @@ object TransparentNodeRegistration {
             )
             transparentNodeItem.addDescriptor(subId + (id shl 6), desc)
         }
+        run {
+            // Added on the expansion-testing branch: follows a real current-voltage curve, so it gives its full
+            // power only near 0.8 of its open-circuit voltage, which an MPPT charge controller finds.
+            subId = 8
+            name = TR_NAME(I18N.Type.NONE, "Monocrystalline Solar Panel")
+            val groundCoordinate = Coordinate(1, 0, 0, 0)
+            ghostGroup = GhostGroup()
+            ghostGroup.addRectangle(0, 1, 0, 0, -1, 1)
+            ghostGroup.removeElement(0, 0, 0)
+            val desc = SolarPanelDescriptor(
+                name, Eln.obj.getObj("MonoSolarPanel"),
+                instance.meduimVoltageCableDescriptor.render, ghostGroup, 1, 1, 0, groundCoordinate, LVSolarU * 2,
+                Eln.solarPanelBasePower * instance.solarPanelPowerFactor * 8 * 1.15, 0.01, Math.PI / 2, Math.PI / 2
+            )
+            desc.pvCurve = true
+            transparentNodeItem.addDescriptor(subId + (id shl 6), desc)
+        }
     }
 
     private fun registerElectricalAntenna(id: Int) {
@@ -1070,6 +1088,27 @@ object TransparentNodeRegistration {
             desc.setCurrentDrop(desc.electricalU * 1.2, desc.electricalStdP * 1.0)
             transparentNodeItem.addDescriptor(subId + (id shl 6), desc)
         }
+
+        // Batteries of real chemistries, added on the expansion-testing branch. Power and energy are multiples of
+        // the cost oriented battery; the chemistry adds its voltage curve, temperature behaviour and wear.
+        fun chemistry(
+            sub: Int, name: String, chemistry: BatteryChemistry, power: Double, hours: Double, efficiency: Double,
+            life: Double, warmLimit: Double
+        ) {
+            val desc = BatteryDescriptor(
+                name, "BatteryChem", 0.5, true, true, chemistry.voltageFunction, stdU,
+                stdP * power * 1.2, 0.0, stdP * power, stdDischargeTime * hours * instance.batteryCapacityFactor,
+                efficiency, instance.stdBatteryHalfLife * life, heatTIme * warmLimit / 60.0, warmLimit, -100.0
+            )
+            desc.chemistry = chemistry
+            desc.setRenderSpec(chemistry.renderSpec)
+            desc.setCurrentDrop(desc.electricalU * 1.2, desc.electricalStdP * 1.0)
+            transparentNodeItem.addDescriptor(sub + (id shl 6), desc)
+        }
+        chemistry(8, TR_NAME(I18N.Type.NONE, "Lead-Acid Battery"), BatteryChemistry.LEAD_ACID, 1.5, 1.2, 0.9, 1.5, 60.0)
+        chemistry(9, TR_NAME(I18N.Type.NONE, "Nickel-Cadmium Battery"), BatteryChemistry.NICKEL_CADMIUM, 2.0, 0.67, 0.93, 4.0, 70.0)
+        chemistry(10, TR_NAME(I18N.Type.NONE, "Lithium-Ion Battery"), BatteryChemistry.LITHIUM_ION, 2.0, 1.5, 0.97, 2.0, 130.0)
+        chemistry(11, TR_NAME(I18N.Type.NONE, "LiFePO4 Battery"), BatteryChemistry.LITHIUM_IRON_PHOSPHATE, 3.0, 1.0, 0.97, 6.0, 90.0)
     }
 
     private fun registerAutoMiner(id: Int) {
@@ -1167,6 +1206,26 @@ object TransparentNodeRegistration {
         desc.setGhostGroup(g);
         transparentNodeItem.addDescriptor(subId + (id << 6), desc);
     } */
+        run {
+            // Added on the expansion-testing branch: rotor aerodynamics, blade pitch and a permanent-magnet generator.
+            subId = 4
+            name = TR_NAME(I18N.Type.NONE, "Permanent-Magnet Wind Turbine")
+            val desc = WindTurbineDescriptor(
+                name, Eln.obj.getObj("PmgWindTurbine"), instance.lowVoltageCableDescriptor, PfW,
+                1000 * instance.windTurbinePowerFactor, 10.0, Eln.LVU * 1.6, 25.0,
+                3, 7, 2, 2, 2, 0.07, "eln:WINDTURBINE_BIG_SF", 1f
+            )
+            desc.pmg = true
+            val g = GhostGroup()
+            g.addElement(0, 1, 0)
+            g.addElement(0, 2, -1)
+            g.addElement(0, 2, 1)
+            g.addElement(0, 3, -1)
+            g.addElement(0, 3, 1)
+            g.addRectangle(0, 0, 1, 3, 0, 0)
+            desc.setGhostGroup(g)
+            transparentNodeItem.addDescriptor(subId + (id shl 6), desc)
+        }
         run {
             subId = 16
             name = TR_NAME(I18N.Type.NONE, "Water Turbine")

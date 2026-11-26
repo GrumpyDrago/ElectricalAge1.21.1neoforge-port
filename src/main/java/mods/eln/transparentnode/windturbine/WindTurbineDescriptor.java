@@ -1,5 +1,7 @@
 package mods.eln.transparentnode.windturbine;
 
+import mods.eln.Eln;
+
 import mods.eln.ghost.GhostGroup;
 import mods.eln.misc.*;
 import mods.eln.misc.Obj3D.Obj3DPart;
@@ -16,6 +18,9 @@ import java.util.List;
 import static mods.eln.i18n.I18N.tr;
 
 public class WindTurbineDescriptor extends TransparentNodeDescriptor {
+
+    /** Simulates the rotor and a permanent-magnet generator instead of giving a power for each wind speed. */
+    public boolean pmg = false;
     private final Obj3D obj;
     private final Obj3DPart main;
     private final Obj3DPart rot;
@@ -25,7 +30,8 @@ public class WindTurbineDescriptor extends TransparentNodeDescriptor {
 
     final double nominalPower;
     final double maxVoltage;
-    private final double maxWind;
+    final double maxWind;
+    final double nominalWind;
     final int offY;
     final int rayX;
     final int rayY;
@@ -47,6 +53,7 @@ public class WindTurbineDescriptor extends TransparentNodeDescriptor {
         this.nominalPower = nominalPower;
         this.maxVoltage = maxVoltage;
         this.maxWind = maxWind;
+        this.nominalWind = nominalWind;
         this.offY = offY;
         this.rayX = rayX;
         this.rayY = rayY;
@@ -134,6 +141,11 @@ public class WindTurbineDescriptor extends TransparentNodeDescriptor {
         super.addInformation(itemStack, entityPlayer, list, par4);
 
         list.add(tr("Generates energy from wind."));
+        if (pmg) {
+            list.add(tr("Pitch-controlled rotor with a permanent-magnet generator."));
+            list.add(tr("Rated at %1$ m/s; feathers above %2$ m/s.", (int) nominalWind, (int) maxWind));
+            list.add(tr("For %1$V batteries; an MPPT charge controller gets the most out of it.", Utils.plotValue(Eln.LVU)));
+        } else
         list.add(tr("Voltage: %1$V", Utils.plotValue(maxVoltage)));
         list.add(tr("Power: %1$W", Utils.plotValue(nominalPower)));
         list.add(tr("Wind area:"));

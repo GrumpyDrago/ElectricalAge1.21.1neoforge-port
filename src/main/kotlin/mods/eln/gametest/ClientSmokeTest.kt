@@ -58,6 +58,8 @@ object ClientSmokeTest {
     private val JADE = java.lang.Boolean.getBoolean("eln.clientSmokeTest.jade")
     private val JEI = java.lang.Boolean.getBoolean("eln.clientSmokeTest.jei")
     private val ORES = java.lang.Boolean.getBoolean("eln.clientSmokeTest.ores")
+    /** Close-ups of the parts added on the expansion-testing branch, at work. */
+    private val EXPANSION = java.lang.Boolean.getBoolean("eln.clientSmokeTest.expansion")
     private val sixPositions = ArrayList<Triple<String, BlockPos, Direction>>()
     private val transparentPositions = ArrayList<Pair<String, BlockPos>>()
 
@@ -260,6 +262,7 @@ object ClientSmokeTest {
         }
         if (JEI) return planJei()
         if (JADE) return planJade()
+        if (EXPANSION) return planExpansion()
         // Rows of six nodes on the floor.
         val columns = 20
         val rows = (Eln.sixNodeItem.subItemList.size + columns - 1) / columns
@@ -367,6 +370,139 @@ object ClientSmokeTest {
             if (!java.lang.Boolean.getBoolean("eln.clientSmokeTest.noGuis")) for ((name, pos) in transparentPositions.toList()) gui("transparent", name, pos, Direction.YP)
             later(10) { Eln.logger.info("SMOKE {} GUIs", guiCount) }
             reload()
+        }
+    }
+
+    private val showcase = ArrayList<Pair<String, BlockPos>>()
+    private val scopeSources = ArrayList<mods.eln.sixnode.electricalsource.ElectricalSourceElement>()
+
+    private fun planExpansion() {
+        val z = 30
+        val x0 = 60
+        val parts = listOf(
+            "Overcurrent Protection Relay", "Battery Management System", "Automatic Transfer Switch",
+            "MPPT Charge Controller", "Oscilloscope"
+        )
+        later(20) { onServer { level, player -> buildShowcase(level, player, parts, x0, z) } }
+        later(40) { look(x0 + 8.0, GROUND + 3.5, z - 3.5, 0f, 40f) }
+        later { shot("exp_six_overview") }
+        // The oscilloscope gets a changing voltage on both channels, and is looked at while it does.
+        later(10) { look(x0 + 16.5, GROUND + 1.6, z - 0.9, 0f, 50f) }
+        for (i in 0 until 70) {
+            later(2) {
+                onServer { _, _ ->
+                    scopeSources.getOrNull(0)?.voltageSource?.setVoltage(30 + 20 * Math.sin(i * 0.15))
+                    scopeSources.getOrNull(1)?.voltageSource?.setVoltage(if ((i / 12) % 2 == 0) 40.0 else 10.0)
+                }
+            }
+        }
+        later { shot("exp_oscilloscope") }
+        for ((k, name) in parts.withIndex()) {
+            if (name == "Oscilloscope") continue
+            val x = x0 + k * 4
+            later(20) { look(x + 0.5, GROUND + 1.6, z - 0.9, 0f, 50f) }
+            later { shot("exp_" + name.lowercase().replace(Regex("[^a-z0-9]+"), "_")) }
+        }
+        later(20) { look(x0 + 3.5, GROUND + 2.5, z + 1.5, 0f, 30f) }
+        later { shot("exp_batteries") }
+        later(40) { look(x0 + 7.0, GROUND + 6.0, z + 2.0, 0f, 15f) }
+        later { shot("exp_generators") }
+        // The thermal camera, with one battery hot and one warm.
+        later(10) {
+            mc.options.hideGui = false
+            onServer { _, player ->
+                player.inventory.selected = 0
+                player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, Eln.findItemStack("Thermal Camera", 1))
+                player.connection.send(net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(0))
+            }
+            look(x0 + 3.5, GROUND + 2.5, z + 1.5, 0f, 30f)
+        }
+        for (i in 0 until 30) {
+            later(2) {
+                onServer { _, _ ->
+                    for (n in NodeManager.instance!!.nodeList.filterIsInstance<TransparentNode>()) {
+                        val b = n.element as? mods.eln.transparentnode.battery.BatteryElement ?: continue
+                        if (n.coordinate.x == x0 && n.coordinate.z == z + 5) b.thermalLoad.temperatureCelsius = 45.0
+                        if (n.coordinate.x == x0 + 2 && n.coordinate.z == z + 5) b.thermalLoad.temperatureCelsius = 15.0
+                    }
+                }
+            }
+        }
+        later { shot("exp_thermal_camera") }
+        later(10) { look(x0 + 8.0, GROUND + 3.5, z - 3.5, 0f, 40f) }
+        later(40) { shot("exp_thermal_camera_switchgear") }
+        later(5) {
+            mc.options.hideGui = true
+            for ((name, pos) in showcase) gui("six", name, pos, Direction.YN)
+            later(10) { mc.stop() }
+        }
+    }
+
+    private fun buildShowcase(level: ServerLevel, player: ServerPlayer, parts: List<String>, x0: Int, z: Int) {
+        for (x in x0 - 4..x0 + 24) for (dz in -6..16) {
+            level.setBlock(BlockPos(x, GROUND - 1, z + dz), Blocks.SMOOTH_STONE.defaultBlockState(), 2)
+        }
+        fun six(name: String, x: Int, zz: Int): SixNode? {
+            if (!Eln.sixNodeItem.placeBlockAt(Eln.findItemStack(name, 1), player, level, x, GROUND, zz, 1)) {
+                Eln.logger.error("SMOKE could not place {}", name)
+                return null
+            }
+            return NodeManager.instance!!.nodeList.filterIsInstance<SixNode>()
+                .first { it.coordinate.x == x && it.coordinate.y == GROUND && it.coordinate.z == zz }
+        }
+        fun source(x: Int, zz: Int, voltage: Double) =
+            (six("Electrical Source", x, zz)?.getElement(Direction.YN) as? mods.eln.sixnode.electricalsource.ElectricalSourceElement)
+                ?.also { it.voltageSource.setVoltage(voltage) }
+        val east = Direction.YN.getLRDUGoingTo(Direction.XP)!!
+        for ((k, name) in parts.withIndex()) {
+            val x = x0 + k * 4
+            val node = six(name, x, z) ?: continue
+            val element = node.getElement(Direction.YN)!!
+            element.front = east
+            showcase.add(name to BlockPos(x, GROUND, z))
+            if (element is mods.eln.sixnode.protection.SwitchgearElement) {
+                element.inventory.setInventorySlotContents(0, Eln.findItemStack("Low Voltage Cable", 1))
+                element.inventory.markDirty()
+                element.inventoryChanged()
+            }
+            when (element) {
+                is mods.eln.sixnode.protection.OvercurrentRelayElement -> {
+                    source(x + 1, z, 50.0)
+                    six("Low Voltage Cable", x - 1, z)
+                    element.logic.close()
+                }
+                is mods.eln.sixnode.protection.BatteryManagementElement -> {
+                    source(x + 1, z, 49.0)
+                    six("Low Voltage Cable", x - 1, z)
+                }
+                is mods.eln.sixnode.protection.TransferSwitchElement -> {
+                    // The load is east, the mains west and the backup to the left.
+                    six("Low Voltage Cable", x + 1, z)
+                    source(x - 1, z, 50.0)
+                    val b = BlockPos(x, GROUND, z).relative(Direction.YN.applyLRDU(east.left()).toForge())
+                    source(b.x, b.z, 50.0)
+                }
+                is mods.eln.sixnode.mppt.MpptControllerElement -> {
+                    source(x + 1, z, 100.0)
+                    source(x - 1, z, 50.0)
+                }
+                is mods.eln.sixnode.oscilloscope.OscilloscopeElement -> {
+                    source(x + 1, z, 30.0)?.let { scopeSources.add(it) }
+                    source(x - 1, z, 10.0)?.let { scopeSources.add(it) }
+                }
+            }
+            node.reconnect()
+        }
+        val batteries = listOf("Lead-Acid Battery", "Nickel-Cadmium Battery", "Lithium-Ion Battery", "LiFePO4 Battery")
+        for ((k, name) in batteries.withIndex()) {
+            if (!Eln.transparentNodeItem.placeBlockAt(Eln.findItemStack(name, 1), player, level, x0 + k * 2, GROUND, z + 5, 1)) {
+                Eln.logger.error("SMOKE could not place {}", name)
+            }
+        }
+        for ((x, name) in listOf(x0 + 2 to "Monocrystalline Solar Panel", x0 + 12 to "Permanent-Magnet Wind Turbine")) {
+            if (!Eln.transparentNodeItem.placeBlockAt(Eln.findItemStack(name, 1), player, level, x, GROUND, z + 12, 1)) {
+                Eln.logger.error("SMOKE could not place {}", name)
+            }
         }
     }
 

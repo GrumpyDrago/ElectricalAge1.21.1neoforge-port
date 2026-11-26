@@ -41,6 +41,7 @@ class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNo
     var batteryProcess = NbtBatteryProcess(positiveLoad, negativeLoad, this.descriptor.UfCharge, 0.0, voltageSource, thermalLoad)
     var dischargeResistor = Resistor(positiveLoad, negativeLoad)
     var batterySlowProcess = NbtBatterySlowProcess(node!!, batteryProcess, thermalLoad)
+    val chemistryProcess = this.descriptor.chemistry?.let { BatteryChemistryProcess(this, it) }
     var fromItemStack = false
     var fromItemstackCharge = 0.0
     var fromItemstackLife = 0.0
@@ -141,6 +142,8 @@ class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNo
             info[tr("Current")] = Utils.plotAmpere("", batteryProcess.dischargeCurrent)
             info[tr("Temperature")] = plotAmbientCelsius("", thermalLoad.temperatureCelsius)
         }
+        this.descriptor.chemistry?.let { info[tr("Chemistry")] = it.displayName() }
+        chemistryProcess?.let { info[tr("Cell temperature")] = Utils.plotCelsius("", it.celsius) }
         info[tr("Subsystem Matrix Size")] = Utils.renderSubSystemWaila(positiveLoad.subSystem)
         return info
     }
@@ -159,6 +162,7 @@ class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNo
         slowProcessList.add(NodePeriodicPublishProcess(transparentNode, 1.0, 0.0))
         batteryProcess.IMax = this.descriptor.IMax
         slowProcessList.add(thermalWatchdog)
+        chemistryProcess?.let { slowProcessList.add(it) }
         thermalWatchdog
             .setMaximumTemperature(this.descriptor.thermalWarmLimit)
             .setDestroys(WorldExplosion(this).machineExplosion())

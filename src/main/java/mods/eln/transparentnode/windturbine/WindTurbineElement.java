@@ -13,6 +13,7 @@ import mods.eln.node.transparent.TransparentNodeElement;
 import mods.eln.sim.ElectricalLoad;
 import mods.eln.sim.ThermalLoad;
 import mods.eln.sim.mna.component.PowerSource;
+import mods.eln.sim.renewable.PmgWindSource;
 import mods.eln.sim.nbt.NbtElectricalLoad;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.nbt.CompoundTag;
@@ -26,7 +27,7 @@ import java.util.Map;
 
 public class WindTurbineElement extends TransparentNodeElement {
     private final NbtElectricalLoad positiveLoad = new NbtElectricalLoad("positiveLoad");
-    final PowerSource powerSource = new PowerSource("powerSource", positiveLoad);
+    final PowerSource powerSource;
     private final WindTurbineSlowProcess slowProcess = new WindTurbineSlowProcess("slowProcess", this);
     final WindTurbineDescriptor descriptor;
     private Direction cableFront = Direction.ZP;
@@ -35,6 +36,14 @@ public class WindTurbineElement extends TransparentNodeElement {
         super(transparentNode, descriptor);
 
         this.descriptor = (WindTurbineDescriptor) descriptor;
+        if (this.descriptor.pmg) {
+            PmgWindSource pmg = new PmgWindSource("powerSource", positiveLoad, this.descriptor.nominalPower,
+                this.descriptor.nominalWind, Eln.LVU, this.descriptor.maxWind);
+            powerSource = pmg;
+            electricalProcessList.add(pmg.getRotor());
+        } else {
+            powerSource = new PowerSource("powerSource", positiveLoad);
+        }
 
         electricalLoadList.add(positiveLoad);
         electricalComponentList.add(powerSource);
@@ -100,7 +109,13 @@ public class WindTurbineElement extends TransparentNodeElement {
         super.networkSerialize(stream);
         try {
             stream.writeFloat((float) slowProcess.getWind());
-            stream.writeFloat((float) (powerSource.getPower() / descriptor.nominalPower));
+            if (powerSource instanceof PmgWindSource) {
+                // The render turns the blades at the square root of this.
+                double s = ((PmgWindSource) powerSource).getSpeed() / ((PmgWindSource) powerSource).getRatedSpeed();
+                stream.writeFloat((float) (s * s));
+            } else {
+                stream.writeFloat((float) (powerSource.getPower() / descriptor.nominalPower));
+            }
             node.lrduCubeMask.getTranslate(Direction.YN).serialize(stream);
         } catch (IOException e) {
 
@@ -128,6 +143,13 @@ public class WindTurbineElement extends TransparentNodeElement {
         Map<String, String> wailaList = new HashMap<String, String>();
         wailaList.put(I18N.tr("Generating"), slowProcess.getWind() > 0 ? I18N.tr("Yes") : I18N.tr("No"));
         wailaList.put(I18N.tr("Produced power"), Utils.plotPower("", powerSource.getEffectivePower()));
+        if (powerSource instanceof PmgWindSource) {
+            PmgWindSource pmg = (PmgWindSource) powerSource;
+            wailaList.put(I18N.tr("Produced power"), Utils.plotPower("", pmg.getElectricalPower()));
+            wailaList.put(I18N.tr("Wind"), String.format("%.1f m/s", pmg.getWind()));
+            wailaList.put(I18N.tr("Rotor"), String.format("%.0f rpm", pmg.getSpeed() * 60 / (2 * Math.PI)));
+            wailaList.put(I18N.tr("Blade pitch"), String.format("%.0f°", pmg.getPitch()));
+        }
         if (Eln.wailaEasyMode) {
             wailaList.put(I18N.tr("Voltage"), Utils.plotVolt("", powerSource.getVoltage()));
         }

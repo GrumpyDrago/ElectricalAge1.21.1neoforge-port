@@ -27,6 +27,9 @@ public class SolarPanelDescriptor extends TransparentNodeDescriptor {
     private Obj3DPart main;
     private Obj3DPart panel;
 
+    /** Follows the current-voltage curve of a real panel instead of giving its power at any voltage. */
+    public boolean pvCurve = false;
+
     public SolarPanelDescriptor(
             String name,
             Obj3D obj, CableRenderDescriptor cableRender,

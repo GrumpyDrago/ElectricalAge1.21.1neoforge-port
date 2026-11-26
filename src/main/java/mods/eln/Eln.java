@@ -144,6 +144,8 @@ public class Eln {
     public static final byte packetDestroyUuid = 20;
     public static final byte packetClientToServerConnection = 21;
     public static final byte packetServerToClientInfo = 22;
+    public static final byte packetThermalScanRequest = 23;
+    public static final byte packetThermalImage = 24;
     public static final Obj3DFolder obj = new Obj3DFolder();
     public static final double gateOutputCurrent = 0.100;
     public static final double LVU = 50;
@@ -258,6 +260,7 @@ public class Eln {
     /* ----------------------------------------------------- */
 
     static public GenericItemUsingDamageDescriptor multiMeterElement, thermometerElement, allMeterElement;
+    static public GenericItemUsingDamageDescriptor thermalCameraElement;
     static public GenericItemUsingDamageDescriptor configCopyToolElement;
     public static TreeResin treeResin;
     public static MiningPipeDescriptor miningPipeDescriptor;

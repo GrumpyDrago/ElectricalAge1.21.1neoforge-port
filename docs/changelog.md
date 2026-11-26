@@ -1,3 +1,20 @@
+## 2.0.0-testing.1
+
+A test build of new parts, on the `expansion-testing` branch. See [expansion-testing.md](expansion-testing.md) for how
+they work. They are new items, so worlds from 2.0.0-alpha.6 keep working. They are still being tested, though, so back
+up worlds you care about.
+
+- Overcurrent protection relay with IEC inverse-time curves, an instantaneous trip and auto-reclose
+- Battery management system: low and high voltage cutoffs and overcurrent protection
+- Automatic transfer switch for backup power; with a battery and a charger it makes a UPS
+- Lead-acid, nickel-cadmium, lithium-ion and LiFePO4 batteries, with their own voltage curves, temperature effects and
+  wear, and thermal runaway for lithium-ion
+- Monocrystalline solar panel with a real current-voltage curve
+- Permanent-magnet wind turbine with rotor aerodynamics and blade pitch control
+- MPPT charge controller, which finds the maximum power point of panels and turbines
+- Two-channel oscilloscope
+- Thermal camera, which shows how hot nearby parts are
+
 ## 2.0.0-alpha.6
 
 Now made from release 1.24.8 of Electrical Age (commit 46ab422d). The earlier alphas were made from newer, unfinished code.

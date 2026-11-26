@@ -1,4 +1,4 @@
-// 1.21.1	2026-11-25T17:18:18.3669852	Electrical Age assets and data
+// 1.21.1	2026-11-26T12:53:41.8668099	Electrical Age assets and data
 f9e1fbf3c707c65831b94091f76012c25d9274d4 assets/eln/blockstates/arc_clay_block.json
 728a176cb7d6580d79a788dad0cb2a8c02782b5a assets/eln/blockstates/arc_metal_block.json
 3f3711dc8a63efa9eac0ed4942886027c0f1f674 assets/eln/blockstates/cinnabar_ore.json
@@ -92,11 +92,13 @@ df25ff6c5d32ad5060413325e58105be86a993fb assets/eln/models/item/arc_clay_block.j
 e124037cf64a28313b60ec4d7c2ac7a57a540e0a assets/eln/models/item/arc_metal_block.json
 30e64ceb49ed0bc240d2cd98c603848b5af38d62 assets/eln/models/item/arc_metal_ingot.json
 dfce41da73d73d79294e0e1303f9ca915ef9855e assets/eln/models/item/arithmetic_logic_unit.json
+32b493c609811721b5d7ca13a1fec5e10e9291d1 assets/eln/models/item/automatic_transfer_switch.json
 7ba89cf0e60f35530c951a1704d5b153369ef183 assets/eln/models/item/auto_miner.json
 e20f6a889e9b912da8e5c57abd2f375cdcbcf30d assets/eln/models/item/average_electrical_drill.json
 6cc835bd1c80c7fb436c589c3fcbafa0fb7ad6c9 assets/eln/models/item/average_ferromagnetic_core.json
 a61438c4d9de108ce56db69f415309fa39c88ae8 assets/eln/models/item/basic_floodlight.json
 6b81f451203ead5dca62fd1fd3f8793945a2d3cb assets/eln/models/item/basic_magnet.json
+2ea7f8d2f80379359bc8f87ff25c1e50aa332eb2 assets/eln/models/item/battery_management_system.json
 bb0542bd187b33f1ea919f0d67075403f5478e19 assets/eln/models/item/big_fuel_burner.json
 9758e76f270bd5d72297ce550a4973c5a6008712 assets/eln/models/item/black_brush.json
 38840343597aa7f59057bc9c6ce55a488b5935f4 assets/eln/models/item/blown_lead_fuse.json
@@ -229,6 +231,7 @@ a7d9333ddab10a1b9f6e470a617981eb3301a060 assets/eln/models/item/lamp_socket_b_pr
 b58c3add6842f80aa1add480d2b58002bea9c47d assets/eln/models/item/large_rheostat.json
 df6e378f1b6215211502a8c758416677688f17aa assets/eln/models/item/large_shaft_motor.json
 b99f68836052bdaf9649ea56294180c3914bdb03 assets/eln/models/item/large_steam_turbine.json
+93132e7bcf68b136cf2c44dadca23dece65c1586 assets/eln/models/item/lead_acid_battery.json
 29718b02ad34eab856f626568de30b5e7b96f02c assets/eln/models/item/lead_clutch_plate.json
 b2696ae4bc69987b7c28bce83086ccd863844256 assets/eln/models/item/lead_dust.json
 9ce33e749593aaf870c71967ec38a182108ba235 assets/eln/models/item/lead_fuse_for_high_voltage_cables.json
@@ -240,9 +243,11 @@ ca7add848b99c80647f65114667e8134748721e0 assets/eln/models/item/lead_ingot.json
 0da855d6ede48622f384199039da9236ec1c4c10 assets/eln/models/item/lead_plate.json
 64a2dc428f6a9db2224a5a53140c2f78b9aaa787 assets/eln/models/item/led_vumeter.json
 fb2cccf22100cbe2a5a54c80c666aa1b916b1bdc assets/eln/models/item/legacy_dc_dc_converter.json
+99dd57cb7d9dc83f75fbf62de5a09290356ca65a assets/eln/models/item/lifepo4_battery.json
 2a349a49564fc1da60b852cb80bcdd6c0df1d9f1 assets/eln/models/item/life_oriented_battery.json
 aaaa03f185d9f1ebb3fc0d228e1aaab87fd91820 assets/eln/models/item/light_blue_brush.json
 0ca111f1cfd0df6810e529a2e6319a2728d7932d assets/eln/models/item/lime_brush.json
+7626c44843c3a88712f8dee3e1218c731904a7c3 assets/eln/models/item/lithium_ion_battery.json
 8da4a230a085d3ba7f87611e39148b472e39ae58 assets/eln/models/item/long_suspended_lamp_socket.json
 e581b780d2f9ecbd23d4a72c6d4ea7358400330b assets/eln/models/item/long_suspended_lamp_socket_no_swing.json
 f9b5ab403128486a05dae84741942db145004467 assets/eln/models/item/lowpass_filter.json
@@ -268,15 +273,18 @@ fc9acbd3f7ac2ae492e21f5d4164e459ebb88b86 assets/eln/models/item/medium_voltage_s
 8e30daf1f17e7874f8d3209ce92e156594c31564 assets/eln/models/item/mining_pipe.json
 8a510b8523c8b9bbe16bd9360d0fbea7af958a97 assets/eln/models/item/modbus_rtu.json
 70856584bb79ea429043e1136361014632248566 assets/eln/models/item/modern_data_logger.json
+4e037f70636d43df00b76c45354eeafa31084132 assets/eln/models/item/monocrystalline_solar_panel.json
 d7ece48ac8817892318bcf51ae69e3fc7a653f2e assets/eln/models/item/monster_filter.json
 17b054df417b44f2428f7243c1569bd85ff1bf7b assets/eln/models/item/motorized_floodlight.json
 656db7f37b31982688e7cab3a331d6eed9b566c4 assets/eln/models/item/motor_cowling.json
+c8d15e51829b138d54ba75967a706bd8085e52ac assets/eln/models/item/mppt_charge_controller.json
 f1e2f38dd367fdc98c3f5947cc1e73138ffea405 assets/eln/models/item/mqtt_energy_meter.json
 dbb8bbb7eee7566ebd0cd34c9a49f84b332befda assets/eln/models/item/mqtt_signal_controller.json
 8cb862b5975de25fe47a3dd5ed5b989a7d4ef781 assets/eln/models/item/multicolor_led_vumeter.json
 f500cdb7712b1e3a349d4f535227bf835549c032 assets/eln/models/item/multimeter.json
 68861c7d550f14feb1375066e8c62c8a336e5ae6 assets/eln/models/item/nand_chip.json
 d82f25fd248c40568db2580750b6fb7359821eae assets/eln/models/item/nibble_memory_chip.json
+09b4126257da0bac387b67a3db3cc10a749982c5 assets/eln/models/item/nickel_cadmium_battery.json
 44f08c855bd8e63f5cc688620fed9791ada217ce assets/eln/models/item/nixie_tube.json
 dd2dfd4cb3842274535ffe5e356dddd79a22f51f assets/eln/models/item/nor_chip.json
 e2bfe7fab636bfb908e3bd4975e7eb81322e17b3 assets/eln/models/item/not_chip.json
@@ -291,10 +299,13 @@ db5533083940b00de0be75f242ec57d90c4a914e assets/eln/models/item/nuclear_alarm.js
 e82d07a0427f77ba5e996f7c96332d9a2f6db7f7 assets/eln/models/item/ore_scanner.json
 7cbe8b918ca48b93fb5a5e7fa7a566276d1e87bf assets/eln/models/item/or_chip.json
 151a860a4693a6fa6aee9fbfc1efa5ffa3a15f8f assets/eln/models/item/oscillator_chip.json
+4ecf521d188993cc53dcd06883375a27d79ed8ce assets/eln/models/item/oscilloscope.json
+a26dd00343dafdab3205993e4f54a8fd6aa615bb assets/eln/models/item/overcurrent_protection_relay.json
 ea6c854f4189206038df071e144d3a47f3951385 assets/eln/models/item/overhead_lines.json
 4cfbc32481fd14adf64ff28d14bef27ed23ccc82 assets/eln/models/item/overheating_protection.json
 5c997ac15b70a4b6ac6580b8225831a2b4c6266c assets/eln/models/item/overvoltage_protection.json
 354f41b49642e2f96e8744ca0dad19b7e6d3f97c assets/eln/models/item/pal_chip.json
+82211ac00f9646ff2febc8c986e1fa14c3cd9ba7 assets/eln/models/item/permanent_magnet_wind_turbine.json
 6301b67e1b80d0b4ad6eeb08fd2c79263b5b8f70 assets/eln/models/item/pid_regulator.json
 4cc606583e95e67b82015cb7eb4c4f8cbced59c2 assets/eln/models/item/pink_brush.json
 03ec70f8c1257206023bbd721a4f8f1cae3ad527 assets/eln/models/item/player_filter.json
@@ -376,6 +387,7 @@ a8c28e8e4385ba07c7ebc3e2597609dd2dbff4f6 assets/eln/models/item/suspended_lamp_s
 22c84fa70f8ae6525d8c01ed6b241b04c4180e87 assets/eln/models/item/synthetic_diamond.json
 435f5d6f5809ae644839c97a14f7c296bd5686ff assets/eln/models/item/tachometer.json
 efa6a3a6f26c7337625f77ce617216407a7ced9f assets/eln/models/item/temperature_probe.json
+1770dfcb0a76137f0112ec57d7764e391011e4c7 assets/eln/models/item/thermal_camera.json
 d29c1174290aabcfcfaf43a8b87a8d5de843e124 assets/eln/models/item/thermal_heat_exchanger.json
 2ef5fccf3fd212a738699111deae227f3d2a84bc assets/eln/models/item/thermal_insulation.json
 c887a2fd299b9a6eec07a2a8119f48bbea6643c1 assets/eln/models/item/thermal_probe.json

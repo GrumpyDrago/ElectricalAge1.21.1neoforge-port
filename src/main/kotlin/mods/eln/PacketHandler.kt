@@ -27,6 +27,7 @@ class PacketHandler {
                 Eln.packetPlayerKey -> packetPlayerKey(stream)
                 Eln.packetPublishForNode -> packetForNode(stream, player)
                 Eln.packetClientToServerConnection -> packetNewClient(player)
+                Eln.packetThermalScanRequest -> mods.eln.item.ThermalCamera.answer(player)
             }
         } catch (e: IOException) {
             e.printStackTrace()
@@ -43,6 +44,7 @@ class PacketHandler {
                 Eln.packetPlaySound -> packetPlaySound(stream, player)
                 Eln.packetDestroyUuid -> packetDestroyUuid(stream)
                 Eln.packetServerToClientInfo -> packetServerInfo(stream)
+                Eln.packetThermalImage -> mods.eln.item.ThermalCamera.receive(stream)
             }
         } catch (e: IOException) {
             e.printStackTrace()

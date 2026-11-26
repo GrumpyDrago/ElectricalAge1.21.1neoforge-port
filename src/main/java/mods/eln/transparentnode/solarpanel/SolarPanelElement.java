@@ -20,6 +20,7 @@ import mods.eln.sim.ElectricalLoad;
 import mods.eln.sim.ThermalLoad;
 import mods.eln.sim.mna.component.VoltageSource;
 import mods.eln.sim.mna.process.PowerSourceBipole;
+import mods.eln.sim.renewable.PvCurveSource;
 import mods.eln.sim.nbt.NbtElectricalLoad;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -66,7 +67,12 @@ public class SolarPanelElement extends TransparentNodeElement {
 		}
 		else*/
         {
-            powerSource = new PowerSourceBipole(positiveLoad, negativeLoad, positiveSrc, negativeSrc);
+            if (this.descriptor.pvCurve) {
+                powerSource = new PvCurveSource(positiveLoad, negativeLoad, positiveSrc, negativeSrc,
+                    this.descriptor.electricalUmax, this.descriptor.electricalPmax);
+            } else {
+                powerSource = new PowerSourceBipole(positiveLoad, negativeLoad, positiveSrc, negativeSrc);
+            }
 
 
         }

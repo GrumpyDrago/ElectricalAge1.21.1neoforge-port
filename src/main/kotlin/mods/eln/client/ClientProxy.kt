@@ -59,6 +59,7 @@ object ClientProxy {
     @Suppress("UNUSED_PARAMETER")
     private fun setup(event: FMLClientSetupEvent) {
         NeoForge.EVENT_BUS.register(TutorialSignOverlay())
+        NeoForge.EVENT_BUS.register(ThermalCameraOverlay())
         if (Eln.versionCheckEnabled) {
             VersionCheckerHandler.start()
         }

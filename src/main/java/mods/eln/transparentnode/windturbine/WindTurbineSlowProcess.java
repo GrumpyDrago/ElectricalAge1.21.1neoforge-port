@@ -1,5 +1,8 @@
 package mods.eln.transparentnode.windturbine;
 
+import mods.eln.sim.renewable.PmgWindSource;
+import mods.eln.Eln;
+
 import mods.eln.compat.Mc;
 
 import mods.eln.misc.Coordinate;
@@ -122,11 +125,15 @@ class WindTurbineSlowProcess implements IProcess, INBTTReady {
 
         P = d.PfW.getValue(wind);
 
-        turbine.powerSource.setPower(P);
-        turbine.powerSource.setMaximumVoltage(d.maxVoltage);
+        if (turbine.powerSource instanceof PmgWindSource) {
+            ((PmgWindSource) turbine.powerSource).setWind(wind);
+        } else {
+            turbine.powerSource.setPower(P);
+            turbine.powerSource.setMaximumVoltage(d.maxVoltage);
+        }
 
         counter++;
-        if (counter % 20 == 0) {
+        if (counter % 20 == 0 && Eln.debugEnabled) {
             Utils.println("Wind : " + getWind() + "  Derivate : " + localWindDerive + " EPmax : " + P);
         }
     }
