@@ -260,6 +260,18 @@ class ExpansionLogicTest {
     }
 
     @Test
+    fun mpptFindsTheBatteryBank() {
+        assertEquals(0, MpptLogic.bankSize(0.0, 50.0))
+        assertEquals(0, MpptLogic.bankSize(10.0, 50.0))
+        // One battery, from nearly flat to full lithium-ion.
+        for (v in listOf(42.0, 50.0, 55.0, 57.0)) assertEquals(1, MpptLogic.bankSize(v, 50.0), "$v V")
+        for (v in listOf(88.0, 100.0, 110.0)) assertEquals(2, MpptLogic.bankSize(v, 50.0), "$v V")
+        for (v in listOf(180.0, 200.0, 220.0)) assertEquals(4, MpptLogic.bankSize(v, 50.0), "$v V")
+        // While charging to 1.08 of their voltage, banks are still read right.
+        for (n in 1..5) assertEquals(n, MpptLogic.bankSize(n * 50 * MpptLogic.AUTO_CHARGE_RATIO, 50.0))
+    }
+
+    @Test
     fun scopeAveragesAndScales() {
         val trace = ScopeTrace(4)
         for (i in 0 until 12) trace.sample(i.toDouble(), -1.0, 2)

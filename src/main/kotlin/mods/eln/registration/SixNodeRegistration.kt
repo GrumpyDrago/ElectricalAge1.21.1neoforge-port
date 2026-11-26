@@ -162,7 +162,7 @@ object SixNodeRegistration {
         run {
             val name = I18N.TR_NAME(I18N.Type.NONE, "MPPT Charge Controller")
             Eln.sixNodeItem.addDescriptor(0 + (81 shl 6), MpptControllerDescriptor(
-                name, Eln.obj.getObj("MpptController"), 200.0, 40.0, 60.0, Eln.LVU * 1.05
+                name, Eln.obj.getObj("MpptController"), 300.0, 40.0, 60.0, Eln.LVU * 1.05
             ))
         }
         Eln.sixNodeItem.setCreativeTabForGroup(82, Eln.creativeTabSignalProcessing)

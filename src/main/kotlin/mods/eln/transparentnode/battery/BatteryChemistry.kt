@@ -21,7 +21,7 @@ enum class BatteryChemistry(
     private val coldResistance: Double,
     /** Extra wear at high charge, at full charge, as a multiple of the wear at nominal current. */
     private val highChargeWear: Double,
-    /** Extra wear when left nearly empty, at no charge (sulphation of lead-acid cells). */
+    /** Extra wear when used nearly empty, at no charge (sulphation of lead-acid cells). */
     private val deepDischargeWear: Double,
     /** Charging below freezing plates lithium on the anode. */
     val coldChargeDamage: Boolean,
@@ -51,8 +51,8 @@ enum class BatteryChemistry(
         if (celsius >= 20) 1.0 else 1 + (coldResistance - 1) * ((20 - celsius) / 40).coerceAtMost(2.0)
 
     /**
-     * Wear beyond that of the current, as a multiple of the wear at nominal current: chemical ageing doubles every
-     * 10 °C above 25 °C (Arrhenius), and the state of charge adds its own.
+     * Wear beyond that of the current, as a multiple of it: it doubles every 10 °C above 25 °C (Arrhenius), and
+     * the state of charge adds its own. A battery that is not used does not wear.
      */
     fun extraWear(celsius: Double, charge: Double, charging: Boolean): Double {
         var wear = if (celsius > 25) 2.0.pow((celsius - 25) / 10) - 1 else 0.0
@@ -74,7 +74,7 @@ enum class BatteryChemistry(
         list.add(tr("Full at %1$ V, empty at %2$ V", "%.1f".format(voltageFunction.getValue(1.0) * nominalVoltage),
             "%.1f".format(voltageFunction.getValue(0.1) * nominalVoltage)))
         when (this) {
-            LEAD_ACID -> list.add(tr("Cheap and sturdy; wears out when left flat."))
+            LEAD_ACID -> list.add(tr("Cheap and sturdy; wears out when run flat."))
             NICKEL_CADMIUM -> list.add(tr("High current, flat voltage, works in the cold."))
             LITHIUM_ION -> {
                 list.add(tr("Stores the most; can run away above %1$ °C.", runawayTemperature!!.toInt()))
@@ -114,10 +114,13 @@ class BatteryChemistryProcess(private val battery: BatteryElement, private val c
             battery.negativeLoad.serialResistance = d.electricalRs * factor
         }
 
+        // Like the usual battery wear, this grows with the square of the current, so a battery that sits unused
+        // does not age: heat and the state of charge only make use wear it faster.
         val process = battery.batteryProcess
         if (d.lifeEnable && SaveConfig.instance?.batteryAging != false) {
-            val charging = process.dischargeCurrent < -0.01 * d.electricalStdP / d.electricalU
-            val wear = chemistry.extraWear(celsius, process.charge, charging)
+            val use = process.dischargeCurrent / d.lifeNominalCurrent
+            val charging = use < -0.01
+            val wear = chemistry.extraWear(celsius, process.charge, charging) * use * use
             if (wear > 0) process.changeLife(max(0.1, process.life - wear * d.lifeNominalLost * time))
         }
 

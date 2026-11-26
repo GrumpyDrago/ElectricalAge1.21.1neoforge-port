@@ -205,6 +205,35 @@ object ElnExpansionTests {
         }
     }
 
+    /**
+     * Into a real battery, which floats: its + on the back of the controller and its - on ground, which is the
+     * controller's common negative. It finds the battery's voltage by itself.
+     */
+    @GameTest(template = EMPTY, timeoutTicks = 300)
+    @JvmStatic
+    fun mpptChargesARealBattery(helper: GameTestHelper) {
+        val player = player(helper)
+        floor(helper)
+        val batteryPos = BlockPos(5, 1, 5)
+        val battery = placeTransparent(helper, player, "Lithium-Ion Battery", batteryPos).element as BatteryElement
+        val plus = battery.front.left().toForge()
+        val mpptPos = batteryPos.relative(plus)
+        val mppt = part<MpptControllerElement>(helper, player, "MPPT Charge Controller", mpptPos, plus)
+        source(helper, player, beside(mpptPos, mppt.front), 100.0)
+        placeSix(helper, player, "Ground Cable", batteryPos.relative(battery.front.right().toForge()))
+        mppt.sixNode!!.reconnect()
+        battery.batteryProcess.charge = 0.5
+        val start = 0.5
+        helper.startSequence()
+            .thenWaitUntil {
+                helper.assertTrue(mppt.bankSize == 1, "found ${mppt.bankSize} batteries at ${mppt.outSource.restVoltage} V")
+                helper.assertTrue(mppt.outputPower > 200, "gives ${mppt.outputPower} W at ${mppt.outLoad.voltage} V, ${mppt.logic.mode}")
+                helper.assertTrue(battery.batteryProcess.charge > start, "the battery is not charging: ${battery.batteryProcess.charge}")
+                helper.assertTrue(mppt.outLoad.voltage <= mppt.effectiveChargeVoltage + 0.5, "charges at ${mppt.outLoad.voltage} V")
+            }
+            .thenSucceed()
+    }
+
     @GameTest(template = EMPTY, timeoutTicks = 100)
     @JvmStatic
     fun chemistryBatteriesFollowTheirCurves(helper: GameTestHelper) {
@@ -219,6 +248,8 @@ object ElnExpansionTests {
                 val expected = chemistry!!.voltageFunction.getValue(b.batteryProcess.charge) * b.descriptor.electricalU
                 helper.assertTrue(abs(b.batteryProcess.u - expected) < 0.5, "${names[i]}: ${b.batteryProcess.u} V, expected $expected")
                 helper.assertTrue(b.chemistryProcess!!.celsius in -40.0..60.0, "${names[i]} at ${b.chemistryProcess!!.celsius} °C")
+                // Unused, it does not age, whatever its temperature.
+                helper.assertTrue(b.batteryProcess.life == 1.0, "${names[i]} aged to ${b.batteryProcess.life} while idle")
             }
             helper.succeed()
         }

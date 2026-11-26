@@ -1,3 +1,13 @@
+## 2.0.0-testing.2
+
+- The MPPT charge controller now charges real batteries. Its right side is a common negative for the − of the panels
+  and the battery; before, the controller had nowhere to take the current back from batteries that are not grounded.
+- Its charge voltage is automatic by default: it finds how many 50 V batteries are in series and charges each to 54 V.
+  Before, it stopped at 52.5 V, which was too low for anything but a single battery. It also takes up to 300 V in, so
+  two monocrystalline panels can be put in series.
+- Batteries of the new chemistries no longer age while unused. Like the other batteries, they wear only with use; heat
+  and the state of charge make use wear them faster.
+
 ## 2.0.0-testing.1
 
 A test build of new parts, on the `expansion-testing` branch. See [expansion-testing.md](expansion-testing.md) for how

@@ -70,9 +70,11 @@ Four batteries of real chemistries. They work like the other batteries, with the
 
 Multiples are of the cost oriented battery.
 
-- **Heat wears every battery out**: ageing doubles for every 10 °C above 25 °C.
-- **Lead-acid** sulphates when left nearly flat.
-- **Lithium-ion** wears faster when kept full, is damaged by charging below freezing, and **runs away thermally** above
+- Like the other batteries, they wear only with use, slowly and more so at high current. A battery that sits unused
+  keeps its life. The rest changes how fast use wears them:
+- **Heat**: wear doubles for every 10 °C above 25 °C.
+- **Lead-acid** sulphates when used nearly flat.
+- **Lithium-ion** wears faster when used near full, is damaged by charging below freezing, and **runs away thermally** above
   80 °C. The cells then heat themselves faster and faster until they explode, so keep them cool.
 - **LiFePO4** is also damaged by charging below freezing, but does not run away.
 - The cold raises the internal resistance, so batteries give less power in a cold biome or in winter.
@@ -104,14 +106,22 @@ rotor run at its best speed.
 
 ### MPPT Charge Controller
 
-Front: panels or turbine. Back: battery. Left: a signal of the power it delivers.
+Front: the + of the panels or turbine. Back: the + of the battery. **Right: the common negative**: wire the − of the
+panels and of the battery here, as on a real charge controller. Eln batteries are not grounded, so without it no
+current can flow. (It is grounded inside, so panels and batteries that are grounded elsewhere work too.) Left: a
+signal of the power it delivers.
+
+**Charge voltage**: 0, the default, is automatic. It finds how many 50 V batteries are in series, from 1 up, by their
+voltage at rest, and charges each to 54 V (1.08 times), which fills every chemistry to over 90 % without overcharging
+any. A bank that is nearly flat may be taken for one battery fewer and not charge; set the voltage by hand then, or
+charge it a little first. Jade shows what it found.
 
 Every tenth of a second it changes the load it puts on its input a little, and keeps going while the power rises
 (perturb and observe). That holds solar panels at their maximum power point through clouds, and wind turbines at
-their best tip speed. It converts the power to the battery's voltage at 97.5 % efficiency, up to 200 V in and 60 A out.
+their best tip speed. It converts the power to the battery's voltage at 97.5 % efficiency, up to 300 V in (two
+monocrystalline panels in series) and 60 A out.
 
-It stops at the charge voltage (52.5 V by default, about 1.05 times a 50 V battery's voltage) and at the current
-limit. Both can be set in its screen.
+It stops at the charge voltage and at the current limit, both set in its screen.
 
 ## Instruments
 
