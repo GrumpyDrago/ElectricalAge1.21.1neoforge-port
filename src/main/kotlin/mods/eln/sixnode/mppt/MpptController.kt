@@ -192,7 +192,18 @@ class MpptControllerDescriptor(
 }
 
 class MpptControllerElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDescriptor) :
-    SixNodeElement(sixNode, side, descriptor) {
+    SixNodeElement(sixNode, side, descriptor), mods.eln.node.ComputerControllable {
+
+    override fun computerValues(): Map<String, Any?> = linkedMapOf(
+        "mode" to logic.mode.name.lowercase(),
+        "inputVoltage" to inLoad.voltage,
+        "inputPower" to inputPower,
+        "outputVoltage" to outLoad.voltage,
+        "outputPower" to outputPower,
+        "chargeVoltage" to effectiveChargeVoltage,
+        "batteries" to bankSize,
+        "energy" to energy
+    )
     private val desc = descriptor as MpptControllerDescriptor
 
     val inLoad = NbtElectricalLoad("inLoad")

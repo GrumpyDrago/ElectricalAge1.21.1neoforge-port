@@ -13,7 +13,11 @@ class NbtBatterySlowProcess(
 
     private var explosionRadius = 2f
 
+    /** What happens instead of an explosion, if anything: batteries vent. */
+    var onDestroy: (() -> Unit)? = null
+
     override fun destroy() {
-        node.physicalSelfDestruction(explosionRadius)
+        val instead = onDestroy
+        if (instead != null) instead() else node.physicalSelfDestruction(explosionRadius)
     }
 }

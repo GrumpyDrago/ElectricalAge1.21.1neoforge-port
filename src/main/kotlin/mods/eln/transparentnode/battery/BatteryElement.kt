@@ -22,7 +22,14 @@ import mods.eln.sim.nbt.NbtBatterySlowProcess
 import mods.eln.sim.nbt.NbtElectricalLoad
 import mods.eln.sim.nbt.NbtThermalLoad
 import mods.eln.sim.process.destruct.ThermalLoadWatchDog
-import mods.eln.sim.process.destruct.WorldExplosion
+import mods.eln.sim.IProcess
+import mods.eln.sim.process.destruct.IDestructible
+import mods.eln.sound.SoundCommand
+import net.minecraft.core.particles.ParticleTypes
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
 import mods.eln.sim.process.heater.ElectricalLoadHeatThermalLoad
 import net.minecraft.world.entity.player.Player
 import net.minecraft.nbt.CompoundTag
@@ -30,7 +37,24 @@ import java.io.DataOutputStream
 import java.io.IOException
 import java.util.*
 
-class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNodeDescriptor) : TransparentNodeElement(transparentNode, descriptor) {
+class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNodeDescriptor) : TransparentNodeElement(transparentNode, descriptor),
+    mods.eln.node.ComputerControllable {
+    override fun computerValues(): Map<String, Any?> {
+        val ambient = try { getAmbientTemperatureCelsius() } catch (_: IllegalStateException) { 20.0 }
+        return linkedMapOf(
+            "charge" to batteryProcess.charge,
+            "life" to batteryProcess.life,
+            "voltage" to batteryProcess.u,
+            "current" to batteryProcess.dischargeCurrent,
+            "power" to batteryProcess.u * batteryProcess.dischargeCurrent,
+            "energy" to batteryProcess.energy,
+            "temperature" to thermalLoad.temperatureCelsius + ambient,
+            "temperatureLimit" to descriptor.thermalWarmLimit,
+            "vented" to vented,
+            "chemistry" to descriptor.chemistry?.name?.lowercase()
+        )
+    }
+
     override var descriptor: BatteryDescriptor = descriptor as BatteryDescriptor
     var positiveLoad = NbtElectricalLoad("positiveLoad")
     var negativeLoad = NbtElectricalLoad("negativeLoad")
@@ -40,7 +64,7 @@ class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNo
     var thermalWatchdog = ambientAwareThermalWatchdog(ThermalLoadWatchDog(thermalLoad))
     var batteryProcess = NbtBatteryProcess(positiveLoad, negativeLoad, this.descriptor.UfCharge, 0.0, voltageSource, thermalLoad)
     var dischargeResistor = Resistor(positiveLoad, negativeLoad)
-    var batterySlowProcess = NbtBatterySlowProcess(node!!, batteryProcess, thermalLoad)
+    var batterySlowProcess = NbtBatterySlowProcess(node!!, batteryProcess, thermalLoad).also { it.onDestroy = { vent() } }
     val chemistryProcess = this.descriptor.chemistry?.let { BatteryChemistryProcess(this, it) }
     var fromItemStack = false
     var fromItemstackCharge = 0.0
@@ -84,6 +108,8 @@ class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNo
             stream.writeFloat(batteryProcess.energy.toFloat())
             stream.writeShort((batteryProcess.life * 1000).toInt())
             node!!.lrduCubeMask.getTranslate(Direction.YN).serialize(stream)
+            stream.writeBoolean(vented)
+            stream.writeByte((heatLevel() * 255).toInt().coerceIn(0, 255))
         } catch (e: IOException) {
             e.printStackTrace()
         }
@@ -94,8 +120,7 @@ class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNo
         descriptor.applyTo(thermalLoad)
         descriptor.applyTo(dischargeResistor)
         descriptor.applyTo(batterySlowProcess)
-        positiveLoad.serialResistance = descriptor.electricalRs
-        negativeLoad.serialResistance = descriptor.electricalRs
+        applyConnection()
         dischargeResistor.resistance = MnaConst.highImpedance
         if (fromItemStack) {
             batteryProcess.life = fromItemstackLife
@@ -111,7 +136,86 @@ class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNo
     }
 
     override fun onBlockActivated(player: Player, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
-        return false
+        if (player.mainHandItem.item != Items.WATER_BUCKET) return false
+        coolWithWater()
+        if (!player.abilities.instabuild) player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack(Items.BUCKET))
+        return true
+    }
+
+    // ---------------------------------------------------------------- Venting
+
+    /**
+     * Overheated, overcharged or reversed, a battery vents instead of exploding: its safety vent opens and it cuts
+     * itself off, glowing red and smoking, and loses some of its life. It stays off until it is cooled with a bucket
+     * of water, or broken and replaced. (Explosions of big battery banks could lag a world, and are no fun to lose a
+     * base to.)
+     */
+    var vented = false
+        private set
+    private var smokeTimer = 0.0
+
+    fun vent() {
+        if (vented) return
+        vented = true
+        batteryProcess.changeLife(Math.max(0.1, batteryProcess.life * (1 - VENT_LIFE_LOSS)))
+        // Venting lets out the gas of an overcharge.
+        if (batteryProcess.charge > 1.0) batteryProcess.charge = 1.0
+        applyConnection()
+        play(SoundCommand("minecraft:block.fire.extinguish").mulVolume(0.8f, 0.6f).smallRange())
+        needPublish()
+    }
+
+    /** Pours a bucket of water over it: it is back at the ambient temperature and, if it had vented, back on. */
+    fun coolWithWater() {
+        thermalLoad.temperatureCelsius = 0.0
+        val wasVented = vented
+        vented = false
+        applyConnection()
+        play(SoundCommand("minecraft:block.fire.extinguish").mulVolume(1f, 1.2f).smallRange())
+        val c = node!!.coordinate
+        (c.world() as? ServerLevel)?.sendParticles(ParticleTypes.CLOUD, c.x + 0.5, c.y + 0.9, c.z + 0.5,
+            if (wasVented) 20 else 8, 0.3, 0.2, 0.3, 0.02)
+        needPublish()
+    }
+
+    /** The serial resistance of the cells, with the effect of the cold; cut off while vented. */
+    fun applyConnection(coldFactor: Double = chemistryProcess?.appliedFactor ?: 1.0) {
+        val r = if (vented) MnaConst.highImpedance else descriptor.electricalRs * coldFactor
+        positiveLoad.serialResistance = r
+        negativeLoad.serialResistance = r
+    }
+
+    /** How close the cells are to their limit, from 0 (20 degrees below it) to 1 (at it). */
+    fun heatLevel(): Double {
+        val ambient = try { getAmbientTemperatureCelsius() } catch (_: IllegalStateException) { 20.0 }
+        val celsius = thermalLoad.temperatureCelsius + ambient
+        return ((celsius - (descriptor.thermalWarmLimit - 20)) / 20).coerceIn(0.0, 1.0)
+    }
+
+    private fun smoke(dt: Double) {
+        smokeTimer += dt
+        if (smokeTimer < 0.5) return
+        smokeTimer = 0.0
+        val heat = heatLevel()
+        if (!vented && heat < 0.6) return
+        val c = node!!.coordinate
+        val level = c.world() as? ServerLevel ?: return
+        if (vented) {
+            level.sendParticles(ParticleTypes.LARGE_SMOKE, c.x + 0.5, c.y + 0.9, c.z + 0.5, 3, 0.25, 0.1, 0.25, 0.01)
+            if (Math.random() < 0.15) level.sendParticles(ParticleTypes.LAVA, c.x + 0.5, c.y + 0.9, c.z + 0.5, 1, 0.2, 0.0, 0.2, 0.0)
+        } else {
+            level.sendParticles(ParticleTypes.SMOKE, c.x + 0.5, c.y + 0.9, c.z + 0.5, 1, 0.25, 0.05, 0.25, 0.005)
+        }
+    }
+
+    override fun readFromNBT(nbt: CompoundTag) {
+        super.readFromNBT(nbt)
+        vented = nbt.getBoolean("vented")
+    }
+
+    override fun writeToNBT(nbt: CompoundTag) {
+        super.writeToNBT(nbt)
+        nbt.putBoolean("vented", vented)
     }
 
     override fun hasGui(): Boolean {
@@ -142,6 +246,7 @@ class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNo
             info[tr("Current")] = Utils.plotAmpere("", batteryProcess.dischargeCurrent)
             info[tr("Temperature")] = plotAmbientCelsius("", thermalLoad.temperatureCelsius)
         }
+        if (vented) info[tr("Vented")] = tr("Overheated and cut off: cool it with a water bucket")
         this.descriptor.chemistry?.let { info[tr("Chemistry")] = it.displayName() }
         chemistryProcess?.let { info[tr("Cell temperature")] = Utils.plotCelsius("", it.celsius) }
         info[tr("Subsystem Matrix Size")] = Utils.renderSubSystemWaila(positiveLoad.subSystem)
@@ -163,8 +268,17 @@ class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNo
         batteryProcess.IMax = this.descriptor.IMax
         slowProcessList.add(thermalWatchdog)
         chemistryProcess?.let { slowProcessList.add(it) }
+        slowProcessList.add(IProcess { dt -> smoke(dt) })
         thermalWatchdog
             .setMaximumTemperature(this.descriptor.thermalWarmLimit)
-            .setDestroys(WorldExplosion(this).machineExplosion())
+            .setDestroys(object : IDestructible {
+                override fun destructImpl() = vent()
+                override fun describe() = "battery venting at ${node?.coordinate}"
+            })
+    }
+
+    companion object {
+        /** Life lost each time it vents. */
+        const val VENT_LIFE_LOSS = 0.1
     }
 }

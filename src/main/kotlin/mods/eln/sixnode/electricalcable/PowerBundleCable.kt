@@ -24,42 +24,37 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import kotlin.math.abs
 
-/** A part with the 16 lines of a power bundle on one side: bundle cables and the breaker box. */
+/** A part with the 8 lines of a power bundle on one side: bundle cables and the breaker box. */
 interface PowerBundle {
     val bundleLoads: Array<NbtElectricalLoad>
 
     companion object {
-        const val LINES = 16
+        const val LINES = 8
 
-        /** The names of the lines, by brush color. */
-        fun colorName(color: Int): String = when (color) {
+        /**
+         * The brush color of each line: black (unpainted cables), red, orange, yellow, green, blue, purple and white.
+         * Cables of other colors do not join a bundle.
+         */
+        val LINE_DYES = intArrayOf(0, 1, 14, 11, 2, 4, 5, 15)
+
+        /** The name of [line]. */
+        fun colorName(line: Int): String = when (LINE_DYES.getOrElse(line) { -1 }) {
             0 -> tr("Black")
             1 -> tr("Red")
+            14 -> tr("Orange")
+            11 -> tr("Yellow")
             2 -> tr("Green")
-            3 -> tr("Brown")
             4 -> tr("Blue")
             5 -> tr("Purple")
-            6 -> tr("Cyan")
-            7 -> tr("Light gray")
-            8 -> tr("Gray")
-            9 -> tr("Pink")
-            10 -> tr("Lime")
-            11 -> tr("Yellow")
-            12 -> tr("Light blue")
-            13 -> tr("Magenta")
-            14 -> tr("Orange")
             else -> tr("White")
         }
 
-        /** The RGB of the brush colors, as cables are drawn in them. */
-        val colorRgb = intArrayOf(
-            0x333333, 0xFF0D0D, 0x33801A, 0x4D331A, 0x3333FF, 0xB30DFF, 0x33B3E6, 0xB3B3B3,
-            0x666666, 0xFF8080, 0x0DFF0D, 0xE6CC1A, 0x6680FF, 0xE64DE6, 0xFF994D, 0xFFFFFF
-        )
+        /** The RGB of each line, as cables of its brush color are drawn. */
+        val colorRgb = intArrayOf(0x333333, 0xFF0D0D, 0xFF994D, 0xE6CC1A, 0x33801A, 0x3333FF, 0xB30DFF, 0xFFFFFF)
 
         /**
          * The connection itself joins line 0, through [getElectricalLoad]; when two bundles meet, this joins the
-         * other 15. Called on both sides, it acts on one of them.
+         * other 7. Called on both sides, it acts on one of them.
          */
         fun connectOtherLines(self: PowerBundle, connection: NodeConnection, isA: Boolean) {
             if (!isA) return
@@ -110,9 +105,9 @@ interface PowerBundle {
 
         const val SEARCH_LIMIT = 4096
 
-        /** The line a part with connection [mask] joins: that of its color, or line 0 for another bundle. */
+        /** The line a part with connection [mask] joins: that of its color (-1 for none), or line 0 for another bundle. */
         fun lineFor(mask: Int): Int = if (mask and NodeBase.maskElectricalPower == 0) 0
-        else (mask shr NodeBase.maskColorShift) and 0xF
+        else LINE_DYES.indexOf((mask shr NodeBase.maskColorShift) and 0xF)
     }
 }
 
@@ -125,7 +120,7 @@ class PowerBundleCableDescriptor(name: String, render: CableRenderDescriptor) :
     @Suppress("UNCHECKED_CAST")
     override fun addInformation(itemStack: ItemStack?, entityPlayer: Player?, rawList: MutableList<Any?>?, par4: Boolean) {
         val list = rawList as MutableList<String>
-        list.addAll(tr("Sixteen insulated circuits in one cable.\nA power cable painted with a brush joins\nthe line of its color; unpainted cables\njoin the black line.").split("\n"))
+        list.addAll(tr("Eight insulated circuits in one cable. A power\ncable painted red, orange, yellow, green, blue,\npurple or white joins the line of its color;\nunpainted cables join the black line.").split("\n"))
         list.addAll(tr("Does not connect to machines: run a cable\nof the right color out of it.").split("\n"))
         list.add(tr("Each line: %1$ V, %2$ A.", Utils.plotValue(electricalNominalVoltage), Utils.plotValue(electricalMaximalCurrent / 1.2)))
         list.add(tr("The lines share their heat: a full bundle carries less per line."))
@@ -135,7 +130,7 @@ class PowerBundleCableDescriptor(name: String, render: CableRenderDescriptor) :
 }
 
 /**
- * Sixteen separate power lines in one cable. It joins other bundles line for line, the breaker box, and power cables
+ * Eight separate power lines in one cable. It joins other bundles line for line, the breaker box, and power cables
  * on the line of their brush color, but no machine: [NodeBase.maskPowerBundle] is only shared with power cables.
  */
 class PowerBundleCableElement(sixNode: SixNode?, side: Direction?, descriptor: SixNodeDescriptor?) :
@@ -189,7 +184,7 @@ class PowerBundleCableElement(sixNode: SixNode?, side: Direction?, descriptor: S
         thermalLoad.heatCapacity *= HEAT_SHARING
     }
 
-    override fun getElectricalLoad(lrdu: LRDU, mask: Int): ElectricalLoad = bundleLoads[PowerBundle.lineFor(mask)]
+    override fun getElectricalLoad(lrdu: LRDU, mask: Int): ElectricalLoad? = bundleLoads.getOrNull(PowerBundle.lineFor(mask))
 
     override fun getConnectionMask(lrdu: LRDU): Int = NodeBase.maskPowerBundle
 

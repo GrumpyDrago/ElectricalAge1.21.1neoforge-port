@@ -268,7 +268,24 @@ class OvercurrentRelayDescriptor(name: String, obj: Obj3D) :
 }
 
 class OvercurrentRelayElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDescriptor) :
-    SwitchgearElement(sixNode, side, descriptor) {
+    SwitchgearElement(sixNode, side, descriptor), mods.eln.node.ComputerControllable {
+
+    override fun computerValues(): Map<String, Any?> = linkedMapOf(
+        "state" to logic.state.name.lowercase(),
+        "closed" to (logic.closed && !lockout.isLocked),
+        "current" to Math.abs(contact.current),
+        "pickup" to logic.effectivePickup,
+        "lastTripCurrent" to logic.lastTripCurrent,
+        "locked" to lockout.isLocked
+    )
+
+    override fun computerActions() = listOf("trip(): opens it", "close(): closes or resets it; false without a cable or locked out")
+
+    override fun computerCall(action: String, args: List<Any?>): Any? = when (action) {
+        "trip" -> { logic.open(); applyState(); needPublish(); true }
+        "close" -> if (cable == null || lockout.isLocked) false else { logic.close(); applyState(); needPublish(); true }
+        else -> throw IllegalArgumentException("no action $action")
+    }
 
     val aLoad = NbtElectricalLoad("aLoad")
     val bLoad = NbtElectricalLoad("bLoad")
@@ -303,7 +320,7 @@ class OvercurrentRelayElement(sixNode: SixNode, side: Direction, descriptor: Six
         applyState()
     }
 
-    private fun applyState() {
+    internal fun applyState() {
         val closed = logic.closed && cable != null
         if (closed != wasClosed) {
             wasClosed = closed
@@ -357,6 +374,7 @@ class OvercurrentRelayElement(sixNode: SixNode, side: Direction, descriptor: Six
 
     override fun getWaila(): Map<String, String> {
         val info = LinkedHashMap<String, String>()
+        addLockout(info)
         info[tr("State")] = stateName()
         info[tr("Current")] = Utils.plotAmpere("", contact.current)
         info[tr("Pickup")] = Utils.plotAmpere("", logic.effectivePickup)

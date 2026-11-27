@@ -999,6 +999,14 @@ object ItemRegistration {
             Eln.thermalCameraElement = element
         }
         run {
+            // Added on the expansion-testing branch.
+            subId = 4
+            completId = subId + (id shl 6)
+            element = mods.eln.item.LockoutPadlockDescriptor(I18N.TR_NAME(I18N.Type.NONE, "Lockout Padlock"))
+            Eln.sharedItem.addElement(completId, element)
+            Eln.lockoutPadlockElement = element
+        }
+        run {
             subId = 8
             completId = subId + (id shl 6)
             element = WirelessSignalAnalyserItemDescriptor(

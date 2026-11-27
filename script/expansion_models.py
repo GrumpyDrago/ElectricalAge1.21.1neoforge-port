@@ -835,6 +835,9 @@ def pmg_wind_turbine():
 
 # ---------------------------------------------------------------- Tools
 
+# The brush colors of the eight lines of a power bundle (PowerBundle.LINE_DYES).
+LINE_DYES = [0, 1, 14, 11, 2, 4, 5, 15]
+
 # The brush colors, by index, as Utils.setGlColorFromDye draws cables.
 DYES = [(51, 51, 51), (255, 13, 13), (51, 128, 26), (77, 51, 26), (51, 51, 255), (179, 13, 255), (51, 179, 230),
         (179, 179, 179), (102, 102, 102), (255, 128, 128), (13, 255, 13), (230, 204, 26), (102, 128, 255),
@@ -851,22 +854,21 @@ def breaker_box(folder='breakerbox', icon_name='breakerbox', body=(190, 192, 196
     entries += [('dye%d' % i, d, 0) for i, d in enumerate(DYES)]
     s = swatches(c, entries)
     m = Model(folder, 64, 64)
-    m.box('case', 'main', (0.0, -0.45, -0.46), (0.03, 0.45, 0.46), s['plate'])
-    m.box('case', 'main', (0.03, -0.42, -0.45), (0.16, 0.42, 0.45), s['body'])
-    for row, cy in enumerate((0.17, -0.17)):
-        m.box('case', 'main', (0.16, cy - 0.03, -0.44), (0.17, cy + 0.03, 0.44), s['rail'], faces='XyYzZ')
-        for k in range(8):
-            line = row * 8 + k
-            cz = -0.385 + k * 0.11
-            m.box('case', 'main', (0.16, cy - 0.12, cz - 0.045), (0.22, cy + 0.12, cz + 0.045), s['breaker'])
-            m.box('case', 'main', (0.22, cy - 0.025, cz - 0.03), (0.225, cy + 0.025, cz + 0.03), s['dark'], faces='X')
-            m.box('case', 'main', (0.16, cy - 0.155, cz - 0.04), (0.17, cy - 0.125, cz + 0.04), s['dye%d' % line],
-                  faces='XyYzZ')
-            m.box('up%d' % line, 'main', (0.22, cy + 0.01, cz - 0.02), (0.27, cy + 0.07, cz + 0.02), s['handle'])
-            m.box('down%d' % line, 'main', (0.22, cy - 0.07, cz - 0.02), (0.27, cy - 0.01, cz + 0.02), s['handle'])
-            m.box('led%d' % line, 'main', (0.22, cy + 0.085, cz - 0.015), (0.23, cy + 0.11, cz + 0.015), s['red'])
-    # A label strip across the middle.
-    m.box('case', 'main', (0.16, -0.025, -0.4), (0.162, 0.025, 0.4), s['label'], faces='X')
+    m.box('case', 'main', (0.0, -0.38, -0.46), (0.03, 0.38, 0.46), s['plate'])
+    m.box('case', 'main', (0.03, -0.34, -0.45), (0.16, 0.34, 0.45), s['body'])
+    cy = -0.02
+    m.box('case', 'main', (0.16, cy - 0.03, -0.44), (0.17, cy + 0.03, 0.44), s['rail'], faces='XyYzZ')
+    for line in range(8):
+        cz = -0.385 + line * 0.11
+        m.box('case', 'main', (0.16, cy - 0.16, cz - 0.045), (0.23, cy + 0.16, cz + 0.045), s['breaker'])
+        m.box('case', 'main', (0.23, cy - 0.03, cz - 0.03), (0.235, cy + 0.03, cz + 0.03), s['dark'], faces='X')
+        m.box('case', 'main', (0.16, cy - 0.215, cz - 0.04), (0.17, cy - 0.175, cz + 0.04), s['dye%d' % LINE_DYES[line]],
+              faces='XyYzZ')
+        m.box('up%d' % line, 'main', (0.23, cy + 0.01, cz - 0.022), (0.29, cy + 0.08, cz + 0.022), s['handle'])
+        m.box('down%d' % line, 'main', (0.23, cy - 0.08, cz - 0.022), (0.29, cy - 0.01, cz + 0.022), s['handle'])
+        m.box('led%d' % line, 'main', (0.23, cy + 0.105, cz - 0.016), (0.24, cy + 0.135, cz + 0.016), s['red'])
+    # A label strip above the breakers.
+    m.box('case', 'main', (0.16, 0.2, -0.4), (0.162, 0.26, 0.4), s['label'], faces='X')
     m.write(folder, {'main': folder + '.png'})
     c.save(os.path.join(MODEL, folder, folder + '.png'))
 
@@ -875,12 +877,11 @@ def breaker_box(folder='breakerbox', icon_name='breakerbox', body=(190, 192, 196
         i.frame(1, 2, 31, 30, tuple(min(255, v + 35) for v in body), tuple(max(0, v - 80) for v in body))
         if label != WHITE:
             i.rect(3, 3, 29, 4, label)
-        for row, top in enumerate((5, 18)):
-            for k in range(8):
-                x = 3 + k * 3 + (1 if k >= 4 else 0)
-                i.rect(x, top, x + 2, top + 8, (236, 236, 230))
-                i.rect(x, top + 2, x + 2, top + 4, (30, 30, 34))
-                i.rect(x, top + 9, x + 2, top + 11, DYES[row * 8 + k])
+        for k in range(8):
+            x = 3 + k * 3 + (1 if k >= 4 else 0)
+            i.rect(x, 9, x + 2, 21, (236, 236, 230))
+            i.rect(x, 12, x + 2, 15, (30, 30, 34))
+            i.rect(x, 23, x + 2, 25, DYES[LINE_DYES[k]])
     icon(icon_name, draw)
 
 
@@ -902,6 +903,99 @@ def power_bundle_cable(sprite='powerbundle', icon_name='powerbundlecable', jacke
             i.rect(k * 2, 7, k * 2 + 1, 8, DYES[(k * 2) % 16])
             i.rect(k * 2 + 1, 9, k * 2 + 2, 10, DYES[(k * 2 + 1) % 16])
     icon(icon_name, draw, size=16)
+
+
+def supply_cable_icon(name, band):
+    """A thick black cable, with a band in the color of its voltage."""
+    def draw(i):
+        i.rect(0, 4, 16, 12, (34, 35, 38))
+        i.rect(0, 4, 16, 5, (70, 72, 78))
+        i.rect(6, 4, 10, 12, band)
+    icon(name, draw, size=16)
+
+
+def lockout_padlock():
+    """A red safety padlock with a steel shackle, as used for lockout/tagout."""
+    def draw(i):
+        i.rect(5, 2, 11, 3, (170, 174, 180))
+        i.rect(4, 3, 6, 8, (170, 174, 180))
+        i.rect(10, 3, 12, 8, (170, 174, 180))
+        i.rect(3, 7, 13, 15, (200, 30, 28))
+        i.frame(3, 7, 13, 15, (235, 70, 60), (120, 15, 15))
+        i.rect(7, 9, 9, 12, (40, 20, 20))
+        i.rect(5, 13, 11, 14, (240, 240, 240))
+    icon('lockoutpadlock', draw, size=16, folder=ITEMS)
+
+
+def substation(folder, icon_name, label):
+    """A substation: a concrete pad, a transformer tank with radiators and a conservator, tall high voltage bushings on
+    the left (-z) and shorter low voltage ones on the right (+z), a breaker cabinet on each side, a control panel at
+    the front (-x) and fence posts. The node block is at the middle of the front edge; it spans x -0.5..2.5,
+    z -1.5..1.5, y -0.5..2.5. Grid lines hang from p0/g0 (high voltage) and p1/g1 (low voltage). The lamps lamphv and
+    lamplv show the breakers: drawn lit green when closed, red parts tripphv/triplv when tripped."""
+    c = Canvas(64, 64)
+    s = swatches(c, [
+        ('concrete', (150, 148, 142), 10), ('tank', (88, 104, 92), 6), ('fin', (74, 88, 78), 4),
+        ('porcelain', (120, 70, 45), 6), ('cap', (170, 174, 180), 4), ('cabinet', (165, 168, 172), 5),
+        ('dark', BLACK, 3), ('green', GREEN, 0), ('red', RED, 0), ('label', label, 0), ('steel', STEEL, 6),
+        ('panel', (40, 44, 48), 3), ('yellow', YELLOW, 0), ('lcd', LCD, 2),
+    ])
+    m = Model(folder, 64, 64)
+    # Pad and fence posts.
+    m.box('main', 'main', (-0.5, -0.5, -1.5), (2.5, -0.38, 1.5), s['concrete'])
+    for x in (-0.45, 2.38):
+        for z in (-1.45, 1.38):
+            m.box('main', 'main', (x, -0.38, z), (x + 0.07, 1.0, z + 0.07), s['steel'])
+    # Tank, radiators at the back, conservator on top.
+    m.box('main', 'main', (0.3, -0.38, -0.75), (1.9, 1.3, 0.75), s['tank'])
+    for z in [-0.6 + 0.2 * i for i in range(7)]:
+        m.box('main', 'main', (1.9, -0.2, z - 0.04), (2.3, 1.15, z + 0.04), s['fin'])
+    m.cylinder('main', 'main', 'z', (1.4, 1.6, -0.6), 0.22, 1.2, s['tank'], s['fin'])
+    m.box('main', 'main', (1.3, 1.3, -0.05), (1.5, 1.4, 0.05), s['fin'])
+    # Warning label and control panel at the front.
+    m.box('main', 'main', (0.29, 0.7, -0.35), (0.3, 1.0, 0.35), s['yellow'], faces='x')
+    m.box('main', 'main', (-0.4, -0.38, -0.3), (-0.1, 0.9, 0.3), s['cabinet'])
+    m.box('main', 'main', (-0.41, 0.4, -0.22), (-0.4, 0.8, 0.22), s['lcd'], faces='x')
+    m.box('main', 'main', (-0.41, 0.1, -0.25), (-0.4, 0.2, 0.25), s['label'], faces='x')
+    # Breaker cabinets: high voltage on the left, low voltage on the right.
+    for z0, z1 in ((-1.4, -0.95), (0.95, 1.4)):
+        m.box('main', 'main', (0.2, -0.38, z0), (1.3, 0.9, z1), s['cabinet'])
+    m.box('lamphv', 'main', (0.19, 0.7, -1.3), (0.2, 0.8, -1.2), s['green'], faces='x')
+    m.box('triphv', 'main', (0.19, 0.55, -1.3), (0.2, 0.65, -1.2), s['red'], faces='x')
+    m.box('lamplv', 'main', (0.19, 0.7, 1.2), (0.2, 0.8, 1.3), s['green'], faces='x')
+    m.box('triplv', 'main', (0.19, 0.55, 1.2), (0.2, 0.65, 1.3), s['red'], faces='x')
+
+    # Bushings: porcelain stacks with a metal cap; the lines hang from the caps.
+    def bushing(x, z, height, tip):
+        y = 1.3
+        while y < 1.3 + height:
+            m.cylinder('main', 'main', 'y', (x, y, z), 0.09, 0.06, s['porcelain'], s['porcelain'])
+            m.cylinder('main', 'main', 'y', (x, y + 0.06, z), 0.06, 0.05, s['porcelain'], s['porcelain'])
+            y += 0.11
+        m.cylinder('main', 'main', 'y', (x, y, z), 0.05, 0.05, s['cap'], s['cap'])
+        m.box(tip, 'main', (x - 0.03, y + 0.05, z - 0.03), (x + 0.03, y + 0.11, z + 0.03), s['cap'])
+
+    bushing(0.7, -0.55, 0.95, 'p0')
+    bushing(1.4, -0.55, 0.95, 'g0')
+    bushing(0.7, 0.55, 0.5, 'p1')
+    bushing(1.4, 0.55, 0.5, 'g1')
+    m.write(folder, {'main': folder + '.png'})
+    c.save(os.path.join(MODEL, folder, folder + '.png'))
+
+    def draw(i):
+        i.rect(1, 26, 31, 30, (150, 148, 142))
+        i.rect(8, 12, 24, 26, (88, 104, 92))
+        for x in range(24, 30, 2):
+            i.rect(x, 14, x + 1, 25, (74, 88, 78))
+        i.rect(2, 18, 7, 26, (165, 168, 172))
+        i.rect(3, 20, 6, 23, label)
+        for x, top in ((11, 3), (19, 3)):
+            i.rect(x, top, x + 2, 12, (120, 70, 45))
+            i.rect(x - 1, top, x + 3, top + 1, (170, 174, 180))
+        for x in (11, 19):
+            i.rect(x, 12, x + 2, 12, (120, 70, 45))
+        i.rect(9, 8, 23, 11, (74, 88, 78))
+    icon(icon_name, draw)
 
 
 def thermal_camera():
@@ -929,11 +1023,18 @@ if __name__ == '__main__':
     mono_solar_panel()
     pmg_wind_turbine()
     thermal_camera()
-    breaker_box()
-    power_bundle_cable()
+    breaker_box(icon_name='200vbreakerbox')
+    power_bundle_cable(icon_name='200vpowerbundlecable')
     # The 50 V and 600 V breaker boxes, and their bundles: orange for 600 V, as high voltage cables are, green for 50 V.
     breaker_box('breakerbox50', '50vbreakerbox', body=(206, 214, 222), label=GREEN)
-    breaker_box('breakerbox600', '600vbreakerbox', body=(72, 76, 82), label=ORANGE)
-    power_bundle_cable('powerbundlehv', '600vpowerbundlecable', jacket=(170, 70, 20))
+    breaker_box('breakerbox800', '800vbreakerbox', body=(72, 76, 82), label=ORANGE)
+    power_bundle_cable('powerbundlehv', '800vpowerbundlecable', jacket=(170, 70, 20))
     power_bundle_cable('powerbundlelv', '50vpowerbundlecable', jacket=(46, 96, 58))
+    lockout_padlock()
+    for volts, colour in (('50v', GREEN), ('200v', BLUE), ('800v', ORANGE)):
+        supply_cable_icon(volts + 'supplycable', colour)
+    supply_cable_icon('3200vsupplycable', (150, 60, 200))
+    # Substations: a distribution substation (51.2 kV to 12.8 kV lines) and a step-up one (3.2 kV cables to 51.2 kV).
+    substation('substation', 'distributionsubstation', BLUE)
+    substation('substationstepup', 'stepupsubstation', ORANGE)
     print('done')

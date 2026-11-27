@@ -197,7 +197,15 @@ class BatteryManagementDescriptor(name: String, obj: Obj3D) : PartsDescriptor(
 }
 
 class BatteryManagementElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDescriptor) :
-    SwitchgearElement(sixNode, side, descriptor) {
+    SwitchgearElement(sixNode, side, descriptor), mods.eln.node.ComputerControllable {
+
+    override fun computerValues(): Map<String, Any?> = linkedMapOf(
+        "state" to logic.state.name.lowercase(),
+        "closed" to (logic.closed && !lockout.isLocked),
+        "batteryVoltage" to batteryLoad.voltage,
+        "current" to Math.abs(contact.current),
+        "locked" to lockout.isLocked
+    )
 
     val batteryLoad = NbtElectricalLoad("batteryLoad")
     val loadLoad = NbtElectricalLoad("loadLoad")
@@ -266,6 +274,7 @@ class BatteryManagementElement(sixNode: SixNode, side: Direction, descriptor: Si
 
     override fun getWaila(): Map<String, String> {
         val info = LinkedHashMap<String, String>()
+        addLockout(info)
         info[tr("State")] = when (logic.state) {
             BatteryManagementLogic.State.NORMAL -> tr("Normal")
             BatteryManagementLogic.State.LOW -> tr("Battery low, load cut off")
@@ -475,7 +484,27 @@ class TransferSwitchDescriptor(name: String, obj: Obj3D) : PartsDescriptor(
 }
 
 class TransferSwitchElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDescriptor) :
-    SwitchgearElement(sixNode, side, descriptor) {
+    SwitchgearElement(sixNode, side, descriptor), mods.eln.node.ComputerControllable {
+
+    override fun computerValues(): Map<String, Any?> = linkedMapOf(
+        "source" to applied.name.lowercase(),
+        "mode" to logic.mode.name.lowercase(),
+        "mainsVoltage" to primaryLoad.voltage,
+        "backupVoltage" to backupLoad.voltage,
+        "outputVoltage" to outLoad.voltage,
+        "locked" to lockout.isLocked
+    )
+
+    override fun computerActions() = listOf("setMode(mode): \"auto\", \"primary\", \"backup\" or \"off\"")
+
+    override fun computerCall(action: String, args: List<Any?>): Any? {
+        if (action != "setMode") throw IllegalArgumentException("no action $action")
+        val name = (args.firstOrNull() as? String)?.uppercase() ?: throw IllegalArgumentException("give a mode")
+        logic.mode = TransferSwitchLogic.Mode.entries.firstOrNull { it.name == name }
+            ?: throw IllegalArgumentException("modes: auto, primary, backup, off")
+        needPublish()
+        return true
+    }
 
     val outLoad = NbtElectricalLoad("outLoad")
     val primaryLoad = NbtElectricalLoad("primaryLoad")
@@ -557,6 +586,7 @@ class TransferSwitchElement(sixNode: SixNode, side: Direction, descriptor: SixNo
 
     override fun getWaila(): Map<String, String> {
         val info = LinkedHashMap<String, String>()
+        addLockout(info)
         info[tr("Source")] = sourceName(applied)
         info[tr("Mains")] = Utils.plotVolt("", primaryLoad.voltage)
         info[tr("Backup")] = Utils.plotVolt("", backupLoad.voltage)

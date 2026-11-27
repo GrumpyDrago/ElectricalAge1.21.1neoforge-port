@@ -263,6 +263,7 @@ public class Eln {
 
     static public GenericItemUsingDamageDescriptor multiMeterElement, thermometerElement, allMeterElement;
     static public GenericItemUsingDamageDescriptor thermalCameraElement;
+    static public GenericItemUsingDamageDescriptor lockoutPadlockElement;
     static public GenericItemUsingDamageDescriptor configCopyToolElement;
     public static TreeResin treeResin;
     public static MiningPipeDescriptor miningPipeDescriptor;
@@ -284,6 +285,10 @@ public class Eln {
     public ElectricalCableDescriptor powerBundleCableDescriptor;
     public ElectricalCableDescriptor highVoltagePowerBundleCableDescriptor;
     public ElectricalCableDescriptor lowVoltagePowerBundleCableDescriptor;
+    public ElectricalCableDescriptor lowVoltageSupplyCableDescriptor;
+    public ElectricalCableDescriptor mediumVoltageSupplyCableDescriptor;
+    public ElectricalCableDescriptor highVoltageSupplyCableDescriptor;
+    public ElectricalCableDescriptor veryHighVoltageSupplyCableDescriptor;
     public CurrentCableDescriptor lowCurrentCableDescriptor;
     public CurrentCableDescriptor mediumCurrentCableDescriptor;
     public CurrentCableDescriptor highCurrentCableDescriptor;

@@ -1,3 +1,23 @@
+## 2.0.0-testing.4
+
+- Batteries no longer explode: overheated or overcharged, they vent, cutting themselves off, glowing red and smoking,
+  and lose a tenth of their life. A bucket of water used on one cools it and brings it back.
+- Breaker boxes have eight circuits instead of sixteen; their lines are black, red, orange, yellow, green, blue, purple
+  and white
+- The 600 V breaker box and bundle are now for 800 V, the voltage of the machines; the others are named 50V and 200V
+- Each line is made for what the cable of its voltage carries (20 A at 50 V, 10 A at 200 V, 6.25 A at 800 V), and the
+  breaker ratings follow
+- Supply cables for 50, 200 and 800 V, which carry a whole breaker box
+- Lockout padlock: locks breakers, switches, protection devices and breaker boxes open until every lock is off
+- CC: Tweaked: every block is an `eln` peripheral; read any part, and switch breakers, relays and transfer switches
+- Grid tiers: T2 transmission towers carry 40 A at 51.2 kV (about 2 MW), T1 utility poles 20 A at 12.8 kV. Utility
+  poles used to take 51.2 kV: lines above about 16.6 kV on them now burn them.
+- Substations: step-up (3.2 kV to 51.2 kV, 1 MW) and distribution (51.2 kV to 12.8 kV, 2 MW), with protected breakers
+  on both sides, transformer overheat and overvoltage trips, lockout and computer control
+- 3200V supply cable, for the step-up substation
+- The Grid DC-DC Converter takes 51.2 kV, as the towers do, instead of 120 kV
+- A sound or update reaching a player without the mod (a fake player of another mod) no longer crashes the server
+
 ## 2.0.0-testing.3
 
 - Breaker box: sixteen circuit breakers (type B, 2 to 20 A) feeding the sixteen lines of a power bundle cable

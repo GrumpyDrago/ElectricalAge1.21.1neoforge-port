@@ -37,7 +37,30 @@ import java.text.ParseException
  * sets the resistance of the contacts and the current they are made for.
  */
 abstract class SwitchgearElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDescriptor) :
-    SixNodeElement(sixNode, side, descriptor) {
+    SixNodeElement(sixNode, side, descriptor), mods.eln.item.Lockable {
+
+    override val lockout = mods.eln.item.Lockout()
+
+    /** Locked out, every contact opens; unlocked, they go back to what the device wants. */
+    override fun lockoutChanged() {
+        cableChanged()
+        needPublish()
+    }
+
+    override fun readFromNBT(nbt: net.minecraft.nbt.CompoundTag) {
+        super.readFromNBT(nbt)
+        lockout.readFromNBT(nbt)
+    }
+
+    override fun writeToNBT(nbt: net.minecraft.nbt.CompoundTag) {
+        super.writeToNBT(nbt)
+        lockout.writeToNBT(nbt)
+    }
+
+    /** The lockout line for Jade, if locked. */
+    protected fun addLockout(info: MutableMap<String, String>) {
+        if (lockout.isLocked) info[mods.eln.i18n.I18N.tr("Lockout")] = lockout.describe()
+    }
 
     override val inventory = SixNodeElementInventory(1, 64, this)
 
@@ -63,7 +86,8 @@ abstract class SwitchgearElement(sixNode: SixNode, side: Direction, descriptor: 
     }
 
     /** Closes [contact] with the resistance of the cable, or opens it. */
-    protected fun setContact(contact: Resistor, closed: Boolean) {
+    protected fun setContact(contact: Resistor, wanted: Boolean) {
+        val closed = wanted && !lockout.isLocked
         val c = cable
         if (!closed && c != null && contact.resistance < mods.eln.sim.mna.misc.MnaConst.highImpedance) {
             val a = (contact.aPin as? mods.eln.sim.mna.state.VoltageState)?.voltage ?: 0.0

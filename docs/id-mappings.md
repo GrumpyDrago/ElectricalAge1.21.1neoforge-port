@@ -72,17 +72,24 @@ New sub ids only; no existing id moved.
 | Registry | Group | Sub id | Item |
 | --- | --- | --- | --- |
 | `sharedItem` | `0x0E` meters | 3 | Thermal Camera |
+| `sharedItem` | `0x0E` meters | 4 | Lockout Padlock |
 | `sixNodeItem` | `0x50` switchgear | 0 | Overcurrent Protection Relay |
 | `sixNodeItem` | `0x50` switchgear | 1 | Battery Management System |
 | `sixNodeItem` | `0x50` switchgear | 2 | Automatic Transfer Switch |
-| `sixNodeItem` | `0x50` switchgear | 3 | Breaker Box (200 V) |
+| `sixNodeItem` | `0x50` switchgear | 3 | 200V Breaker Box |
 | `sixNodeItem` | `0x50` switchgear | 4 | 50V Breaker Box |
-| `sixNodeItem` | `0x50` switchgear | 5 | 600V Breaker Box |
+| `sixNodeItem` | `0x50` switchgear | 5 | 800V Breaker Box |
 | `sixNodeItem` | `0x51` | 0 | MPPT Charge Controller |
 | `sixNodeItem` | `0x52` | 0 | Oscilloscope |
-| `sixNodeItem` | `0x53` | 0 | Power Bundle Cable (200 V) |
-| `sixNodeItem` | `0x53` | 1 | 600V Power Bundle Cable |
+| `sixNodeItem` | `0x53` | 0 | 200V Power Bundle Cable |
+| `sixNodeItem` | `0x53` | 1 | 800V Power Bundle Cable |
 | `sixNodeItem` | `0x53` | 2 | 50V Power Bundle Cable |
+| `sixNodeItem` | `0x53` | 3 | 50V Supply Cable |
+| `sixNodeItem` | `0x53` | 4 | 200V Supply Cable |
+| `sixNodeItem` | `0x53` | 5 | 800V Supply Cable |
+| `sixNodeItem` | `0x53` | 6 | 3200V Supply Cable |
+| `transparentNodeItem` | `0x7B` grid devices | 9 | Distribution Substation |
+| `transparentNodeItem` | `0x7B` grid devices | 10 | Step-Up Substation |
 | `transparentNodeItem` | `0x10` batteries | 8 | Lead-Acid Battery |
 | `transparentNodeItem` | `0x10` batteries | 9 | Nickel-Cadmium Battery |
 | `transparentNodeItem` | `0x10` batteries | 10 | Lithium-Ion Battery |

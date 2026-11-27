@@ -87,7 +87,8 @@ enum class BatteryChemistry(
 
 /** What a battery of a [BatteryChemistry] does on top of the usual battery: temperature, wear and runaway. */
 class BatteryChemistryProcess(private val battery: BatteryElement, private val chemistry: BatteryChemistry) : IProcess {
-    private var appliedFactor = 1.0
+    var appliedFactor = 1.0
+        private set
     private var ambient = 20.0
     private var ambientAge = AMBIENT_REFRESH
 
@@ -110,8 +111,7 @@ class BatteryChemistryProcess(private val battery: BatteryElement, private val c
         val factor = chemistry.resistanceFactor(celsius)
         if (abs(factor / appliedFactor - 1) > 0.05) {
             appliedFactor = factor
-            battery.positiveLoad.serialResistance = d.electricalRs * factor
-            battery.negativeLoad.serialResistance = d.electricalRs * factor
+            battery.applyConnection(factor)
         }
 
         // Like the usual battery wear, this grows with the square of the current, so a battery that sits unused
@@ -124,7 +124,8 @@ class BatteryChemistryProcess(private val battery: BatteryElement, private val c
             if (wear > 0) process.changeLife(max(0.1, process.life - wear * d.lifeNominalLost * time))
         }
 
-        val runaway = chemistry.runawayPower(celsius, d.electricalStdP)
+        // Once vented, the cells are cut off and the reaction dies down.
+        val runaway = if (battery.vented) 0.0 else chemistry.runawayPower(celsius, d.electricalStdP)
         if (runaway > 0) battery.thermalLoad.movePowerTo(runaway)
     }
 

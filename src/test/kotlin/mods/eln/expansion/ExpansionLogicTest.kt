@@ -300,7 +300,7 @@ class ExpansionLogicTest {
         assertEquals(BreakerBoxLogic.State.ON, box.state[3])
         box.cycleRating(3, false)
         assertEquals(13.0, box.ratedCurrent(3), 1e-9)
-        repeat(BreakerBoxLogic.RATINGS.size) { box.cycleRating(4, true) }
+        repeat(BreakerBoxLogic.DEFAULT_RATINGS.size) { box.cycleRating(4, true) }
         assertEquals(16.0, box.ratedCurrent(4), 1e-9)
     }
 

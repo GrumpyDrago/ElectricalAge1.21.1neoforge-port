@@ -28,8 +28,8 @@
     "gui": {
       "parent": "minecraft:item/generated",
       "textures": {
-        "layer0": "eln:voltages/medium",
-        "layer1": "eln:block/powerbundlecable"
+        "layer0": "eln:voltages/high",
+        "layer1": "eln:block/800vsupplycable"
       }
     }
   }

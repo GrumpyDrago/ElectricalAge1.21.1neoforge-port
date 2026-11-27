@@ -381,7 +381,7 @@ object ClientSmokeTest {
         val x0 = 60
         val parts = listOf(
             "Overcurrent Protection Relay", "Battery Management System", "Automatic Transfer Switch",
-            "MPPT Charge Controller", "Oscilloscope", "Breaker Box", "50V Breaker Box", "600V Breaker Box"
+            "MPPT Charge Controller", "Oscilloscope", "200V Breaker Box", "50V Breaker Box", "800V Breaker Box"
         )
         later(20) { onServer { level, player -> buildShowcase(level, player, parts, x0, z) } }
         later(40) { look(x0 + 8.0, GROUND + 3.5, z - 3.5, 0f, 40f) }
@@ -406,10 +406,21 @@ object ClientSmokeTest {
         // The bundle out of the breaker box, with cables of three colors leaving it.
         later(20) { look(x0 + 19.5, GROUND + 2.2, z - 1.5, 0f, 45f) }
         later { shot("exp_power_bundle") }
+        // The lead-acid battery vented: glowing red and smoking.
+        later(5) {
+            onServer { _, _ ->
+                for (n in NodeManager.instance!!.nodeList.filterIsInstance<TransparentNode>()) {
+                    val b = n.element as? mods.eln.transparentnode.battery.BatteryElement ?: continue
+                    if (n.coordinate.x == x0 && n.coordinate.z == z + 5) b.vent()
+                }
+            }
+        }
         later(20) { look(x0 + 3.5, GROUND + 2.5, z + 1.5, 0f, 30f) }
-        later { shot("exp_batteries") }
+        later(20) { shot("exp_batteries") }
         later(40) { look(x0 + 7.0, GROUND + 6.0, z + 2.0, 0f, 15f) }
         later { shot("exp_generators") }
+        later(30) { look(x0 + 25.5, GROUND + 4.0, z + 1.0, 0f, 35f) }
+        later(10) { shot("exp_substations") }
         // The thermal camera, with one battery hot and one warm.
         later(10) {
             mc.options.hideGui = false
@@ -437,12 +448,13 @@ object ClientSmokeTest {
         later(5) {
             mc.options.hideGui = true
             for ((name, pos) in showcase) gui("six", name, pos, Direction.YN)
+            gui("transparent", "Distribution Substation", BlockPos(x0 + 22, GROUND, z + 6), Direction.YP)
             later(10) { mc.stop() }
         }
     }
 
     private fun buildShowcase(level: ServerLevel, player: ServerPlayer, parts: List<String>, x0: Int, z: Int) {
-        for (x in x0 - 4..x0 + 32) for (dz in -6..16) {
+        for (x in x0 - 4..x0 + 34) for (dz in -6..16) {
             level.setBlock(BlockPos(x, GROUND - 1, z + dz), Blocks.SMOOTH_STONE.defaultBlockState(), 2)
         }
         fun six(name: String, x: Int, zz: Int): SixNode? {
@@ -488,9 +500,9 @@ object ClientSmokeTest {
                 is mods.eln.sixnode.breakerbox.BreakerBoxElement -> {
                     source(x + 1, z, 50.0)
                     val bundle = when {
-                        name.startsWith("600V") -> "600V Power Bundle Cable"
+                        name.startsWith("800V") -> "800V Power Bundle Cable"
                         name.startsWith("50V") -> "50V Power Bundle Cable"
-                        else -> "Power Bundle Cable"
+                        else -> "200V Power Bundle Cable"
                     }
                     six(bundle, x - 1, z)
                     six(bundle, x - 2, z)
@@ -520,6 +532,11 @@ object ClientSmokeTest {
         val batteries = listOf("Lead-Acid Battery", "Nickel-Cadmium Battery", "Lithium-Ion Battery", "LiFePO4 Battery")
         for ((k, name) in batteries.withIndex()) {
             if (!Eln.transparentNodeItem.placeBlockAt(Eln.findItemStack(name, 1), player, level, x0 + k * 2, GROUND, z + 5, 1)) {
+                Eln.logger.error("SMOKE could not place {}", name)
+            }
+        }
+        for ((x, name) in listOf(x0 + 22 to "Distribution Substation", x0 + 28 to "Step-Up Substation")) {
+            if (!Eln.transparentNodeItem.placeBlockAt(Eln.findItemStack(name, 1), player, level, x, GROUND, z + 6, 1)) {
                 Eln.logger.error("SMOKE could not place {}", name)
             }
         }

@@ -323,13 +323,13 @@ object ElnExpansionTests {
         floor(helper)
         val boxPos = BlockPos(2, 1, 5)
         source(helper, player, BlockPos(1, 1, 5), 50.0)
-        val box = part<BreakerBoxElement>(helper, player, "Breaker Box", boxPos, McDirection.WEST)
-        val first = placeSix(helper, player, "Power Bundle Cable", BlockPos(3, 1, 5)).getElement(Direction.YN) as PowerBundleCableElement
-        val second = placeSix(helper, player, "Power Bundle Cable", BlockPos(4, 1, 5)).getElement(Direction.YN) as PowerBundleCableElement
+        val box = part<BreakerBoxElement>(helper, player, "200V Breaker Box", boxPos, McDirection.WEST)
+        val first = placeSix(helper, player, "200V Power Bundle Cable", BlockPos(3, 1, 5)).getElement(Direction.YN) as PowerBundleCableElement
+        val second = placeSix(helper, player, "200V Power Bundle Cable", BlockPos(4, 1, 5)).getElement(Direction.YN) as PowerBundleCableElement
         val red = cable(helper, player, "Medium Voltage Cable", BlockPos(5, 1, 5), RED)
         // A bundle used as a plain multi-core cable, away from the box.
-        val lone = placeSix(helper, player, "Power Bundle Cable", BlockPos(8, 1, 8)).getElement(Direction.YN) as PowerBundleCableElement
-        placeSix(helper, player, "Power Bundle Cable", BlockPos(8, 1, 9))
+        val lone = placeSix(helper, player, "200V Power Bundle Cable", BlockPos(8, 1, 8)).getElement(Direction.YN) as PowerBundleCableElement
+        placeSix(helper, player, "200V Power Bundle Cable", BlockPos(8, 1, 9))
         source(helper, player, BlockPos(6, 1, 5), 49.0)
         val black = cable(helper, player, "Medium Voltage Cable", BlockPos(4, 1, 6), 0)
         source(helper, player, BlockPos(3, 1, 4), 30.0)
@@ -363,8 +363,8 @@ object ElnExpansionTests {
         floor(helper)
         val boxPos = BlockPos(2, 1, 5)
         source(helper, player, BlockPos(1, 1, 5), 200.0)
-        val box = part<BreakerBoxElement>(helper, player, "Breaker Box", boxPos, McDirection.WEST)
-        placeSix(helper, player, "Power Bundle Cable", BlockPos(3, 1, 5))
+        val box = part<BreakerBoxElement>(helper, player, "200V Breaker Box", boxPos, McDirection.WEST)
+        placeSix(helper, player, "200V Power Bundle Cable", BlockPos(3, 1, 5))
         cable(helper, player, "Medium Voltage Cable", BlockPos(4, 1, 5), RED)
         placeSix(helper, player, "Ground Cable", BlockPos(5, 1, 5))
         box.sixNode!!.reconnect()
@@ -396,19 +396,19 @@ object ElnExpansionTests {
         helper.succeed()
     }
 
-    /** The 600 V box feeds a 600 V circuit through the 600 V bundle, and nothing burns. */
+    /** The 800 V box feeds an 800 V circuit through the 800 V bundle, and nothing burns. */
     @GameTest(template = EMPTY, timeoutTicks = 200)
     @JvmStatic
-    fun highVoltageBreakerBoxCarries600Volts(helper: GameTestHelper) =
-        breakerBoxCircuit(helper, "600V Breaker Box", "600V Power Bundle Cable", "High Voltage Cable", 600.0)
+    fun highVoltageBreakerBoxCarries800Volts(helper: GameTestHelper) =
+        breakerBoxCircuit(helper, "800V Breaker Box", "800V Power Bundle Cable", "High Voltage Cable", 800.0, 799.0)
 
     /** The 50 V box and bundle with a 50 V circuit. */
     @GameTest(template = EMPTY, timeoutTicks = 200)
     @JvmStatic
     fun lowVoltageBreakerBoxCarries50Volts(helper: GameTestHelper) =
-        breakerBoxCircuit(helper, "50V Breaker Box", "50V Power Bundle Cable", "Low Voltage Cable", 50.0)
+        breakerBoxCircuit(helper, "50V Breaker Box", "50V Power Bundle Cable", "Low Voltage Cable", 50.0, 49.5)
 
-    private fun breakerBoxCircuit(helper: GameTestHelper, boxName: String, bundleName: String, cableName: String, voltage: Double) {
+    private fun breakerBoxCircuit(helper: GameTestHelper, boxName: String, bundleName: String, cableName: String, voltage: Double, end: Double) {
         val player = player(helper)
         floor(helper)
         val boxPos = BlockPos(2, 1, 5)
@@ -416,7 +416,8 @@ object ElnExpansionTests {
         val box = part<BreakerBoxElement>(helper, player, boxName, boxPos, McDirection.WEST)
         val bundle = placeSix(helper, player, bundleName, BlockPos(3, 1, 5)).getElement(Direction.YN) as PowerBundleCableElement
         val red = cable(helper, player, cableName, BlockPos(4, 1, 5), RED)
-        source(helper, player, BlockPos(5, 1, 5), voltage * 0.99)
+        // A little below the supply, so a few amps flow, within the rating of the breakers.
+        source(helper, player, BlockPos(5, 1, 5), end)
         box.sixNode!!.reconnect()
         helper.runAfterDelay(60) {
             helper.assertTrue(abs(red.electricalLoad.current) > 1, "no current: ${red.electricalLoad.current} A")
@@ -442,6 +443,164 @@ object ElnExpansionTests {
             helper.assertTrue(NodeManager.instance!!.getNodeFromCoordonate(coordinate)?.let { (it as SixNode).getElement(Direction.YN) } !is BreakerBoxElement,
                 "the 50 V box takes 200 V")
         }
+    }
+
+    /**
+     * An overheated battery vents instead of exploding: it is still there, cut off and with less life, and a bucket of
+     * water brings it back.
+     */
+    @GameTest(template = EMPTY, timeoutTicks = 300)
+    @JvmStatic
+    fun overheatedBatteryVentsAndIsCooledWithWater(helper: GameTestHelper) {
+        val player = player(helper)
+        floor(helper)
+        val node = placeTransparent(helper, player, "Cost Oriented Battery", BlockPos(5, 1, 5))
+        val battery = node.element as BatteryElement
+        val life = battery.batteryProcess.life
+        helper.startSequence()
+            .thenExecute { battery.thermalLoad.temperatureCelsius = 150.0 }
+            .thenWaitUntil { helper.assertTrue(battery.vented, "not vented at ${battery.thermalLoad.temperatureCelsius} degrees above ambient") }
+            .thenExecute {
+                helper.assertTrue(NodeManager.instance!!.getNodeFromCoordonate(node.coordinate) === node, "the battery is gone")
+                helper.assertTrue(battery.positiveLoad.serialResistance >= MnaConst.highImpedance, "still connected")
+                helper.assertTrue(battery.batteryProcess.life < life, "lost no life")
+                // It stays off however long it waits, until it is cooled.
+                battery.thermalLoad.temperatureCelsius = 0.0
+            }
+            .thenIdle(40)
+            .thenExecute { helper.assertTrue(battery.vented, "came back by itself") }
+            .thenExecute { battery.coolWithWater() }
+            .thenWaitUntil {
+                helper.assertTrue(!battery.vented, "still vented")
+                helper.assertTrue(battery.positiveLoad.serialResistance < 1, "not reconnected")
+            }
+            .thenSucceed()
+    }
+
+    /**
+     * A padlock locks a breaker box off and an electrical breaker open; nobody can switch them on until the lock is
+     * taken off, and then they work again.
+     */
+    @GameTest(template = EMPTY, timeoutTicks = 200)
+    @JvmStatic
+    fun lockoutKeepsSwitchesOpen(helper: GameTestHelper) {
+        val player = player(helper)
+        val other = player(helper)
+        floor(helper)
+        source(helper, player, BlockPos(1, 1, 5), 50.0)
+        val box = part<BreakerBoxElement>(helper, player, "200V Breaker Box", BlockPos(2, 1, 5), McDirection.WEST)
+        val bundle = placeSix(helper, player, "200V Power Bundle Cable", BlockPos(3, 1, 5)).getElement(Direction.YN) as PowerBundleCableElement
+        box.sixNode!!.reconnect()
+        val breaker = placeSix(helper, player, "Electrical Breaker", BlockPos(7, 1, 7)).getElement(Direction.YN)
+            as mods.eln.sixnode.electricalbreaker.ElectricalBreakerElement
+        helper.startSequence()
+            .thenWaitUntil { helper.assertTrue(bundle.bundleLoads[RED].voltage > 49, "the line is dead before the lock") }
+            .thenExecute {
+                box.lockout.use(box, player)
+                breaker.lockout.use(breaker, player)
+                // Someone else's lock goes on too, and switching on does nothing.
+                box.lockout.use(box, other)
+                box.toggle(RED)
+                box.toggle(RED)
+                breaker.setSwitchState(true)
+            }
+            .thenWaitUntil {
+                helper.assertTrue(abs(bundle.bundleLoads[RED].voltage) < 0.5, "the line is live while locked: ${bundle.bundleLoads[RED].voltage} V")
+                helper.assertTrue(!breaker.switchState, "the breaker closed while locked")
+            }
+            .thenExecute {
+                // Taking one lock off is not enough.
+                box.lockout.use(box, player)
+                helper.assertTrue(box.lockout.isLocked, "one lock opened it")
+                box.lockout.use(box, other)
+                breaker.lockout.use(breaker, player)
+                breaker.setSwitchState(true)
+            }
+            .thenWaitUntil {
+                helper.assertTrue(bundle.bundleLoads[RED].voltage > 49, "the line is dead after the locks came off")
+                helper.assertTrue(breaker.switchState, "the breaker does not close after the lock came off")
+            }
+            .thenSucceed()
+    }
+
+    /** What a computer sees and does through the eln peripheral: a breaker box switched from afar, and a battery read. */
+    @GameTest(template = EMPTY, timeoutTicks = 200)
+    @JvmStatic
+    fun computersReadAndSwitchParts(helper: GameTestHelper) {
+        val player = player(helper)
+        floor(helper)
+        source(helper, player, BlockPos(1, 1, 5), 50.0)
+        val box = part<BreakerBoxElement>(helper, player, "200V Breaker Box", BlockPos(2, 1, 5), McDirection.WEST)
+        val bundle = placeSix(helper, player, "200V Power Bundle Cable", BlockPos(3, 1, 5)).getElement(Direction.YN) as PowerBundleCableElement
+        box.sixNode!!.reconnect()
+        val battery = placeTransparent(helper, player, "Cost Oriented Battery", BlockPos(7, 1, 7)).element as BatteryElement
+        val line = RED + 1
+        helper.startSequence()
+            .thenWaitUntil { helper.assertTrue(bundle.bundleLoads[RED].voltage > 49, "the line is dead") }
+            .thenExecute {
+                helper.assertTrue(box.computerCall("setBreaker", listOf(line.toDouble(), false)) == true, "setBreaker failed")
+                helper.assertTrue(box.computerCall("setRating", listOf(line.toDouble(), 9.5)) == 10.0, "setRating did not round to 10 A")
+            }
+            .thenWaitUntil { helper.assertTrue(abs(bundle.bundleLoads[RED].voltage) < 0.5, "the line is live after switching off") }
+            .thenExecute {
+                @Suppress("UNCHECKED_CAST")
+                val breakers = box.computerValues()["breakers"] as List<Map<String, Any?>>
+                helper.assertTrue(breakers[RED]["state"] == "off" && breakers[RED]["rating"] == 10.0, "reads ${breakers[RED]}")
+                // Locked out, a computer cannot switch it on.
+                box.lockout.use(box, player)
+                helper.assertTrue(box.computerCall("setBreaker", listOf(line.toDouble(), true)) == false, "switched on while locked")
+                val values = battery.computerValues()
+                helper.assertTrue(values["charge"] is Double && values["vented"] == false, "battery reads $values")
+            }
+            .thenSucceed()
+    }
+
+    /**
+     * The three tiers: 3.2 kV into a step-up substation, 51.2 kV across to a distribution substation, 12.8 kV out to a
+     * utility pole. Then the pole is shorted to the ground: the distribution substation's low voltage breaker trips at
+     * once, and nothing burns.
+     */
+    @GameTest(template = EMPTY, timeoutTicks = 400)
+    @JvmStatic
+    fun substationsStepUpAndDown(helper: GameTestHelper) {
+        val player = player(helper)
+        floor(helper)
+        val stepUp = placeTransparent(helper, player, "Step-Up Substation", BlockPos(2, 1, 2)).element
+            as mods.eln.gridnode.substation.SubstationElement
+        val distribution = placeTransparent(helper, player, "Distribution Substation", BlockPos(2, 1, 8)).element
+            as mods.eln.gridnode.substation.SubstationElement
+        val pole = placeTransparent(helper, player, "Direct Utility Pole", BlockPos(8, 1, 8)).element
+            as mods.eln.gridnode.GridElement
+        // The 3.2 kV supply in front of the step-up substation.
+        val front = BlockPos(2, 1, 2).relative(stepUp.front.toForge())
+        source(helper, player, front, 3200.0)
+        stepUp.node!!.reconnect()
+        val cable = Eln.instance.highVoltageCableDescriptor
+        mods.eln.gridnode.GridLink.addLink(stepUp, distribution, stepUp.front.left(), distribution.front.left(), cable, 8)
+        mods.eln.gridnode.GridLink.addLink(distribution, pole, distribution.front.right(), Direction.YP, cable, 8)
+        helper.startSequence()
+            .thenWaitUntil {
+                helper.assertTrue(abs(stepUp.highLoad.voltage - 51200) < 1000, "step-up gives ${stepUp.highLoad.voltage} V")
+                helper.assertTrue(abs(distribution.lowLoad.voltage - 12800) < 300, "distribution gives ${distribution.lowLoad.voltage} V")
+            }
+            .thenExecute {
+                // Short the pole to the ground.
+                val polePos = BlockPos(8, 1, 8)
+                placeSix(helper, player, "Ground Cable", polePos.relative(McDirection.NORTH))
+                placeSix(helper, player, "Ground Cable", polePos.relative(McDirection.SOUTH))
+            }
+            .thenWaitUntil {
+                helper.assertTrue(distribution.lowRelay.state != mods.eln.sixnode.protection.OvercurrentRelayLogic.State.CLOSED,
+                    "the low voltage breaker did not trip: ${distribution.lowRelay.state}")
+            }
+            .thenExecute {
+                helper.assertTrue(distribution.node!!.coordinate.let { NodeManager.instance!!.getNodeFromCoordonate(it) } != null,
+                    "the substation burned")
+                // Locked out, it will not close.
+                distribution.lockout.use(distribution, player)
+                helper.assertTrue(!distribution.closeBreaker(false), "closed while locked out")
+            }
+            .thenSucceed()
     }
 
     private const val RED = 1

@@ -1266,11 +1266,30 @@ object CraftingRecipes {
         )
 
         val medium = findItemStack("Medium Voltage Cable")
+        addRecipe(Eln.findItemStack("3200V Supply Cable", 2), "CRC", "CRC", 'C', findItemStack("Very High Voltage Cable"), 'R', "itemRubber")
+        val protection = findItemStack("Overcurrent Protection Relay")
         addRecipe(
-            findItemStack("Breaker Box"), "IBI", "BCB", "IBI", 'I', "plateIron", 'B', findItemStack("Electrical Breaker"),
+            findItemStack("Distribution Substation"), "R R", "HGH", "SSS", 'R', protection,
+            'H', findItemStack("High Voltage Cable"), 'G', findItemStack("Grid DC-DC Converter"), 'S', ItemStack(Items.SMOOTH_STONE)
+        )
+        addRecipe(
+            findItemStack("Step-Up Substation"), "R R", "VGH", "SSS", 'R', protection, 'V', findItemStack("3200V Supply Cable"),
+            'H', findItemStack("High Voltage Cable"), 'G', findItemStack("Grid DC-DC Converter"), 'S', ItemStack(Items.SMOOTH_STONE)
+        )
+        addRecipe(
+            findItemStack("Lockout Padlock"), " N ", "N N", "IRI", 'N', ItemStack(Items.IRON_NUGGET),
+            'I', ItemStack(Items.IRON_INGOT), 'R', ItemStack(Items.RED_DYE)
+        )
+        addRecipe(
+            findItemStack("200V Breaker Box"), "IBI", "BCB", "IBI", 'I', "plateIron", 'B', findItemStack("Electrical Breaker"),
             'C', medium
         )
-        addRecipe(Eln.findItemStack("Power Bundle Cable", 2), "MMM", "MRM", "MMM", 'M', medium, 'R', "itemRubber")
+        addRecipe(Eln.findItemStack("200V Power Bundle Cable", 2), "MMM", "MRM", "MMM", 'M', medium, 'R', "itemRubber")
+        // Supply cables: four cables of their voltage twisted together, in rubber.
+        for ((supply, cable) in listOf("50V Supply Cable" to "Low Voltage Cable", "200V Supply Cable" to "Medium Voltage Cable",
+            "800V Supply Cable" to "High Voltage Cable")) {
+            addRecipe(Eln.findItemStack(supply, 2), "CRC", "CRC", 'C', findItemStack(cable), 'R', "itemRubber")
+        }
         addRecipe(Eln.findItemStack("50V Power Bundle Cable", 2), "LLL", "LRL", "LLL", 'L', findItemStack("Low Voltage Cable"), 'R', "itemRubber")
         addRecipe(
             findItemStack("50V Breaker Box"), "IBI", "BCB", "IBI", 'I', "plateIron", 'B', findItemStack("Electrical Breaker"),
@@ -1278,10 +1297,10 @@ object CraftingRecipes {
         )
         val high = findItemStack("High Voltage Cable")
         addRecipe(
-            findItemStack("600V Breaker Box"), "IBI", "BCB", "IBI", 'I', "plateIron", 'B', findItemStack("Electrical Breaker"),
+            findItemStack("800V Breaker Box"), "IBI", "BCB", "IBI", 'I', "plateIron", 'B', findItemStack("Electrical Breaker"),
             'C', high
         )
-        addRecipe(Eln.findItemStack("600V Power Bundle Cable", 2), "HHH", "HRH", "HHH", 'H', high, 'R', "itemRubber")
+        addRecipe(Eln.findItemStack("800V Power Bundle Cable", 2), "HHH", "HRH", "HHH", 'H', high, 'R', "itemRubber")
 
         val cable = findItemStack("Low Voltage Cable")
         addRecipe(

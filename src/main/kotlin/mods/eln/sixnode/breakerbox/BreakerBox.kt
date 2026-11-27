@@ -28,6 +28,7 @@ import mods.eln.sim.process.destruct.VoltageStateWatchDog
 import mods.eln.sim.process.destruct.WorldExplosion
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
 import mods.eln.sixnode.electricalcable.PowerBundle
+import mods.eln.node.ComputerControllable
 import mods.eln.sixnode.protection.PartsDescriptor
 import mods.eln.sound.SoundCommand
 import net.minecraft.client.gui.screens.Screen
@@ -45,17 +46,21 @@ import kotlin.math.max
  * it is (a thermal element), and at once on a short circuit (a magnetic one), as a type B breaker does. Real breakers
  * take minutes on a small overload; these take at most [MAX_TRIP_TIME], so a bad circuit shows up quickly.
  */
-class BreakerBoxLogic {
+class BreakerBoxLogic(
+    /** The ratings it can be set to, in amps: up to what the lines of its voltage are made for. */
+    val ratings: DoubleArray = DEFAULT_RATINGS,
+    defaultRating: Double = 16.0
+) {
     enum class State { ON, OFF, TRIPPED }
 
     val state = Array(LINES) { State.ON }
-    val rating = IntArray(LINES) { RATINGS.toList().indexOf(DEFAULT_RATING) }
+    val rating = IntArray(LINES) { ratings.indices.minBy { abs(ratings[it] - defaultRating) } }
     /** How far each thermal element is towards tripping, 0 to 1. */
     val heat = DoubleArray(LINES)
     /** The current each last tripped at. */
     val tripCurrent = DoubleArray(LINES)
 
-    fun ratedCurrent(line: Int) = RATINGS[rating[line]]
+    fun ratedCurrent(line: Int) = ratings[rating[line]]
 
     fun closed(line: Int) = state[line] == State.ON
 
@@ -84,7 +89,7 @@ class BreakerBoxLogic {
     }
 
     fun cycleRating(line: Int, up: Boolean) {
-        rating[line] = Math.floorMod(rating[line] + if (up) 1 else -1, RATINGS.size)
+        rating[line] = Math.floorMod(rating[line] + if (up) 1 else -1, ratings.size)
     }
 
     /** Seconds it takes to trip at [ratio] times its rating from cold; 0 for at once, infinite for never. */
@@ -106,16 +111,15 @@ class BreakerBoxLogic {
         val r = nbt.getByteArray("ratings")
         for (i in 0 until LINES) {
             if (i < s.size) state[i] = State.entries.getOrElse(s[i].toInt()) { State.OFF }
-            if (i < r.size) rating[i] = r[i].toInt().coerceIn(0, RATINGS.size - 1)
+            if (i < r.size) rating[i] = r[i].toInt().coerceIn(0, ratings.size - 1)
             heat[i] = nbt.getDouble("heat$i")
         }
     }
 
     companion object {
         const val LINES = PowerBundle.LINES
-        /** Ratings in amps; the bundle lines are made for 20 A. */
-        val RATINGS = doubleArrayOf(2.0, 4.0, 6.0, 10.0, 13.0, 16.0, 20.0)
-        const val DEFAULT_RATING = 16.0
+        /** The ratings of the 50 V box, whose lines are made for 20 A. */
+        val DEFAULT_RATINGS = doubleArrayOf(2.0, 4.0, 6.0, 10.0, 13.0, 16.0, 20.0)
         /** Up to this many times its rating it never trips. */
         const val THERMAL_PICKUP = 1.13
         /** The longest it takes to trip, in seconds, just above [THERMAL_PICKUP]; about 3.4 s at twice its rating. */
@@ -135,13 +139,19 @@ class BreakerBoxDescriptor(
     name: String, obj: Obj3D,
     val nominalVoltage: Double,
     private val cableOf: () -> ElectricalCableDescriptor,
-    private val bundleOf: () -> ElectricalCableDescriptor?
+    private val bundleOf: () -> ElectricalCableDescriptor?,
+    /** The cable its supply needs, to carry all eight lines. */
+    private val supplyOf: () -> ElectricalCableDescriptor?,
+    /** What its breakers can be set to, in amps, and what they come set at. */
+    val ratings: DoubleArray,
+    val defaultRating: Double
 ) : PartsDescriptor(
     name, BreakerBoxElement::class.java, BreakerBoxRender::class.java, obj,
     listOf("case") + (0 until BreakerBoxLogic.LINES).flatMap { listOf("up$it", "down$it", "led$it") }
 ) {
     val cable get() = cableOf()
     val bundle get() = bundleOf()
+    val supply get() = supplyOf()
 
     init {
         voltageLevelColor = VoltageLevelColor.fromVoltage(nominalVoltage)
@@ -161,22 +171,77 @@ class BreakerBoxDescriptor(
 
     override fun addInformation(itemStack: ItemStack, entityPlayer: Player?, list: MutableList<String>, par4: Boolean) {
         super.addInformation(itemStack, entityPlayer, list, par4)
-        list.addAll(tr("Sixteen circuit breakers that feed the lines\nof a power bundle cable from one supply.").split("\n"))
+        list.addAll(tr("Eight circuit breakers that feed the lines\nof a power bundle cable from one supply.").split("\n"))
         list.add(tr("Front: supply. Back: power bundle cable."))
         list.add(Utils.plotVolt(tr("Nominal voltage: "), nominalVoltage))
+        list.add(tr("Breakers from %1$ to %2$ A; feed it with a supply cable.", Utils.plotValue(ratings.first()), Utils.plotValue(ratings.last())))
         list.add(tr("Each trips on a lasting overload or at once on a short circuit."))
         list.add(tr("Breaking a short circuit can make an arc flash."))
     }
 }
 
 class BreakerBoxElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDescriptor) :
-    SixNodeElement(sixNode, side, descriptor), PowerBundle {
+    SixNodeElement(sixNode, side, descriptor), PowerBundle, mods.eln.item.Lockable, mods.eln.node.ComputerControllable {
+
+    override fun computerValues(): Map<String, Any?> = linkedMapOf(
+        "supplyVoltage" to inLoad.voltage,
+        "supplyCurrent" to inLoad.current,
+        "nominalVoltage" to desc.nominalVoltage,
+        "locked" to lockout.isLocked,
+        "lockedBy" to lockout.owners().toList(),
+        "breakers" to (0 until BreakerBoxLogic.LINES).map { i ->
+            linkedMapOf(
+                "line" to i + 1,
+                "color" to PowerBundle.colorName(i),
+                "state" to logic.state[i].name.lowercase(),
+                "rating" to logic.ratedCurrent(i),
+                "current" to if (logic.closed(i) && !lockout.isLocked) Math.abs(contacts[i].current) else 0.0
+            )
+        }
+    )
+
+    override fun computerActions() = listOf(
+        "setBreaker(line, on): switches breaker 1 to 8 on or off; false while the box is locked out",
+        "setRating(line, amps): sets its rating, rounded to one it has"
+    )
+
+    override fun computerCall(action: String, args: List<Any?>): Any? {
+        val line = ComputerControllable.number(args, 0, "line").toInt() - 1
+        if (line !in 0 until BreakerBoxLogic.LINES) throw IllegalArgumentException("line must be 1 to 8")
+        return when (action) {
+            "setBreaker" -> {
+                val on = ComputerControllable.flag(args, 1, "on")
+                if (on && lockout.isLocked) return false
+                if (logic.closed(line) != on) toggle(line)
+                true
+            }
+            "setRating" -> {
+                val amps = ComputerControllable.number(args, 1, "amps")
+                val ratings = logic.ratings
+                logic.rating[line] = ratings.indices.minBy { Math.abs(ratings[it] - amps) }
+                needPublish()
+                logic.ratedCurrent(line)
+            }
+            else -> throw IllegalArgumentException("no action $action")
+        }
+    }
+
+    /** A padlock locks the main switch of the box off: every line is dead, whatever its breaker. */
+    override val lockout = mods.eln.item.Lockout()
+
+    override fun lockoutChanged() {
+        for (i in contacts.indices) {
+            if (lockout.isLocked && logic.closed(i)) open(i, contacts[i].current)
+            applyContact(i)
+        }
+        needPublish()
+    }
     private val desc = descriptor as BreakerBoxDescriptor
 
     val inLoad = NbtElectricalLoad("inLoad")
     override val bundleLoads = Array(BreakerBoxLogic.LINES) { NbtElectricalLoad("line$it") }
     val contacts = Array(BreakerBoxLogic.LINES) { Resistor(inLoad, bundleLoads[it]) }
-    val logic = BreakerBoxLogic()
+    val logic = BreakerBoxLogic(desc.ratings, desc.defaultRating)
 
     init {
         electricalLoadList.add(inLoad)
@@ -195,7 +260,7 @@ class BreakerBoxElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDe
     private fun step(dt: Double) {
         var changed = false
         for (i in contacts.indices) {
-            val current = if (logic.closed(i)) contacts[i].current else 0.0
+            val current = if (logic.closed(i) && !lockout.isLocked) contacts[i].current else 0.0
             if (logic.step(i, current, dt)) {
                 open(i, current)
                 changed = true
@@ -223,12 +288,12 @@ class BreakerBoxElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDe
     }
 
     private fun applyContact(line: Int) {
-        if (logic.closed(line)) desc.cable.applyTo(contacts[line])
+        if (logic.closed(line) && !lockout.isLocked) desc.cable.applyTo(contacts[line])
         else contacts[line].resistance = OPEN_RESISTANCE
     }
 
     override fun initialize() {
-        desc.cable.applyTo(inLoad)
+        (desc.supply ?: desc.cable).applyTo(inLoad)
         for (i in bundleLoads.indices) {
             desc.cable.applyTo(bundleLoads[i])
             applyContact(i)
@@ -237,7 +302,7 @@ class BreakerBoxElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDe
 
     override fun getElectricalLoad(lrdu: LRDU, mask: Int): ElectricalLoad? = when (lrdu) {
         front -> inLoad
-        front.inverse() -> bundleLoads[PowerBundle.lineFor(mask)]
+        front.inverse() -> bundleLoads.getOrNull(PowerBundle.lineFor(mask))
         else -> null
     }
 
@@ -260,6 +325,7 @@ class BreakerBoxElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDe
     override fun getWaila(): Map<String, String> {
         val info = LinkedHashMap<String, String>()
         info[tr("Supply")] = Utils.plotVolt("", inLoad.voltage) + Utils.plotAmpere(" ", inLoad.current)
+        if (lockout.isLocked) info[tr("Lockout")] = lockout.describe()
         for (i in 0 until BreakerBoxLogic.LINES) {
             val current = abs(contacts[i].current)
             val line = when (logic.state[i]) {
@@ -311,11 +377,13 @@ class BreakerBoxElement(sixNode: SixNode, side: Direction, descriptor: SixNodeDe
     override fun readFromNBT(nbt: CompoundTag) {
         super.readFromNBT(nbt)
         logic.readFromNBT(nbt)
+        lockout.readFromNBT(nbt)
     }
 
     override fun writeToNBT(nbt: CompoundTag) {
         super.writeToNBT(nbt)
         logic.writeToNBT(nbt)
+        lockout.writeToNBT(nbt)
     }
 
     companion object {
@@ -332,6 +400,7 @@ class BreakerBoxRender(entity: SixNodeEntity, side: Direction, descriptor: SixNo
     private val desc = descriptor as BreakerBoxDescriptor
     val states = Array(BreakerBoxLogic.LINES) { BreakerBoxLogic.State.ON }
     val ratings = IntArray(BreakerBoxLogic.LINES)
+    val ratingList get() = desc.ratings
 
     override fun draw() {
         super.draw()
@@ -352,7 +421,7 @@ class BreakerBoxRender(entity: SixNodeEntity, side: Direction, descriptor: SixNo
     }
 
     override fun getCableRender(lrdu: LRDU): CableRenderDescriptor? = when (lrdu) {
-        front -> desc.cable.render
+        front -> (desc.supply ?: desc.cable).render
         front!!.inverse() -> desc.bundle?.render
         else -> null
     }
@@ -360,15 +429,15 @@ class BreakerBoxRender(entity: SixNodeEntity, side: Direction, descriptor: SixNo
     override fun newGuiDraw(side: Direction, player: Player): Screen = BreakerBoxGui(this)
 }
 
-/** Two columns of eight breakers: a color tag, the handle (on, off or tripped) and the rating. */
+/** Two columns of four breakers: a color tag, the handle (on, off or tripped) and the rating. */
 class BreakerBoxGui(private val render: BreakerBoxRender) : GuiScreenEln() {
     private val handles = arrayOfNulls<GuiButtonEln>(BreakerBoxLogic.LINES)
     private val ratings = arrayOfNulls<GuiButtonEln>(BreakerBoxLogic.LINES)
 
-    override fun newHelper() = GuiHelper(this, 2 * COLUMN + 8, 14 + 8 * ROW + 4)
+    override fun newHelper() = GuiHelper(this, 2 * COLUMN + 8, 14 + 4 * ROW + 4)
 
-    private fun x(line: Int) = 6 + (line / 8) * COLUMN
-    private fun y(line: Int) = 14 + (line % 8) * ROW
+    private fun x(line: Int) = 6 + (line / 4) * COLUMN
+    private fun y(line: Int) = 14 + (line % 4) * ROW
 
     override fun initGui() {
         super.initGui()
@@ -386,7 +455,7 @@ class BreakerBoxGui(private val render: BreakerBoxRender) : GuiScreenEln() {
                 BreakerBoxLogic.State.OFF -> tr("Off")
                 BreakerBoxLogic.State.TRIPPED -> "§c" + tr("Tripped")
             }
-            val rating = BreakerBoxLogic.RATINGS.getOrElse(render.ratings[i]) { 0.0 }
+            val rating = render.ratingList.getOrElse(render.ratings[i]) { 0.0 }
             ratings[i]!!.displayString = "%.0f A".format(rating)
         }
     }

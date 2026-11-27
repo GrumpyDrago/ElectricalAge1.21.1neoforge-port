@@ -29,7 +29,7 @@
       "parent": "minecraft:item/generated",
       "textures": {
         "layer0": "eln:voltages/high",
-        "layer1": "eln:block/600vbreakerbox"
+        "layer1": "eln:block/800vbreakerbox"
       }
     }
   }

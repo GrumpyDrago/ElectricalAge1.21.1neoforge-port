@@ -1445,7 +1445,8 @@ object TransparentNodeRegistration {
                 instance.highVoltageCableDescriptor,
                 Kind.OVERHEAD,
                 40,
-                51200.0
+                12800.0,
+                20.0
             )
             descriptor.renderOffset = Vec3(0.0, -0.1, 0.0)
             val g = GhostGroup()
@@ -1464,7 +1465,8 @@ object TransparentNodeRegistration {
                 instance.highVoltageCableDescriptor,
                 Kind.TRANSFORMER_TO_GROUND,
                 40,
-                51200.0
+                12800.0,
+                20.0
             )
             val g = GhostGroup()
             g.addElement(0, 1, 0)
@@ -1484,7 +1486,8 @@ object TransparentNodeRegistration {
                 instance.highVoltageCableDescriptor,
                 Kind.OVERHEAD,
                 96,
-                51200.0
+                51200.0,
+                40.0
             )
             val g = GhostGroup()
             g.addRectangle(-1, 1, 0, 0, -1, 1)
@@ -1504,13 +1507,40 @@ object TransparentNodeRegistration {
                 instance.highVoltageCableDescriptor,
                 Kind.SHUNT_TO_GROUND,
                 40,
-                51200.0
+                12800.0,
+                20.0
             )
             val g = GhostGroup()
             g.addElement(0, 1, 0)
             g.addElement(0, 2, 0)
             g.addElement(0, 3, 0)
             descriptor.ghostGroup = g
+            transparentNodeItem.addDescriptor(subId + (id shl 6), descriptor)
+        }
+        // Substations, added on the expansion-testing branch: three blocks wide, deep and high, with the node at the
+        // middle of the front edge.
+        fun substationGhosts(): GhostGroup {
+            val g = GhostGroup()
+            g.addRectangle(0, 2, 0, 2, -1, 1)
+            g.removeElement(0, 0, 0)
+            return g
+        }
+        run {
+            subId = 9
+            val descriptor = mods.eln.gridnode.substation.SubstationDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "Distribution Substation"), Eln.obj.getObj("Substation"), "textures/wire.png",
+                instance.highVoltageCableDescriptor, 51200.0, 12800.0, true, 2.0e6
+            ) { null }
+            descriptor.ghostGroup = substationGhosts()
+            transparentNodeItem.addDescriptor(subId + (id shl 6), descriptor)
+        }
+        run {
+            subId = 10
+            val descriptor = mods.eln.gridnode.substation.SubstationDescriptor(
+                I18N.TR_NAME(I18N.Type.NONE, "Step-Up Substation"), Eln.obj.getObj("SubstationStepUp"), "textures/wire.png",
+                instance.highVoltageCableDescriptor, 51200.0, Eln.VVU, false, 1.0e6
+            ) { instance.veryHighVoltageSupplyCableDescriptor }
+            descriptor.ghostGroup = substationGhosts()
             transparentNodeItem.addDescriptor(subId + (id shl 6), descriptor)
         }
         run {

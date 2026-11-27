@@ -440,6 +440,8 @@ class SixNode : Node() {
                 true
             } else {
                 val element = sideElementList[side.int] ?: return false
+                // A padlock locks switches open, whatever they do with a click otherwise.
+                if (mods.eln.item.Lockout.tryUse(element, entityPlayer, stack)) return true
                 if (element.onBlockActivated(entityPlayer, side, vx, vy, vz)) true else super.onBlockActivated(entityPlayer, side, vx, vy, vz)
             }
         }

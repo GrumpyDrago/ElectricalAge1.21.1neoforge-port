@@ -54,30 +54,77 @@ Feeds a load (front) from the mains (back), and from a backup source (left) when
 **A UPS**: mains → battery charger → battery → *backup* side of the transfer switch, and mains → *mains* side. Add a
 battery management system between the battery and the switch to keep the battery from running flat.
 
-### Breaker Box and Power Bundle Cable
+### Breaker boxes, power bundle cables and supply cables
 
-A consumer unit, as in a house: one supply in, sixteen circuits out, each with its own breaker, all in one cable.
+A consumer unit, as in a house: one supply in, eight circuits out, each with its own breaker, all in one cable.
 
-There are three boxes: the **Breaker Box** for 200 V, the **50V Breaker Box** (light, with a green strip) and the
-**600V Breaker Box** (dark, with an orange strip). Each has the contact resistance of the cable of its voltage and
-burns out when fed more than 1.3 times its voltage. Each has its bundle: the **Power Bundle Cable** (black) for
-200 V, the **50V Power Bundle Cable** (green jacket) and the **600V Power Bundle Cable** (orange jacket). Run cables of
-the same voltage out of them. A bundle burns up when its lines get more than 1.3 times its voltage, so a 50 V bundle
-on a 200 V box does not last.
+| | 50 V | 200 V | 800 V |
+| --- | --- | --- | --- |
+| Breaker box | light, green strip | grey | dark, orange strip |
+| Power bundle cable | green jacket | black jacket | orange jacket |
+| Each line, like the cable of its voltage | 20 A, 1 kW | 10 A, 2 kW | 6.25 A, 5 kW |
+| Breaker ratings | 2 to 20 A | 1 to 10 A | 1 to 6 A |
+| Whole box, and its supply cable | 160 A, 8 kW | 80 A, 16 kW | 50 A, 40 kW |
 
-- **Breaker box**: the supply on the front, a power bundle cable on the back. Each of its sixteen breakers feeds the
-  line of one brush color. Open its screen to switch breakers on and off and to set their ratings (2 to 20 A; click to
-  raise, shift-click to lower). A tripped breaker shows a red light; switch it on to reset it.
+- **Breaker box**: the supply on the front, a power bundle cable on the back. Feed it with the **supply cable** of its
+  voltage, which carries what all eight lines can take; an ordinary cable carries only one line's worth. Each box
+  burns out when fed more than 1.3 times its voltage, and so does a bundle.
+- Open its screen to switch breakers on and off and to set their ratings (click to raise, shift-click to lower). A
+  tripped breaker shows a red light; switch it on to reset it.
 - Each breaker trips much like a real (type B) one, only faster: never up to 1.13 times its rating, within five
   seconds on any overload above that (about 3.4 s at twice its rating, 1.9 s at three times), and at once from five
   times its rating, on a short circuit.
-- **Power bundle cable**: sixteen insulated lines in one cable, which join line for line from one bundle to the next.
-  It does not connect to machines. Run a power cable out of it instead: a cable painted with a brush joins the line
-  of its color, and an unpainted one the black line. Cables of other colors right next to it are left alone.
-- Each line is made for 20 A at the voltage of the bundle. **Fed by a breaker box**, whose breakers keep every line within that, the
-  bundle does not heat up, however many lines are in use. **Used as a plain multi-core cable**, without a box, its
-  sixteen lines share one jacket and its heat: it carries about six lines at their full current, or all sixteen at a
-  lighter load, and burns up beyond that. Jade shows the lines in use and whether a breaker box feeds it.
+- **Power bundle cable**: eight insulated lines in one cable, which join line for line from one bundle to the next. It
+  does not connect to machines. Run a power cable out of it instead: the lines are **black** (unpainted cables),
+  **red, orange, yellow, green, blue, purple and white**; paint a cable with a brush to pick its line. Cables of other
+  colors do not join.
+- **Fed by a breaker box**, whose breakers keep every line within its rating, a bundle does not heat up. **Used as a
+  plain multi-core cable**, without a box, its eight lines share one jacket and its heat: it carries about six lines at
+  their full current, or all eight at a lighter load, and burns up beyond that. Jade shows the lines in use and
+  whether a breaker box feeds it.
+
+### Lockout/tagout
+
+Before working on a circuit, lock its switch open with a **Lockout Padlock**: use it on an electrical breaker, an
+electrical switch, a protection relay, a battery management system, a transfer switch or a breaker box (which then
+cuts all eight lines). It opens at once, and nobody can close it, by hand, by signal or by computer, until every lock
+is off. Each player can only take their own lock off, by using a padlock on it again; Jade shows whose locks are on.
+In creative mode, sneaking with a padlock cuts every lock off.
+
+## The grid: transmission, substations and distribution
+
+Power travels in three tiers, as on a real grid:
+
+| Tier | Voltage | Carried by | Each line |
+| --- | --- | --- | --- |
+| Transmission | 51.2 kV | T2 transmission towers | 40 A, about 2 MW |
+| Distribution | 12.8 kV | T1 utility poles | 20 A, about 250 kW |
+| Local | 3.2 kV, then 800/200/50 V | the pole transformer, then cables and transformers | as the cables |
+
+Lines are strung with high voltage cable as before, but carry far more than an 800 V cable: they are cooled by the
+air. A pole or tower overheats above its current and burns out above 1.3 times its voltage, so a 51.2 kV line run into
+utility poles burns them: step it down with a substation first.
+
+**Existing worlds**: utility poles used to take 51.2 kV. Lines run above about 16.6 kV on utility poles now burn them;
+use transmission towers and a distribution substation for those.
+
+### Substations
+
+Three blocks wide, deep and high. Link lines to their faces with high voltage cable, as with poles.
+
+- **Step-Up Substation**: power station to grid. 3.2 kV supply cables at the front, at the ground, and 51.2 kV
+  transmission lines on the left face. Up to 1 MW. A **3200V Supply Cable** carries about 120 kW; use several.
+- **Distribution Substation**: 51.2 kV transmission lines on the left face, 12.8 kV distribution lines on the right
+  face. Up to 2 MW.
+- Each side has a **circuit breaker with a protection relay**: it trips on overcurrent (sooner the bigger, at once on
+  a short circuit), closes again once by itself after five seconds to clear a passing fault, and then stays open
+  until someone closes it in the substation's screen. Breaking a fault at these voltages makes a big arc flash.
+- The **transformer** heats with its load (its oil is 50 °C above ambient at full load) and trips both breakers above
+  75 °C, or on overvoltage, instead of exploding. Close them again once it has cooled.
+- A **lockout padlock** opens both breakers and keeps them open. Computers can read it and open or close the
+  breakers. The lamps on the cabinets show green while closed and red when tripped.
+
+The Grid DC-DC Converter does the same as a distribution substation, without breakers; it now takes 51.2 kV too.
 
 ## Arc flash
 
@@ -117,6 +164,12 @@ Multiples are of the cost oriented battery.
 - Jade shows the chemistry and the cell temperature. Ambient temperature comes from the biome and the depth, so batteries
   deep underground run warmer.
 - All batteries, these and the old ones, are made to work at full power in up to 35 °C ambient.
+
+### Overheating: venting
+
+No battery explodes any more. Overheated (or overcharged), it **vents**: it cuts itself off, glows red and smokes,
+and loses a tenth of its life. It stays off until it is cooled with a **bucket of water** (use the bucket on it), or
+broken and replaced. Before that, a battery near its limit turns reddish and smokes a little, as a warning.
 
 ## Generation
 
@@ -159,6 +212,24 @@ their best tip speed. It converts the power to the battery's voltage at 97.5 % e
 monocrystalline panels in series) and 60 A out.
 
 It stops at the charge voltage and at the current limit, both set in its screen.
+
+## Computers (CC: Tweaked)
+
+Every block of the mod is an `eln` peripheral. A block holds one machine, or up to six parts on its faces, named
+`down`, `up`, `north`, `south`, `west` and `east`:
+
+- `getParts()`: the parts, as `{face = name}`.
+- `getInfo([face])`: what Jade shows, as text, for any part.
+- `getValues([face])`: numbers and flags, for batteries, breaker boxes, breakers, switches, protection relays,
+  battery management systems, transfer switches and MPPT controllers.
+- `getActions([face])` and `call([face,] action, ...)`: switch breakers and breaker box lines, trip or close a
+  relay, set a transfer switch's mode. Locked-out devices refuse to close.
+
+```lua
+local box = peripheral.find("eln")
+for _, b in ipairs(box.getValues("down").breakers) do print(b.color, b.state, b.current) end
+box.call("down", "setBreaker", 2, false)
+```
 
 ## Instruments
 

@@ -31,7 +31,48 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ElectricalBreakerElement extends SixNodeElement {
+public class ElectricalBreakerElement extends SixNodeElement implements mods.eln.item.Lockable, mods.eln.node.ComputerControllable {
+
+    @NotNull
+    @Override
+    public java.util.Map<String, Object> computerValues() {
+        java.util.Map<String, Object> values = new java.util.LinkedHashMap<>();
+        values.put("closed", switchState);
+        values.put("current", Math.abs(switchResistor.getCurrent()));
+        values.put("voltageA", aLoad.getVoltage());
+        values.put("voltageB", bLoad.getVoltage());
+        values.put("locked", lockout.isLocked());
+        return values;
+    }
+
+    @NotNull
+    @Override
+    public java.util.List<String> computerActions() {
+        return java.util.List.of("setClosed(closed): closes or opens it; false while locked out");
+    }
+
+    @Override
+    public Object computerCall(@NotNull String action, @NotNull java.util.List<?> args) {
+        if (!action.equals("setClosed")) throw new IllegalArgumentException("no action " + action);
+        boolean closed = mods.eln.node.ComputerControllable.Companion.flag(args, 0, "closed");
+        if (closed && lockout.isLocked()) return false;
+        setSwitchState(closed);
+        return true;
+    }
+
+    private final mods.eln.item.Lockout lockout = new mods.eln.item.Lockout();
+
+    @NotNull
+    @Override
+    public mods.eln.item.Lockout getLockout() {
+        return lockout;
+    }
+
+    @Override
+    public void lockoutChanged() {
+        if (lockout.isLocked()) setSwitchState(false);
+        needPublish();
+    }
 
     public ElectricalBreakerDescriptor descriptor;
     public NbtElectricalLoad aLoad = new NbtElectricalLoad("aLoad");
@@ -83,6 +124,7 @@ public class ElectricalBreakerElement extends SixNodeElement {
         switchState = nbt.getBoolean("switchState");
         voltageMax = nbt.getFloat("voltageMax");
         voltageMin = nbt.getFloat("voltageMin");
+        lockout.readFromNBT(nbt, "");
         nbtBoot = true;
     }
 
@@ -93,6 +135,7 @@ public class ElectricalBreakerElement extends SixNodeElement {
         nbt.putBoolean("switchState", switchState);
         nbt.putFloat("voltageMax", voltageMax);
         nbt.putFloat("voltageMin", voltageMin);
+        lockout.writeToNBT(nbt, "");
     }
 
     @Override
@@ -127,6 +170,7 @@ public class ElectricalBreakerElement extends SixNodeElement {
     public Map<String, String> getWaila() {
         Map<String, String> info = new HashMap<String, String>();
         info.put(I18N.tr("Contact"), switchState ? I18N.tr("Closed") : I18N.tr("Open"));
+        if (lockout.isLocked()) info.put(I18N.tr("Lockout"), lockout.describe());
         info.put(I18N.tr("Current"), Utils.plotAmpere("", aLoad.getCurrent()));
         if (Eln.wailaEasyMode) {
             info.put(I18N.tr("Voltages"), Utils.plotVolt("", aLoad.getVoltage()) + Utils.plotVolt(" ", bLoad.getVoltage()));
@@ -155,6 +199,8 @@ public class ElectricalBreakerElement extends SixNodeElement {
     }
 
     public void setSwitchState(boolean state) {
+        // Locked out, it stays open.
+        if (state && lockout.isLocked()) state = false;
         if (state == switchState) return;
         play(new SoundCommand("minecraft:block.lever.click").mulVolume(0.3F, 0.6f).smallRange());
         if (!state && cableDescriptor != null) {

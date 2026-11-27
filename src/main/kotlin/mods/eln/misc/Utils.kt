@@ -369,6 +369,8 @@ object Utils {
 
     @JvmStatic
     fun sendPacketToClient(bos: ByteArrayOutputStream, player: ServerPlayer) {
+        // Players without the mod's channel (fake players of other mods or of game tests) would crash the server.
+        if (!player.connection.hasChannel(ElnPayload.TYPE)) return
         PacketDistributor.sendToPlayer(player, ElnPayload(bos.toByteArray()))
     }
 

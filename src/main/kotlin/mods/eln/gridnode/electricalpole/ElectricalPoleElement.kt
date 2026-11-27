@@ -52,9 +52,9 @@ class ElectricalPoleElement(node: TransparentNode, descriptor: TransparentNodeDe
         electricalLoad.setCanBeSimplifiedByLine(true)
         // Most of the resistance is in the cable, which is handled in GridLink.
         // We put some of it here, thereby allowing the thermal watchdog to work.
-        desc.cableDescriptor.applyTo(electricalLoad)
-        desc.cableDescriptor.applyTo(thermalLoad)
-        heater.limitTemperatureRate(desc.cableDescriptor.thermalSelfHeatingRateLimit)
+        desc.conductor.applyTo(electricalLoad)
+        desc.conductor.applyTo(thermalLoad)
+        heater.limitTemperatureRate(desc.conductor.thermalSelfHeatingRateLimit)
         electricalLoadList.add(electricalLoad)
 
         thermalLoadList.add(thermalLoad)
@@ -62,13 +62,13 @@ class ElectricalPoleElement(node: TransparentNode, descriptor: TransparentNodeDe
         thermalLoad.setAsSlow()
         slowProcessList.add(thermalWatchdog)
         thermalWatchdog
-                .setTemperatureLimits(desc.cableDescriptor.thermalWarmLimit, desc.cableDescriptor.thermalCoolLimit)
+                .setTemperatureLimits(desc.conductor.thermalWarmLimit, desc.conductor.thermalCoolLimit)
                 .setDestroys(WorldExplosion(this).cableExplosion())
         thermalWatchdog.dumpMatrixOnTrip("ElectricalPoleElement thermal trip") { this }
 
         slowProcessList.add(voltageWatchdog)
-        // Electrical poles can handle higher voltages, due to air insulation.
-        // This puts utility poles at 4 * Very High Voltage.
+        // Electrical poles can handle higher voltages, due to air insulation: T1 utility poles take 12.8 kV, four
+        // times the very high voltage their transformer gives, and T2 transmission towers 51.2 kV.
         val exp: WorldExplosion = if (desc.includeTransformer) {
             WorldExplosion(this).machineExplosion()
         } else {
