@@ -575,6 +575,24 @@ object ElnExpansionTests {
         val front = BlockPos(2, 1, 2).relative(stepUp.front.toForge())
         source(helper, player, front, 3200.0)
         stepUp.node!!.reconnect()
+        // Wherever the player clicks, a line finds the side of its voltage, and different voltages are refused.
+        val tower = placeTransparent(helper, player, "Transmission Tower", BlockPos(8, 1, 2)).element as mods.eln.gridnode.GridElement
+        val choose = mods.eln.gridnode.GridElement.Companion::chooseSides
+        for (clicked in Direction.entries) {
+            helper.assertTrue(choose(tower, clicked, distribution, clicked)?.second == distribution.front.left(),
+                "a tower clicked on $clicked does not go to the 51.2 kV side")
+            helper.assertTrue(choose(distribution, clicked, pole, clicked)?.first == distribution.front.right(),
+                "a pole clicked on $clicked does not go to the 12.8 kV side")
+            helper.assertTrue(choose(stepUp, clicked, distribution, clicked) == stepUp.front.left() to distribution.front.left(),
+                "the two substations do not join their 51.2 kV sides")
+        }
+        helper.assertTrue(choose(tower, Direction.XN, pole, Direction.XN) == null, "a tower joins a utility pole")
+        // As a player does it: cable in hand, the tower, then the top of the substation, which is no side of it.
+        player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, Eln.findItemStack("High Voltage Cable", 64))
+        tower.onBlockActivated(player, Direction.XP, 0f, 0f, 0f)
+        distribution.onBlockActivated(player, Direction.YP, 0f, 0f, 0f)
+        helper.assertTrue(tower.gridLinkList.any { it.getOtherElement(tower) === distribution }, "clicking did not link the tower")
+        helper.assertTrue(tower.gridLinkList.first().getSide(distribution) == distribution.front.left(), "linked to the wrong side")
         val cable = Eln.instance.highVoltageCableDescriptor
         mods.eln.gridnode.GridLink.addLink(stepUp, distribution, stepUp.front.left(), distribution.front.left(), cable, 8)
         mods.eln.gridnode.GridLink.addLink(distribution, pole, distribution.front.right(), Direction.YP, cable, 8)
@@ -599,6 +617,39 @@ object ElnExpansionTests {
                 // Locked out, it will not close.
                 distribution.lockout.use(distribution, player)
                 helper.assertTrue(!distribution.closeBreaker(false), "closed while locked out")
+            }
+            .thenSucceed()
+    }
+
+    /**
+     * A SCADA monitor with an electrical breaker linked by hand and a battery reported by a transmitter next to it:
+     * both show, the battery venting raises an alarm, and the monitor's switch opens the breaker.
+     */
+    @GameTest(template = EMPTY, timeoutTicks = 300)
+    @JvmStatic
+    fun scadaMonitorShowsAndSwitchesDevices(helper: GameTestHelper) {
+        val player = player(helper)
+        floor(helper)
+        val monitor = placeSix(helper, player, "SCADA Monitor", BlockPos(1, 1, 1)).getElement(Direction.YN)
+            as mods.eln.sixnode.scada.ScadaMonitorElement
+        val breaker = placeSix(helper, player, "Electrical Breaker", BlockPos(5, 1, 1)).getElement(Direction.YN)
+            as mods.eln.sixnode.electricalbreaker.ElectricalBreakerElement
+        breaker.inventory!!.setInventorySlotContents(ElectricalBreakerContainer.cableSlotId, Eln.findItemStack("Low Voltage Cable", 1))
+        breaker.inventoryChanged()
+        breaker.setSwitchState(true)
+        val battery = placeTransparent(helper, player, "Cost Oriented Battery", BlockPos(8, 1, 8)).element as BatteryElement
+        placeSix(helper, player, "SCADA Transmitter", BlockPos(8, 1, 9))
+        monitor.addDevices(listOf(mods.eln.sixnode.scada.DeviceRef.of(breaker)!!))
+        val lines = { field(monitor, "current") as List<*> }
+        helper.startSequence()
+            .thenWaitUntil { helper.assertTrue(lines().size == 2, "the monitor shows ${lines().size} devices") }
+            .thenExecute { battery.vent() }
+            .thenWaitUntil { helper.assertTrue(monitor.alarms == 1, "${monitor.alarms} alarms") }
+            .thenExecute {
+                val controls = mods.eln.sixnode.scada.ScadaDevices.controls(breaker)
+                helper.assertTrue(controls.size == 1 && controls[0].closed, "breaker controls: ${controls.map { it.label to it.closed }}")
+                controls[0].toggle()
+                helper.assertTrue(!breaker.switchState, "the monitor did not open the breaker")
             }
             .thenSucceed()
     }

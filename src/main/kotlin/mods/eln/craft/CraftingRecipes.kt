@@ -1269,6 +1269,14 @@ object CraftingRecipes {
         addRecipe(Eln.findItemStack("3200V Supply Cable", 2), "CRC", "CRC", 'C', findItemStack("Very High Voltage Cable"), 'R', "itemRubber")
         val protection = findItemStack("Overcurrent Protection Relay")
         addRecipe(
+            findItemStack("SCADA Monitor"), "GGG", "GAG", "III", 'G', ItemStack(Blocks.GLASS_PANE), 'A', Eln.dictAdvancedChip,
+            'I', "plateIron"
+        )
+        addRecipe(
+            findItemStack("SCADA Transmitter"), " R ", "ICI", 'R', ItemStack(Items.LIGHTNING_ROD), 'I', "plateIron", 'C', Eln.dictCheapChip
+        )
+        addRecipe(findItemStack("SCADA Linker"), "C", "S", 'C', Eln.dictCheapChip, 'S', ItemStack(Items.STICK))
+        addRecipe(
             findItemStack("Distribution Substation"), "R R", "HGH", "SSS", 'R', protection,
             'H', findItemStack("High Voltage Cable"), 'G', findItemStack("Grid DC-DC Converter"), 'S', ItemStack(Items.SMOOTH_STONE)
         )

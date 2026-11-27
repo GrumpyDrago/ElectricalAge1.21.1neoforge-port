@@ -174,6 +174,15 @@ object SixNodeRegistration {
         }
         Eln.sixNodeItem.setCreativeTabForGroup(83, Eln.creativeTabPowerElectronics)
         registerPowerBundleCable(83)
+        Eln.sixNodeItem.setCreativeTabForGroup(84, Eln.creativeTabSignalProcessing)
+        run {
+            val name = I18N.TR_NAME(I18N.Type.NONE, "SCADA Monitor")
+            Eln.sixNodeItem.addDescriptor(0 + (84 shl 6), mods.eln.sixnode.scada.ScadaMonitorDescriptor(name, Eln.obj.getObj("ScadaMonitor")))
+        }
+        run {
+            val name = I18N.TR_NAME(I18N.Type.NONE, "SCADA Transmitter")
+            Eln.sixNodeItem.addDescriptor(1 + (84 shl 6), mods.eln.sixnode.scada.ScadaTransmitterDescriptor(name, Eln.obj.getObj("ScadaTransmitter")))
+        }
     }
 
     private fun registerSwitchgear(id: Int) {

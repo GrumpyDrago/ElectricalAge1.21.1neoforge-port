@@ -73,6 +73,7 @@ New sub ids only; no existing id moved.
 | --- | --- | --- | --- |
 | `sharedItem` | `0x0E` meters | 3 | Thermal Camera |
 | `sharedItem` | `0x0E` meters | 4 | Lockout Padlock |
+| `sharedItem` | `0x0E` meters | 5 | SCADA Linker |
 | `sixNodeItem` | `0x50` switchgear | 0 | Overcurrent Protection Relay |
 | `sixNodeItem` | `0x50` switchgear | 1 | Battery Management System |
 | `sixNodeItem` | `0x50` switchgear | 2 | Automatic Transfer Switch |
@@ -88,6 +89,8 @@ New sub ids only; no existing id moved.
 | `sixNodeItem` | `0x53` | 4 | 200V Supply Cable |
 | `sixNodeItem` | `0x53` | 5 | 800V Supply Cable |
 | `sixNodeItem` | `0x53` | 6 | 3200V Supply Cable |
+| `sixNodeItem` | `0x54` | 0 | SCADA Monitor |
+| `sixNodeItem` | `0x54` | 1 | SCADA Transmitter |
 | `transparentNodeItem` | `0x7B` grid devices | 9 | Distribution Substation |
 | `transparentNodeItem` | `0x7B` grid devices | 10 | Step-Up Substation |
 | `transparentNodeItem` | `0x10` batteries | 8 | Lead-Acid Battery |

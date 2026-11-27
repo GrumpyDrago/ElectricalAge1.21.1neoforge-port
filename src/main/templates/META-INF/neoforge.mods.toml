@@ -28,6 +28,13 @@ ordering="NONE"
 side="BOTH"
 
 [[dependencies.${mod_id}]]
+modId="guideme"
+type="optional"
+versionRange="[21.1.0,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
 modId="kotlinforforge"
 type="required"
 versionRange="[5.0,)"

@@ -154,6 +154,9 @@ class TransparentNode : Node() {
     }
 
     override fun onBlockActivated(entityPlayer: Player, side: Direction, vx: Float, vy: Float, vz: Float): Boolean {
+        // A padlock or a SCADA linker acts before the machine does anything with the click.
+        if (mods.eln.item.Lockout.tryUse(element, entityPlayer, entityPlayer.currentEquippedItem)) return true
+        if (mods.eln.sixnode.scada.ScadaLinkerDescriptor.use(element, entityPlayer, entityPlayer.currentEquippedItem)) return true
         return if (element!!.onBlockActivated(entityPlayer, side, vx, vy, vz)) true else super.onBlockActivated(entityPlayer, side, vx, vy, vz)
     }
 

@@ -264,6 +264,7 @@ public class Eln {
     static public GenericItemUsingDamageDescriptor multiMeterElement, thermometerElement, allMeterElement;
     static public GenericItemUsingDamageDescriptor thermalCameraElement;
     static public GenericItemUsingDamageDescriptor lockoutPadlockElement;
+    static public GenericItemUsingDamageDescriptor scadaLinkerElement;
     static public GenericItemUsingDamageDescriptor configCopyToolElement;
     public static TreeResin treeResin;
     public static MiningPipeDescriptor miningPipeDescriptor;

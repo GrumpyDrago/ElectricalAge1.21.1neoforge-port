@@ -118,6 +118,9 @@ class GridTransformerElement(node: TransparentNode, descriptor: TransparentNodeD
         return getElectricalLoad(side, LRDU.Down)
     }
 
+    override fun gridSideVoltages(clicked: Direction): Map<Direction, Double?> =
+        mapOf(front.left() to primaryVoltage, front.right() to secondaryVoltage)
+
     override fun getThermalLoad(side: Direction, lrdu: LRDU) = thermalLoad
 
     override fun multiMeterString(side: Direction): String {

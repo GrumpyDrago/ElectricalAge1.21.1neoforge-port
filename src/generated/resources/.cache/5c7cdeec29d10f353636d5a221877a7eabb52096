@@ -1,4 +1,4 @@
-// 1.21.1	2026-11-26T21:57:24.1331911	Electrical Age assets and data
+// 1.21.1	2026-11-26T22:21:54.5636954	Electrical Age assets and data
 f9e1fbf3c707c65831b94091f76012c25d9274d4 assets/eln/blockstates/arc_clay_block.json
 728a176cb7d6580d79a788dad0cb2a8c02782b5a assets/eln/blockstates/arc_metal_block.json
 3f3711dc8a63efa9eac0ed4942886027c0f1f674 assets/eln/blockstates/cinnabar_ore.json
@@ -347,6 +347,9 @@ a11cadbd8c7d4f56b06e194724e9758b2728a4cb assets/eln/models/item/removed_from_mod
 6134426e0547dfa4733fa9406e35538f1bf860bb assets/eln/models/item/rolling_shaft_machine.json
 2b90e6aae3c65e153da2278afdff289848686ab3 assets/eln/models/item/rubber.json
 bc77e8246eb5146b6077217b58b04797fefd77cf assets/eln/models/item/sample_and_hold.json
+e70f48569c08073a120e2580d28d7642d2c543f5 assets/eln/models/item/scada_linker.json
+ec2fd853f58c552ba7a4e56d40b81269a1dbbdd0 assets/eln/models/item/scada_monitor.json
+fdb19ab541ed9ef2e9aecfc012df08aced5762a2 assets/eln/models/item/scada_transmitter.json
 3d15bf92952ae362836f57c7e7b54ef54ed4485c assets/eln/models/item/scanner.json
 3d4680565170a456a9e889b6ba88d80beab52077 assets/eln/models/item/schmitt_trigger_chip.json
 99d4acee411583671b739fc44bc51c162a6a8626 assets/eln/models/item/sconce_lamp_socket.json
@@ -391,7 +394,7 @@ c53b1cbd8bc96362ba170fe4846dc496e84643fa assets/eln/models/item/small_rotating_s
 63b102dfcc7d88982b4d5660705e3ebf429b8260 assets/eln/models/item/solar_tracker.json
 db5533083940b00de0be75f242ec57d90c4a914e assets/eln/models/item/standard_alarm.json
 ac1de828539a916dbf950edf14148152ed48ac10 assets/eln/models/item/steam_turbine.json
-d29c1174290aabcfcfaf43a8b87a8d5de843e124 assets/eln/models/item/step_up_substation.json
+bcd4b16ebfc62529e79f110f8df378ca4b9820b5 assets/eln/models/item/step_up_substation.json
 b9a75311c06e9401ad155d4c515755f4d4ad22ff assets/eln/models/item/stone_heat_furnace.json
 c6a7b8303732908a4ff0c669dc616e6e74837e5e assets/eln/models/item/street_light.json
 de2dca22af1d780922c1b815a959f41a38b13108 assets/eln/models/item/string_lights.json

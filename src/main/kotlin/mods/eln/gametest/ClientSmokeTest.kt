@@ -381,7 +381,7 @@ object ClientSmokeTest {
         val x0 = 60
         val parts = listOf(
             "Overcurrent Protection Relay", "Battery Management System", "Automatic Transfer Switch",
-            "MPPT Charge Controller", "Oscilloscope", "200V Breaker Box", "50V Breaker Box", "800V Breaker Box"
+            "MPPT Charge Controller", "Oscilloscope", "200V Breaker Box", "50V Breaker Box", "800V Breaker Box", "SCADA Monitor"
         )
         later(20) { onServer { level, player -> buildShowcase(level, player, parts, x0, z) } }
         later(40) { look(x0 + 8.0, GROUND + 3.5, z - 3.5, 0f, 40f) }
@@ -445,6 +445,23 @@ object ClientSmokeTest {
         later { shot("exp_thermal_camera") }
         later(10) { look(x0 + 8.0, GROUND + 3.5, z - 3.5, 0f, 40f) }
         later(40) { shot("exp_thermal_camera_switchgear") }
+        // The guidebook, when GuideME is there; reflection keeps this class loading without it.
+        for (page in listOf("index", "grid", "breaker-boxes")) {
+            later(10) {
+                try {
+                    val rl = net.minecraft.resources.ResourceLocation::class.java
+                    val anchor = Class.forName("guideme.PageAnchor").getMethod("page", rl)
+                        .invoke(null, net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("eln", "$page.md"))
+                    Class.forName("guideme.GuidesCommon")
+                        .getMethod("openGuide", net.minecraft.world.entity.player.Player::class.java, rl, anchor.javaClass)
+                        .invoke(null, mc.player, net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("eln", "guide"), anchor)
+                } catch (e: Exception) {
+                    Eln.logger.error("SMOKE could not open the guide: {}", e.toString())
+                }
+            }
+            later(30) { shot("guide_" + page.replace('-', '_')) }
+        }
+        later(5) { mc.setScreen(null) }
         later(5) {
             mc.options.hideGui = true
             for ((name, pos) in showcase) gui("six", name, pos, Direction.YN)
@@ -454,7 +471,7 @@ object ClientSmokeTest {
     }
 
     private fun buildShowcase(level: ServerLevel, player: ServerPlayer, parts: List<String>, x0: Int, z: Int) {
-        for (x in x0 - 4..x0 + 34) for (dz in -6..16) {
+        for (x in x0 - 4..x0 + 40) for (dz in -6..16) {
             level.setBlock(BlockPos(x, GROUND - 1, z + dz), Blocks.SMOOTH_STONE.defaultBlockState(), 2)
         }
         fun six(name: String, x: Int, zz: Int): SixNode? {
@@ -529,6 +546,13 @@ object ClientSmokeTest {
             }
             node.reconnect()
         }
+        // The SCADA monitor shows the other parts.
+        val parts2 = NodeManager.instance!!.nodeList.filterIsInstance<SixNode>()
+            .filter { it.coordinate.y == GROUND && it.coordinate.z == z && it.coordinate.x in x0..x0 + 40 }
+        val monitor = parts2.firstNotNullOfOrNull { it.getElement(Direction.YN) as? mods.eln.sixnode.scada.ScadaMonitorElement }
+        monitor?.addDevices(parts2.mapNotNull { n ->
+            n.getElement(Direction.YN)?.takeIf { it !is mods.eln.sixnode.scada.ScadaMonitorElement }?.let { mods.eln.sixnode.scada.DeviceRef.of(it) }
+        })
         val batteries = listOf("Lead-Acid Battery", "Nickel-Cadmium Battery", "Lithium-Ion Battery", "LiFePO4 Battery")
         for ((k, name) in batteries.withIndex()) {
             if (!Eln.transparentNodeItem.placeBlockAt(Eln.findItemStack(name, 1), player, level, x0 + k * 2, GROUND, z + 5, 1)) {

@@ -1,5 +1,7 @@
 package mods.eln.gridnode
 
+import mods.eln.i18n.I18N.tr
+
 import mods.eln.compat.*
 
 import mods.eln.Eln
@@ -64,9 +66,18 @@ abstract class GridElement(transparentNode: TransparentNode, descriptor: Transpa
             return true
         }
         if (other == null) {
-            Utils.addChatMessage(entityPlayer, "Setting starting point")
+            Utils.addChatMessage(entityPlayer, tr("Linking from here: now use the cable on the other end."))
             pending.put(uuid, Pair.of(this.coordinate(), side))
         } else {
+            // Which side of each end the line goes to does not depend on where they were clicked: the ends find the
+            // sides whose voltages match.
+            val sides = chooseSides(this, side, other, p!!.right)
+            if (sides == null) {
+                Utils.addChatMessage(entityPlayer, tr("These two carry different voltages (%1$ and %2$): link them through a substation.",
+                    describeVoltages(this, side), describeVoltages(other, p.right)))
+                pending.remove(uuid)
+                return true
+            }
             val distance = other.coordinate().trueDistanceTo(this.coordinate())
             val cableLength = Math.ceil(distance).toInt()
             val range = Math.min(connectRange, other.connectRange)
@@ -82,8 +93,10 @@ abstract class GridElement(transparentNode: TransparentNode, descriptor: Transpa
                 Utils.addChatMessage(entityPlayer, "Cannot connect, no line of sight")
             } else {
                 try {
-                    GridLink.addLink(this, other, side, p!!.right, cable, cableLength)
-                    Utils.addChatMessage(entityPlayer, "Added connection")
+                    GridLink.addLink(this, other, sides.first, sides.second, cable, cableLength)
+                    val volts = gridSideVoltages(sides.first)[sides.first] ?: other.gridSideVoltages(sides.second)[sides.second]
+                    Utils.addChatMessage(entityPlayer, if (volts != null) tr("Linked, at %1$.", Utils.plotVolt("", volts).trim())
+                        else tr("Linked."))
                     entityPlayer.removeMultipleItems(stack, cableLength)
                 } catch (e: UserError) {
                     Utils.addChatMessage(entityPlayer, e.message)
@@ -158,6 +171,12 @@ abstract class GridElement(transparentNode: TransparentNode, descriptor: Transpa
     }
 
     abstract fun getGridElectricalLoad(side: Direction): ElectricalLoad?
+
+    /**
+     * The sides lines can be linked to, with the voltage each carries (null for any voltage). Poles take a line on
+     * whatever side was [clicked]; substations and converters have one side for each voltage.
+     */
+    open fun gridSideVoltages(clicked: Direction): Map<Direction, Double?> = mapOf(clicked to null)
 
     // TODO: This should check if the wire isn't passing through blocks.
     private fun validLOS(@Suppress("UNUSED_PARAMETER") other: GridElement): Boolean {
@@ -281,6 +300,25 @@ abstract class GridElement(transparentNode: TransparentNode, descriptor: Transpa
     }
 
     companion object {
+        /**
+         * The sides of [a] and [b] to link, for a line between them: sides with the same voltage, preferring the
+         * clicked ones; null when their voltages differ.
+         */
+        fun chooseSides(a: GridElement, aClicked: Direction, b: GridElement, bClicked: Direction): kotlin.Pair<Direction, Direction>? {
+            val candidates = ArrayList<kotlin.Pair<Direction, Direction>>()
+            for ((sa, va) in a.gridSideVoltages(aClicked)) for ((sb, vb) in b.gridSideVoltages(bClicked)) {
+                if (va == null || vb == null || Math.abs(va - vb) < 1) candidates.add(sa to sb)
+            }
+            return candidates.maxByOrNull { (sa, sb) ->
+                val va = a.gridSideVoltages(aClicked)[sa]
+                val vb = b.gridSideVoltages(bClicked)[sb]
+                (if (va != null && vb != null) 4 else 0) + (if (sa == aClicked) 1 else 0) + (if (sb == bClicked) 1 else 0)
+            }
+        }
+
+        private fun describeVoltages(e: GridElement, clicked: Direction): String =
+            e.gridSideVoltages(clicked).values.filterNotNull().joinToString("/") { Utils.plotVolt("", it).trim() }.ifEmpty { "?" }
+
         /**
          * The last place any given player tried to link two instance nodes.
          */

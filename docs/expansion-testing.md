@@ -110,7 +110,8 @@ use transmission towers and a distribution substation for those.
 
 ### Substations
 
-Three blocks wide, deep and high. Link lines to their faces with high voltage cable, as with poles.
+Three blocks wide, deep and high. Link lines to them with high voltage cable, as with poles: click anywhere on them,
+and each line goes to the side of its voltage by itself. Linking two different voltages directly is refused.
 
 - **Step-Up Substation**: power station to grid. 3.2 kV supply cables at the front, at the ground, and 51.2 kV
   transmission lines on the left face. Up to 1 MW. A **3200V Supply Cable** carries about 120 kW; use several.
@@ -230,6 +231,23 @@ local box = peripheral.find("eln")
 for _, b in ipairs(box.getValues("down").breakers) do print(b.color, b.state, b.current) end
 box.call("down", "setBreaker", 2, false)
 ```
+
+## SCADA
+
+A control room screen for a whole power system.
+
+- **SCADA Monitor** (wall part): lists up to 16 devices with their readings. Devices in trouble (a trip, a vented
+  battery, an overheated or overvoltage substation) show in red and blink its alarm lamp. Breakers, switches, relays
+  and substations get open/close buttons; locked-out devices refuse to close.
+- **SCADA Linker** (item): use it on devices to collect them, then on a monitor to add them. Linked devices have an
+  **x** to remove them.
+- **SCADA Transmitter** (wall part): reports every device within 2 blocks, wirelessly, to monitors on the same channel
+  within 256 blocks. Both default to the channel `SCADA`.
+
+## Guidebook
+
+With GuideME installed, craft the **Electrical Age Guide** from a book and a copper ingot. It covers the basics and
+all of these parts; hold the guide key over an item to open its page. Without GuideME the mod works as before.
 
 ## Instruments
 

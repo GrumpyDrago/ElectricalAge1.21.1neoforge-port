@@ -1007,6 +1007,14 @@ object ItemRegistration {
             Eln.lockoutPadlockElement = element
         }
         run {
+            // Added on the expansion-testing branch.
+            subId = 5
+            completId = subId + (id shl 6)
+            element = mods.eln.sixnode.scada.ScadaLinkerDescriptor(I18N.TR_NAME(I18N.Type.NONE, "SCADA Linker"))
+            Eln.sharedItem.addElement(completId, element)
+            Eln.scadaLinkerElement = element
+        }
+        run {
             subId = 8
             completId = subId + (id shl 6)
             element = WirelessSignalAnalyserItemDescriptor(

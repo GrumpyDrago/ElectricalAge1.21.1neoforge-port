@@ -1,3 +1,13 @@
+## 2.0.0-testing.5
+
+- SCADA: a monitor that shows up to 16 devices with their readings and alarms and switches their breakers, a linker to
+  put devices on it, and wireless transmitters that report the devices near them on a channel
+- Guidebook, with GuideME installed (optional): the basics, batteries, protection, breaker boxes, the grid, solar and
+  wind, instruments, computers and SCADA. Crafted from a book and a copper ingot.
+- Padlocks now also work on substations
+- Grid lines are easier to link: click anywhere on a pole, tower, substation or converter; each line goes to the side
+  of its voltage by itself, and linking two different voltages (a tower to a utility pole) is refused with a hint
+
 ## 2.0.0-testing.4
 
 - Batteries no longer explode: overheated or overcharged, they vent, cutting themselves off, glowing red and smoking,

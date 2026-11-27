@@ -142,6 +142,9 @@ class ElectricalPoleElement(node: TransparentNode, descriptor: TransparentNodeDe
         return electricalLoad
     }
 
+    /** A pole takes lines on any side, at its voltage. */
+    override fun gridSideVoltages(clicked: Direction): Map<Direction, Double?> = mapOf(clicked to desc.voltageLimit)
+
     override fun getThermalLoad(side: Direction, lrdu: LRDU): ThermalLoad {
         return thermalLoad
     }

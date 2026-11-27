@@ -240,6 +240,10 @@ class SubstationElement(node: TransparentNode, descriptor: TransparentNodeDescri
         super.connectJob()
     }
 
+    override fun gridSideVoltages(clicked: Direction): Map<Direction, Double?> =
+        if (desc.lowSideIsGrid) mapOf(front.left() to desc.highVoltage, front.right() to desc.lowVoltage)
+        else mapOf(front.left() to desc.highVoltage)
+
     override fun getGridElectricalLoad(side: Direction): ElectricalLoad? = when (side) {
         front.left() -> highLoad
         front.right() -> if (desc.lowSideIsGrid) lowLoad else null

@@ -1,0 +1,14 @@
+{
+  "item_settings": {
+    "display_name": {
+      "text": "Electrical Age Guide"
+    },
+    "tooltip_lines": [
+      {
+        "text": "How to build power systems that work, and stay safe.",
+        "color": "gray"
+      }
+    ]
+  },
+  "default_language": "en_us"
+}

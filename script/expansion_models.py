@@ -998,6 +998,68 @@ def substation(folder, icon_name, label):
     icon(icon_name, draw)
 
 
+def scada():
+    """The SCADA monitor (a wall screen showing a one-line diagram, with an OK and an alarm lamp) and the SCADA
+    transmitter (a small box with an antenna)."""
+    c = Canvas(64, 64)
+    s = swatches(c, [('case', (52, 56, 62), 4), ('bezel', (30, 32, 36), 2), ('green', GREEN, 0), ('red', RED, 0),
+                     ('steel', STEEL, 5), ('white', WHITE, 0)])
+    # The screen: a dark field with a one-line diagram, on the lower half of the texture.
+    c.rect(0, 32, 64, 64, (10, 24, 30))
+    g = (90, 220, 120)
+    c.line(4, 48, 60, 48, g)
+    for x in (12, 28, 44):
+        c.line(x, 48, x, 58, g)
+        c.rect(x - 2, 52, x + 3, 55, (240, 200, 60))
+    c.rect(30, 38, 35, 43, g)
+    c.line(32, 43, 32, 48, g)
+    for x in range(4, 60, 6):
+        c.set(x, 35, (150, 180, 190))
+    screen = (0, 32, 64, 64)
+    m = Model('scadamonitor', 64, 64)
+    m.box('case', 'main', (0.0, -0.34, -0.45), (0.07, 0.34, 0.45), s['case'])
+    m.box('case', 'main', (0.07, -0.34, -0.45), (0.09, 0.34, -0.4), s['bezel'])
+    m.box('case', 'main', (0.07, -0.34, 0.4), (0.09, 0.34, 0.45), s['bezel'])
+    m.box('case', 'main', (0.07, 0.29, -0.4), (0.09, 0.34, 0.4), s['bezel'])
+    m.box('case', 'main', (0.07, -0.34, -0.4), (0.09, -0.24, 0.4), s['bezel'])
+    m.box('screen', 'main', (0.07, -0.24, -0.4), (0.075, 0.29, 0.4), screen, faces='X')
+    m.box('ledok', 'main', (0.09, -0.3, 0.28), (0.1, -0.27, 0.32), s['green'], faces='X')
+    m.box('ledalarm', 'main', (0.09, -0.3, 0.34), (0.1, -0.27, 0.38), s['red'], faces='X')
+    m.write('scadamonitor', {'main': 'scadamonitor.png'})
+    c.save(os.path.join(MODEL, 'scadamonitor', 'scadamonitor.png'))
+
+    m = Model('scadatransmitter', 64, 64)
+    m.box('case', 'main', (0.0, -0.15, -0.2), (0.12, 0.15, 0.2), s['case'])
+    m.box('antenna', 'main', (0.04, 0.15, -0.015), (0.07, 0.45, 0.015), s['steel'])
+    m.box('antenna', 'main', (0.03, 0.43, -0.03), (0.08, 0.47, 0.03), s['white'])
+    m.box('led', 'main', (0.12, 0.05, 0.08), (0.13, 0.1, 0.13), s['green'], faces='X')
+    m.write('scadatransmitter', {'main': 'scadatransmitter.png'})
+    c.save(os.path.join(MODEL, 'scadatransmitter', 'scadatransmitter.png'))
+
+    def monitor(i):
+        i.rect(1, 5, 31, 27, (52, 56, 62))
+        i.rect(3, 7, 29, 22, (10, 24, 30))
+        i.line(5, 15, 27, 15, (90, 220, 120))
+        for x in (9, 16, 23):
+            i.line(x, 15, x, 20, (90, 220, 120))
+        i.rect(24, 23, 26, 25, GREEN)
+        i.rect(27, 23, 29, 25, RED)
+    icon('scadamonitor', monitor)
+
+    def transmitter(i):
+        i.rect(8, 16, 24, 28, (52, 56, 62))
+        i.rect(15, 3, 17, 16, (150, 155, 160))
+        i.rect(14, 2, 18, 4, (232, 232, 228))
+        i.rect(19, 19, 21, 21, GREEN)
+    icon('scadatransmitter', transmitter)
+
+    def linker(i):
+        i.rect(7, 2, 9, 14, (110, 80, 50))
+        i.rect(4, 2, 12, 7, (40, 60, 50))
+        i.rect(5, 3, 11, 6, (90, 220, 120))
+    icon('scadalinker', linker, size=16, folder=ITEMS)
+
+
 def thermal_camera():
     def draw(i):
         i.rect(2, 4, 14, 12, (60, 62, 66))
@@ -1036,5 +1098,6 @@ if __name__ == '__main__':
     supply_cable_icon('3200vsupplycable', (150, 60, 200))
     # Substations: a distribution substation (51.2 kV to 12.8 kV lines) and a step-up one (3.2 kV cables to 51.2 kV).
     substation('substation', 'distributionsubstation', BLUE)
-    substation('substationstepup', 'stepupsubstation', ORANGE)
+    substation('substationstepup', 'step-upsubstation', ORANGE)
+    scada()
     print('done')
