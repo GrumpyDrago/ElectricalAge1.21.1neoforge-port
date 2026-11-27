@@ -23,3 +23,4 @@ Hold the guide key over an item of the mod to jump to its page.
 - [Instruments](instruments.md): the oscilloscope and the thermal camera.
 - [Computers](computers.md): reading and switching everything from CC: Tweaked.
 - [SCADA](scada.md): a control room screen for your whole power system.
+- [All items](items.md): every item of the mod, with its picture and description.

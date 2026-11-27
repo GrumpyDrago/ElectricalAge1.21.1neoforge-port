@@ -1329,6 +1329,15 @@ object CraftingRecipes {
             'L', lithium, 'I', ItemStack(Items.IRON_INGOT)
         )
 
+        // The variants of each chemistry, made from it as the classic ones are from the cost oriented battery.
+        for (chemistry in listOf("Lead-Acid", "Nickel-Cadmium", "Lithium-Ion", "LiFePO4")) {
+            val base = findItemStack("$chemistry Battery")
+            for ((variant, part) in listOf<kotlin.Pair<String, Any>>("Capacity" to "ingotLead", "Voltage" to findItemStack("Iron Cable"),
+                "Current" to "ingotCopper", "Life" to ItemStack(Items.GOLD_INGOT))) {
+                addRecipe(findItemStack("$variant Oriented $chemistry Battery"), "PBP", 'B', base, 'P', part)
+            }
+        }
+
         for (metal in arrayOf("blockSteel", "blockAluminum", "casingMachineAdvanced")) {
             addRecipe(
                 findItemStack("Monocrystalline Solar Panel"), "SSS", "SSS", "I I", 'S', "plateSilicon", 'I', metal

@@ -247,6 +247,13 @@ object Utils {
         return header + plotValue(value, "\u00B0C ")
     }
 
+    /** A percentage with two decimals, as ##.##%, for slow changes such as the wear of a battery. */
+    @JvmStatic
+    fun plotPercentFine(header: String, value: Double): String {
+        val h = if (header != "") "$header " else header
+        return h + String.format("%.2f", value * 100.0) + "%   "
+    }
+
     @JvmStatic
     fun plotPercent(header: String, value: Double): String {
         var header = header

@@ -1093,12 +1093,13 @@ object TransparentNodeRegistration {
         // the cost oriented battery; the chemistry adds its voltage curve, temperature behaviour and wear.
         fun chemistry(
             sub: Int, name: String, chemistry: BatteryChemistry, power: Double, hours: Double, efficiency: Double,
-            life: Double, warmLimit: Double
+            life: Double, warmLimit: Double, variant: Variant = Variant.STANDARD
         ) {
             val desc = BatteryDescriptor(
-                name, "BatteryChem", 0.5, true, true, chemistry.voltageFunction, stdU,
-                stdP * power * 1.2, 0.0, stdP * power, stdDischargeTime * hours * instance.batteryCapacityFactor,
-                efficiency, instance.stdBatteryHalfLife * life, heatTIme * warmLimit / 60.0, warmLimit, -100.0
+                name, "BatteryChem", 0.5, true, variant.wears, chemistry.voltageFunction, stdU * variant.voltage,
+                stdP * power * variant.power * 1.2, 0.0, stdP * power * variant.power,
+                stdDischargeTime * hours * variant.time * instance.batteryCapacityFactor,
+                efficiency, instance.stdBatteryHalfLife * life * variant.life, heatTIme * warmLimit / 60.0, warmLimit, -100.0
             )
             desc.chemistry = chemistry
             desc.setRenderSpec(chemistry.renderSpec)
@@ -1109,6 +1110,25 @@ object TransparentNodeRegistration {
         chemistry(9, TR_NAME(I18N.Type.NONE, "Nickel-Cadmium Battery"), BatteryChemistry.NICKEL_CADMIUM, 2.0, 0.67, 0.93, 4.0, 70.0)
         chemistry(10, TR_NAME(I18N.Type.NONE, "Lithium-Ion Battery"), BatteryChemistry.LITHIUM_ION, 2.0, 1.5, 0.97, 2.0, 130.0)
         chemistry(11, TR_NAME(I18N.Type.NONE, "LiFePO4 Battery"), BatteryChemistry.LITHIUM_IRON_PHOSPHATE, 3.0, 1.0, 0.97, 6.0, 90.0)
+
+        // The four variants of the classic batteries, for each chemistry: the same multiples of their own
+        // chemistry as the classic ones are of the cost oriented battery.
+        chemistry(12, TR_NAME(I18N.Type.NONE, "Capacity Oriented Lead-Acid Battery"), BatteryChemistry.LEAD_ACID, 1.5, 1.2, 0.9, 1.5, 60.0, Variant.CAPACITY)
+        chemistry(13, TR_NAME(I18N.Type.NONE, "Voltage Oriented Lead-Acid Battery"), BatteryChemistry.LEAD_ACID, 1.5, 1.2, 0.9, 1.5, 60.0, Variant.VOLTAGE)
+        chemistry(14, TR_NAME(I18N.Type.NONE, "Current Oriented Lead-Acid Battery"), BatteryChemistry.LEAD_ACID, 1.5, 1.2, 0.9, 1.5, 60.0, Variant.CURRENT)
+        chemistry(15, TR_NAME(I18N.Type.NONE, "Life Oriented Lead-Acid Battery"), BatteryChemistry.LEAD_ACID, 1.5, 1.2, 0.9, 1.5, 60.0, Variant.LIFE)
+        chemistry(16, TR_NAME(I18N.Type.NONE, "Capacity Oriented Nickel-Cadmium Battery"), BatteryChemistry.NICKEL_CADMIUM, 2.0, 0.67, 0.93, 4.0, 70.0, Variant.CAPACITY)
+        chemistry(17, TR_NAME(I18N.Type.NONE, "Voltage Oriented Nickel-Cadmium Battery"), BatteryChemistry.NICKEL_CADMIUM, 2.0, 0.67, 0.93, 4.0, 70.0, Variant.VOLTAGE)
+        chemistry(18, TR_NAME(I18N.Type.NONE, "Current Oriented Nickel-Cadmium Battery"), BatteryChemistry.NICKEL_CADMIUM, 2.0, 0.67, 0.93, 4.0, 70.0, Variant.CURRENT)
+        chemistry(19, TR_NAME(I18N.Type.NONE, "Life Oriented Nickel-Cadmium Battery"), BatteryChemistry.NICKEL_CADMIUM, 2.0, 0.67, 0.93, 4.0, 70.0, Variant.LIFE)
+        chemistry(20, TR_NAME(I18N.Type.NONE, "Capacity Oriented Lithium-Ion Battery"), BatteryChemistry.LITHIUM_ION, 2.0, 1.5, 0.97, 2.0, 130.0, Variant.CAPACITY)
+        chemistry(21, TR_NAME(I18N.Type.NONE, "Voltage Oriented Lithium-Ion Battery"), BatteryChemistry.LITHIUM_ION, 2.0, 1.5, 0.97, 2.0, 130.0, Variant.VOLTAGE)
+        chemistry(22, TR_NAME(I18N.Type.NONE, "Current Oriented Lithium-Ion Battery"), BatteryChemistry.LITHIUM_ION, 2.0, 1.5, 0.97, 2.0, 130.0, Variant.CURRENT)
+        chemistry(23, TR_NAME(I18N.Type.NONE, "Life Oriented Lithium-Ion Battery"), BatteryChemistry.LITHIUM_ION, 2.0, 1.5, 0.97, 2.0, 130.0, Variant.LIFE)
+        chemistry(24, TR_NAME(I18N.Type.NONE, "Capacity Oriented LiFePO4 Battery"), BatteryChemistry.LITHIUM_IRON_PHOSPHATE, 3.0, 1.0, 0.97, 6.0, 90.0, Variant.CAPACITY)
+        chemistry(25, TR_NAME(I18N.Type.NONE, "Voltage Oriented LiFePO4 Battery"), BatteryChemistry.LITHIUM_IRON_PHOSPHATE, 3.0, 1.0, 0.97, 6.0, 90.0, Variant.VOLTAGE)
+        chemistry(26, TR_NAME(I18N.Type.NONE, "Current Oriented LiFePO4 Battery"), BatteryChemistry.LITHIUM_IRON_PHOSPHATE, 3.0, 1.0, 0.97, 6.0, 90.0, Variant.CURRENT)
+        chemistry(27, TR_NAME(I18N.Type.NONE, "Life Oriented LiFePO4 Battery"), BatteryChemistry.LITHIUM_IRON_PHOSPHATE, 3.0, 1.0, 0.97, 6.0, 90.0, Variant.LIFE)
     }
 
     private fun registerAutoMiner(id: Int) {

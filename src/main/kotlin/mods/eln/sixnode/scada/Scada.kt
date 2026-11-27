@@ -86,7 +86,23 @@ object ScadaDevices {
         else -> "?"
     }
 
-    fun info(element: Any): List<String> = when (element) {
+    fun info(element: Any): List<String> {
+        if (element is mods.eln.transparentnode.battery.BatteryElement) return batteryInfo(element)
+        return waila(element)
+    }
+
+    /** A battery's name already says its chemistry: life and charge on one line, then the temperature of its cells. */
+    private fun batteryInfo(b: mods.eln.transparentnode.battery.BatteryElement): List<String> {
+        val values = b.computerValues()
+        val lines = ArrayList<String>()
+        lines.add(tr("Life: %1$  Charge: %2$", Utils.plotPercentFine("", b.batteryProcess.life).trim(),
+            Utils.plotPercent("", b.batteryProcess.charge).trim()))
+        lines.add(tr("Temperature: %1$", Utils.plotCelsius("", (values["temperature"] as? Double) ?: 0.0).trim()))
+        if (b.vented) lines.add(tr("Vented: cool it with a water bucket"))
+        return lines
+    }
+
+    private fun waila(element: Any): List<String> = when (element) {
         is SixNodeElement -> element.getWaila() ?: emptyMap()
         is TransparentNodeElement -> element.getWaila()
         else -> emptyMap()

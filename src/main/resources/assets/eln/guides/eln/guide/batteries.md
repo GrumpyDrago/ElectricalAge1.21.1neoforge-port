@@ -8,6 +8,22 @@ item_ids:
   - eln:lithium_ion_battery
   - eln:lifepo4_battery
   - eln:cost_oriented_battery
+  - eln:capacity_oriented_lead_acid_battery
+  - eln:voltage_oriented_lead_acid_battery
+  - eln:current_oriented_lead_acid_battery
+  - eln:life_oriented_lead_acid_battery
+  - eln:capacity_oriented_nickel_cadmium_battery
+  - eln:voltage_oriented_nickel_cadmium_battery
+  - eln:current_oriented_nickel_cadmium_battery
+  - eln:life_oriented_nickel_cadmium_battery
+  - eln:capacity_oriented_lithium_ion_battery
+  - eln:voltage_oriented_lithium_ion_battery
+  - eln:current_oriented_lithium_ion_battery
+  - eln:life_oriented_lithium_ion_battery
+  - eln:capacity_oriented_lifepo4_battery
+  - eln:voltage_oriented_lifepo4_battery
+  - eln:current_oriented_lifepo4_battery
+  - eln:life_oriented_lifepo4_battery
 ---
 
 # Batteries
@@ -29,6 +45,18 @@ Besides the classic batteries there are four of real chemistries:
 | Life | 1.5× | 4× | 2× | 6× |
 
 (Multiples of the cost oriented battery.) All are made for 50 V; put them in series for more.
+
+## Variants
+
+Like the classic batteries, each chemistry comes in four variants, made from it with two more ingredients. The colored
+band on the icon tells them apart:
+
+| Variant | Band | Made with | Compared with the standard battery |
+| --- | --- | --- | --- |
+| Capacity oriented | blue | lead | half the voltage (25 V), twice the energy |
+| Voltage oriented | yellow | iron cable | twice the voltage (100 V) |
+| Current oriented | red | copper | twice the power, half the energy |
+| Life oriented | green | gold | does not wear out |
 
 ## Wear
 

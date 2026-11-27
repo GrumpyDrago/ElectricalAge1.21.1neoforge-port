@@ -643,6 +643,11 @@ object ElnExpansionTests {
         val lines = { field(monitor, "current") as List<*> }
         helper.startSequence()
             .thenWaitUntil { helper.assertTrue(lines().size == 2, "the monitor shows ${lines().size} devices") }
+            .thenExecute {
+                val info = mods.eln.sixnode.scada.ScadaDevices.info(battery)
+                helper.assertTrue(info[0].matches(Regex("Life: [0-9]+[.][0-9][0-9]%  Charge: .*")), "battery line: $info")
+                helper.assertTrue(info.none { it.contains("Chemistry") }, "the chemistry is shown: $info")
+            }
             .thenExecute { battery.vent() }
             .thenWaitUntil { helper.assertTrue(monitor.alarms == 1, "${monitor.alarms} alarms") }
             .thenExecute {

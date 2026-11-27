@@ -120,6 +120,16 @@ class MpptLogic(val maxInputVoltage: Double, val maxInputCurrent: Double) {
          * reading a nearly flat bank as one battery short, which only keeps it from charging, rather than a full
          * one as one battery too many, which would overcharge it.
          */
+        /**
+         * The nominal voltage of the bank: a single half-voltage battery (the capacity oriented ones, 25 V) when it
+         * is below what any 50 V battery gives, else [bankSize] batteries of [batteryVoltage]; 0 without a battery.
+         */
+        fun bankVoltage(restVoltage: Double, batteryVoltage: Double): Double {
+            if (restVoltage < 0.3 * batteryVoltage) return 0.0
+            if (restVoltage < 1.15 * batteryVoltage / 2) return batteryVoltage / 2
+            return bankSize(restVoltage, batteryVoltage) * batteryVoltage
+        }
+
         fun bankSize(restVoltage: Double, batteryVoltage: Double): Int {
             if (restVoltage < 0.3 * batteryVoltage) return 0
             return max(1, ceil(restVoltage / (1.15 * batteryVoltage)).toInt())
@@ -222,9 +232,12 @@ class MpptControllerElement(sixNode: SixNode, side: Direction, descriptor: SixNo
     /** Batteries in series found in automatic mode; 0 when none is connected. */
     var bankSize = 0
         private set
+    /** The nominal voltage of the bank found in automatic mode; 0 when none is connected. */
+    var bankVoltage = 0.0
+        private set
     val effectiveChargeVoltage
         get() = if (chargeVoltage > 0) chargeVoltage
-        else min(bankSize * Eln.LVU * MpptLogic.AUTO_CHARGE_RATIO, desc.maxInputVoltage)
+        else min(bankVoltage * MpptLogic.AUTO_CHARGE_RATIO, desc.maxInputVoltage)
     /** Whether a battery is on the output: false too when its negative is not connected. */
     val batteryConnected get() = outSource.restResistance < 1000 && outSource.restVoltage > 0.3 * Eln.LVU
     private var shownMode = logic.mode
@@ -255,6 +268,7 @@ class MpptControllerElement(sixNode: SixNode, side: Direction, descriptor: SixNo
         val delivered = outputPower
         energy += delivered * dt
         bankSize = if (batteryConnected) MpptLogic.bankSize(outSource.restVoltage, Eln.LVU) else 0
+        bankVoltage = if (batteryConnected) MpptLogic.bankVoltage(outSource.restVoltage, Eln.LVU) else 0.0
         val target = effectiveChargeVoltage
         // With no battery there is nowhere to put the power: take little from the panels, as when full.
         val limited = target <= 0 || !batteryConnected || (commanded > 5 && delivered < 0.9 * commanded)
@@ -308,7 +322,7 @@ class MpptControllerElement(sixNode: SixNode, side: Direction, descriptor: SixNo
         }
         info[tr("Charge voltage")] = when {
             chargeVoltage > 0 -> Utils.plotVolt("", chargeVoltage)
-            bankSize > 0 -> tr("Automatic: %1$ V for %2$ in series", "%.1f".format(effectiveChargeVoltage), bankSize)
+            bankVoltage > 0 -> tr("Automatic: %1$ V for a %2$ V bank", "%.1f".format(effectiveChargeVoltage), "%.0f".format(bankVoltage))
             else -> tr("Automatic")
         }
         info[tr("Input")] = Utils.plotVolt("", inLoad.voltage) + Utils.plotPower(" ", inputPower)

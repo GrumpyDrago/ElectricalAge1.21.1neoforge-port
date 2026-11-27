@@ -5,6 +5,12 @@
 - Guidebook, with GuideME installed (optional): the basics, batteries, protection, breaker boxes, the grid, solar and
   wind, instruments, computers and SCADA. Crafted from a book and a copper ingot.
 - Padlocks now also work on substations
+- The guidebook lists every item of the mod, by creative tab, with its picture and description
+- Capacity (half the voltage, twice the energy), voltage (twice the voltage), current (twice the power, half the
+  energy) and life oriented (no wear) variants of the four chemistry batteries; the MPPT controller recognises a
+  single 25 V capacity oriented battery
+- Battery life shows two decimals (##.##%), in the battery's screen too; on the SCADA monitor a battery shows its life and charge on one line,
+  and its temperature, instead of its chemistry, which its name already gives
 - Grid lines are easier to link: click anywhere on a pole, tower, substation or converter; each line goes to the side
   of its voltage by itself, and linking two different voltages (a tower to a utility pole) is refused with a hint
 

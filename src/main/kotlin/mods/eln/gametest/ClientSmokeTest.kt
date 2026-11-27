@@ -446,7 +446,7 @@ object ClientSmokeTest {
         later(10) { look(x0 + 8.0, GROUND + 3.5, z - 3.5, 0f, 40f) }
         later(40) { shot("exp_thermal_camera_switchgear") }
         // The guidebook, when GuideME is there; reflection keeps this class loading without it.
-        for (page in listOf("index", "grid", "breaker-boxes")) {
+        for (page in listOf("index", "grid", "breaker-boxes", "items-power")) {
             later(10) {
                 try {
                     val rl = net.minecraft.resources.ResourceLocation::class.java

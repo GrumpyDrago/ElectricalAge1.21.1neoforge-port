@@ -97,5 +97,6 @@ New sub ids only; no existing id moved.
 | `transparentNodeItem` | `0x10` batteries | 9 | Nickel-Cadmium Battery |
 | `transparentNodeItem` | `0x10` batteries | 10 | Lithium-Ion Battery |
 | `transparentNodeItem` | `0x10` batteries | 11 | LiFePO4 Battery |
+| `transparentNodeItem` | `0x10` batteries | 12-27 | Capacity, Voltage, Current and Life Oriented variants of the Lead-Acid, Nickel-Cadmium, Lithium-Ion and LiFePO4 batteries, in that order |
 | `transparentNodeItem` | `0x30` solar panels | 8 | Monocrystalline Solar Panel |
 | `transparentNodeItem` | `0x31` wind turbines | 4 | Permanent-Magnet Wind Turbine |

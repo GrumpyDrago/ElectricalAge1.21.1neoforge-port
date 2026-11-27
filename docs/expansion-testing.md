@@ -154,6 +154,10 @@ Four batteries of real chemistries. They work like the other batteries, with the
 
 Multiples are of the cost oriented battery.
 
+Each chemistry also comes in the four variants of the classic batteries, made from it with lead, iron cable, copper or
+gold: **capacity oriented** (half the voltage, twice the energy), **voltage oriented** (twice the voltage),
+**current oriented** (twice the power, half the energy) and **life oriented** (does not wear out). Their icons carry a blue, yellow, red or green band.
+
 - Like the other batteries, they wear only with use, slowly and more so at high current. A battery that sits unused
   keeps its life. The rest changes how fast use wears them:
 - **Heat**: wear doubles for every 10 °C above 25 °C.
@@ -203,7 +207,7 @@ current can flow. (It is grounded inside, so panels and batteries that are groun
 signal of the power it delivers.
 
 **Charge voltage**: 0, the default, is automatic. It finds how many 50 V batteries are in series, from 1 up, by their
-voltage at rest, and charges each to 54 V (1.08 times), which fills every chemistry to over 90 % without overcharging
+voltage at rest (or a single 25 V capacity oriented battery), and charges each to 1.08 times its voltage (54 V), which fills every chemistry to over 90 % without overcharging
 any. A bank that is nearly flat may be taken for one battery fewer and not charge; set the voltage by hand then, or
 charge it a little first. Jade shows what it found.
 
@@ -247,7 +251,12 @@ A control room screen for a whole power system.
 ## Guidebook
 
 With GuideME installed, craft the **Electrical Age Guide** from a book and a copper ingot. It covers the basics and
-all of these parts; hold the guide key over an item to open its page. Without GuideME the mod works as before.
+all of these parts, and lists every item of the mod by creative tab; hold the guide key over any item to open its
+page. Without GuideME the mod works as before.
+
+The item pages are made by `script/guide_pages.py` from a list the game writes: run the game tests with
+`JAVA_TOOL_OPTIONS=-Deln.dumpGuide=<file>`, then `python script/guide_pages.py <file>`. Do it again after adding
+items.
 
 ## Instruments
 

@@ -272,6 +272,10 @@ class ExpansionLogicTest {
         for (v in listOf(180.0, 200.0, 220.0)) assertEquals(4, MpptLogic.bankSize(v, 50.0), "$v V")
         // While charging to 1.08 of their voltage, banks are still read right.
         for (n in 1..5) assertEquals(n, MpptLogic.bankSize(n * 50 * MpptLogic.AUTO_CHARGE_RATIO, 50.0))
+        // A single capacity oriented battery, made for 25 V, from flat to charging.
+        for (v in listOf(21.0, 25.0, 27.0)) assertEquals(25.0, MpptLogic.bankVoltage(v, 50.0), 1e-9, "$v V")
+        for (v in listOf(42.0, 50.0, 57.0)) assertEquals(50.0, MpptLogic.bankVoltage(v, 50.0), 1e-9, "$v V")
+        assertEquals(0.0, MpptLogic.bankVoltage(10.0, 50.0), 1e-9)
     }
 
     @Test

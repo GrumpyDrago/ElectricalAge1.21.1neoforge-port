@@ -1060,6 +1060,23 @@ def scada():
     icon('scadalinker', linker, size=16, folder=ITEMS)
 
 
+def battery_variant_icons():
+    """The icons of the variants of the chemistry batteries: the chemistry's icon with a band of the variant's color,
+    as the classic batteries are told apart (capacity blue, voltage yellow, current red, life green)."""
+    bands = {'capacity': BLUE, 'voltage': YELLOW, 'current': RED, 'life': GREEN}
+    for chemistry in ('lead-acid', 'nickel-cadmium', 'lithium-ion', 'lifepo4'):
+        src = os.path.join(ICONS, chemistry + 'battery.png')
+        w, h, px = png_read(src)
+        for variant, colour in bands.items():
+            c = Canvas(w, h)
+            for y in range(h):
+                for x in range(w):
+                    c.set(x, y, px[y * w + x])
+            c.rect(2, h - 7, w - 2, h - 3, colour)
+            c.frame(2, h - 7, w - 2, h - 3, tuple(min(255, v + 40) for v in colour), tuple(max(0, v - 60) for v in colour))
+            c.save(os.path.join(ICONS, '%soriented%sbattery.png' % (variant, chemistry)))
+
+
 def thermal_camera():
     def draw(i):
         i.rect(2, 4, 14, 12, (60, 62, 66))
@@ -1100,4 +1117,5 @@ if __name__ == '__main__':
     substation('substation', 'distributionsubstation', BLUE)
     substation('substationstepup', 'step-upsubstation', ORANGE)
     scada()
+    battery_variant_icons()
     print('done')

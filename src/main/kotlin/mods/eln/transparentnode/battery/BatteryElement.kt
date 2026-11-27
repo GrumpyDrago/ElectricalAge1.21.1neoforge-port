@@ -93,7 +93,7 @@ class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNo
         str += Utils.plotAmpere("I:", batteryProcess.dischargeCurrent)
         str += Utils.plotPercent("Charge:", batteryProcess.charge)
         // batteryProcess.life is a percentage from 1.0 to 0.0.
-        str += Utils.plotPercent("Life:", batteryProcess.life)
+        str += Utils.plotPercentFine("Life:", batteryProcess.life)
         return str
     }
 
@@ -240,7 +240,7 @@ class BatteryElement(transparentNode: TransparentNode, descriptor: TransparentNo
         val info: MutableMap<String, String> = HashMap()
         info[tr("Charge")] = Utils.plotPercent("", batteryProcess.charge)
         info[tr("Energy")] = Utils.plotEnergy("", batteryProcess.energy)
-        info[tr("Life")] = Utils.plotPercent("", batteryProcess.life)
+        info[tr("Life")] = Utils.plotPercentFine("", batteryProcess.life)
         if (Eln.wailaEasyMode) {
             info[tr("Voltage")] = Utils.plotVolt("", batteryProcess.u)
             info[tr("Current")] = Utils.plotAmpere("", batteryProcess.dischargeCurrent)

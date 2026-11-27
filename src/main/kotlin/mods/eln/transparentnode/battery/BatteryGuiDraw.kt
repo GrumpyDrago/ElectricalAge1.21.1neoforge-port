@@ -53,7 +53,7 @@ class BatteryGuiDraw(var render: BatteryRender) : GuiScreenEln() {
         val xDelta = 70
         if (render.descriptor.lifeEnable) {
             drawString(8, 8, tr("Life:"))
-            drawString(xDelta, 8, Utils.plotPercent("", render.life.toDouble()))
+            drawString(xDelta, 8, Utils.plotPercentFine("", render.life.toDouble()))
         }
         drawString(8, 17, tr("Energy:"))
         drawString(xDelta, 17,
