@@ -149,6 +149,11 @@ public class ElectricalSwitchElement extends SixNodeElement {
     }
 
     public void setSwitchState(boolean state) {
+        if (switchState && !state) {
+            mods.eln.sim.ArcFlash.INSTANCE.interrupt(getCoordinate(),
+                Math.max(Math.abs(aLoad.getVoltage()), Math.abs(bLoad.getVoltage())), switchResistor.getCurrent(),
+                descriptor.maximalPower / descriptor.nominalVoltage);
+        }
         switchState = state;
         switchResistor.setState(state);
         needPublish();

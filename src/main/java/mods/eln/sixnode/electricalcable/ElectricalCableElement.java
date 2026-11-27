@@ -105,7 +105,9 @@ public class ElectricalCableElement extends SixNodeElement {
 
     @Override
     public int getConnectionMask(@NotNull LRDU lrdu) {
-        return descriptor.getNodeMask() /*+ NodeBase.maskElectricalWire*/ + (color << NodeBase.maskColorShift) + (colorCare << NodeBase.maskColorCareShift);
+        // Power cables also join power bundles, on the line of their color.
+        int bundle = descriptor.signalWire ? 0 : NodeBase.maskPowerBundle;
+        return descriptor.getNodeMask() + bundle /*+ NodeBase.maskElectricalWire*/ + (color << NodeBase.maskColorShift) + (colorCare << NodeBase.maskColorCareShift);
     }
 
     @Override

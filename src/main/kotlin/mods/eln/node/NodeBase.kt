@@ -460,6 +460,8 @@ abstract class NodeBase {
         const val maskRs485 = 1 shl 10
         const val maskSignalBus = 1 shl 11
         const val maskConduit = 1 shl 12
+        /** Power bundle cables; power cables have it too, so a bundle joins cables but no machine. */
+        const val maskPowerBundle = 1 shl 13
         const val maskColorData = 0xF shl 16
         const val maskColorShift = 16
         const val maskColorCareShift = 20

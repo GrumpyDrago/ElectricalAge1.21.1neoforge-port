@@ -183,7 +183,7 @@ open class CurrentCableElement(sixNode: SixNode?, side: Direction?, descriptor: 
     }
 
     override fun getConnectionMask(lrdu: LRDU): Int {
-        return descriptor.nodeMask /*+ NodeBase.maskElectricalWire*/ + (color shl NodeBase.maskColorShift) + (colorCare shl NodeBase.maskColorCareShift)
+        return descriptor.nodeMask + NodeBase.maskPowerBundle /*+ NodeBase.maskElectricalWire*/ + (color shl NodeBase.maskColorShift) + (colorCare shl NodeBase.maskColorCareShift)
     }
 
     override fun multiMeterString(): String {

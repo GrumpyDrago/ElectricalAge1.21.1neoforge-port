@@ -1,3 +1,16 @@
+## 2.0.0-testing.3
+
+- Breaker box: sixteen circuit breakers (type B, 2 to 20 A) feeding the sixteen lines of a power bundle cable
+- Breakers of the breaker box trip within five seconds on any overload
+- 50 V and 600 V breaker boxes, with 50 V and 600 V power bundle cables
+- Power bundle cable: sixteen circuits in one cable; painted power cables join the line of their color, and machines
+  do not connect to it. Fed by a breaker box it does not overheat; used without one, its lines share their heat
+- Arc flash: breakers, switches and relays that open on a short circuit flash, burning and blinding those close by.
+  Within their rating they only spark. It can be turned off in the config.
+- Batteries no longer overheat and explode near their rated power. Their heat limits counted from 0 °C while the
+  ambient temperature of the biome is added on top; they are now made to work at full power in up to 35 °C ambient.
+- `/eln icons symbols` showed the items instead of the symbols, and `/eln icons items` the symbols
+
 ## 2.0.0-testing.2
 
 - The MPPT charge controller now charges real batteries. Its right side is a common negative for the − of the panels

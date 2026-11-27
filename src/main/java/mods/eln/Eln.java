@@ -214,6 +214,8 @@ public class Eln {
     public static boolean mqttEnabled = false;
     public static int modbusPort;
     public static boolean explosionEnable;
+    /** Contacts opened on a fault flash and hurt those close by. */
+    public static boolean arcFlashEnable = true;
     public static boolean debugEnabled = false;  // Read from configuration file. Default is `false`.
     public static boolean simSnapshotEnabled = false;
     public static boolean watchdogThermalEnabled = true;
@@ -279,6 +281,9 @@ public class Eln {
     public ElectricalCableDescriptor lowVoltageCableDescriptor;
     public ElectricalCableDescriptor meduimVoltageCableDescriptor;
     public ElectricalCableDescriptor signalBusCableDescriptor;
+    public ElectricalCableDescriptor powerBundleCableDescriptor;
+    public ElectricalCableDescriptor highVoltagePowerBundleCableDescriptor;
+    public ElectricalCableDescriptor lowVoltagePowerBundleCableDescriptor;
     public CurrentCableDescriptor lowCurrentCableDescriptor;
     public CurrentCableDescriptor mediumCurrentCableDescriptor;
     public CurrentCableDescriptor highCurrentCableDescriptor;

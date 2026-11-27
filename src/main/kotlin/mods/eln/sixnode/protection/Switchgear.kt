@@ -65,6 +65,11 @@ abstract class SwitchgearElement(sixNode: SixNode, side: Direction, descriptor: 
     /** Closes [contact] with the resistance of the cable, or opens it. */
     protected fun setContact(contact: Resistor, closed: Boolean) {
         val c = cable
+        if (!closed && c != null && contact.resistance < mods.eln.sim.mna.misc.MnaConst.highImpedance) {
+            val a = (contact.aPin as? mods.eln.sim.mna.state.VoltageState)?.voltage ?: 0.0
+            val b = (contact.bPin as? mods.eln.sim.mna.state.VoltageState)?.voltage ?: 0.0
+            mods.eln.sim.ArcFlash.interrupt(coordinate, Math.max(Math.abs(a), Math.abs(b)), contact.current, ratedCurrent)
+        }
         if (c == null || !closed) contact.highImpedance() else c.applyTo(contact)
     }
 

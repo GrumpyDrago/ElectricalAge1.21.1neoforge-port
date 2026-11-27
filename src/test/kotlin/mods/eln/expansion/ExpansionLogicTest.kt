@@ -1,7 +1,9 @@
 package mods.eln.expansion
 
+import mods.eln.sim.ArcFlash
 import mods.eln.sim.renewable.PvCurve
 import mods.eln.sim.renewable.RotorAerodynamics
+import mods.eln.sixnode.breakerbox.BreakerBoxLogic
 import mods.eln.sixnode.mppt.MpptLogic
 import mods.eln.sixnode.oscilloscope.ScopeTrace
 import mods.eln.sixnode.protection.BatteryManagementLogic
@@ -11,6 +13,7 @@ import mods.eln.sixnode.protection.TripCurve
 import mods.eln.transparentnode.battery.BatteryChemistry
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** The physics and control logic of the parts added on the expansion-testing branch, without a world. */
@@ -269,6 +272,52 @@ class ExpansionLogicTest {
         for (v in listOf(180.0, 200.0, 220.0)) assertEquals(4, MpptLogic.bankSize(v, 50.0), "$v V")
         // While charging to 1.08 of their voltage, banks are still read right.
         for (n in 1..5) assertEquals(n, MpptLogic.bankSize(n * 50 * MpptLogic.AUTO_CHARGE_RATIO, 50.0))
+    }
+
+    @Test
+    fun breakersTripLikeTypeB() {
+        val box = BreakerBoxLogic()
+        val rated = box.ratedCurrent(0)
+        assertEquals(16.0, rated, 1e-9)
+        // At 1.1 times its rating it holds for good.
+        repeat(20 * 600) { assertFalse(box.step(0, 1.1 * rated, 0.05)) }
+        // Twice its rating: trips after a few seconds, not at once.
+        var t = 0.0
+        while (!box.step(1, 2 * rated, 0.05)) t += 0.05
+        assertEquals(box.tripTime(2.0), t, 0.1)
+        assertTrue(t in 2.5..4.0, "tripped after $t s")
+        // Any overload trips within about five seconds.
+        val small = BreakerBoxLogic()
+        t = 0.0
+        while (!small.step(0, 1.15 * rated, 0.05)) t += 0.05
+        assertTrue(t in 4.0..5.1, "a small overload tripped after $t s")
+        // A short circuit: the first step.
+        assertTrue(box.step(2, 20 * rated, 0.05))
+        assertEquals(BreakerBoxLogic.State.TRIPPED, box.state[2])
+        // Switching it on again resets it; the others were not touched.
+        box.toggle(2)
+        assertEquals(BreakerBoxLogic.State.ON, box.state[2])
+        assertEquals(BreakerBoxLogic.State.ON, box.state[3])
+        box.cycleRating(3, false)
+        assertEquals(13.0, box.ratedCurrent(3), 1e-9)
+        repeat(BreakerBoxLogic.RATINGS.size) { box.cycleRating(4, true) }
+        assertEquals(16.0, box.ratedCurrent(4), 1e-9)
+    }
+
+    @Test
+    fun arcsFlashOnlyOnFaults() {
+        // Switching a load off within its rating: a spark, however big.
+        assertEquals(ArcFlash.Kind.SPARK, ArcFlash.classify(200.0, 20.0, 20.0).kind)
+        assertEquals(ArcFlash.Kind.NONE, ArcFlash.classify(50.0, 2.0, 20.0).kind)
+        // Too little voltage to strike an arc.
+        assertEquals(ArcFlash.Kind.NONE, ArcFlash.classify(12.0, 500.0, 20.0).kind)
+        // Breaking a short circuit.
+        val small = ArcFlash.classify(50.0, 500.0, 20.0)
+        val big = ArcFlash.classify(800.0, 3000.0, 20.0)
+        assertEquals(ArcFlash.Kind.FLASH, small.kind)
+        assertEquals(ArcFlash.Kind.FLASH, big.kind)
+        assertTrue(big.radius > small.radius && big.damage > small.damage)
+        assertTrue(big.radius <= 5.0 && big.damage <= 18.0)
     }
 
     @Test

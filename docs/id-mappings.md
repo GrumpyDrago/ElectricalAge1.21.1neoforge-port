@@ -36,7 +36,7 @@ The tables below are keyed by hexadecimal `group_id`. The first column and first
 | `0x2_` | Electrical cable | Current cable | Utility cables A | Utility cables B | Utility cables C | Utility cables D | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` |
 | `0x3_` | Thermal cable | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` |
 | `0x4_` | Lamp socket | Lamp supply | Battery charger | Power socket | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` |
-| `0x5_` | Switchgear | MPPT charge controller | Oscilloscope | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | Wireless signal | Data logger | Electrical relay | Electrical gate source |
+| `0x5_` | Switchgear | MPPT charge controller | Oscilloscope | Power bundle cable | `--` | `--` | `--` | `--` | `--` | `--` | `--` | `--` | Wireless signal | Data logger | Electrical relay | Electrical gate source |
 | `0x6_` | Passive components | Switches | Electrical manager | `--` | Electrical sensors | Thermal sensors | VU meters | Alarms | Environmental sensors | `--` | `--` | `--` | Electrical redstone | Electrical gates | `--` | `--` |
 | `0x7_` | `--` | `--` | `--` | `--` | Tree resin collector | Six-node misc | Logic gates | `--` | `--` | `--` | `--` | `--` | Analog chips | Portable NaN | Current relays | `--` |
 
@@ -75,8 +75,14 @@ New sub ids only; no existing id moved.
 | `sixNodeItem` | `0x50` switchgear | 0 | Overcurrent Protection Relay |
 | `sixNodeItem` | `0x50` switchgear | 1 | Battery Management System |
 | `sixNodeItem` | `0x50` switchgear | 2 | Automatic Transfer Switch |
+| `sixNodeItem` | `0x50` switchgear | 3 | Breaker Box (200 V) |
+| `sixNodeItem` | `0x50` switchgear | 4 | 50V Breaker Box |
+| `sixNodeItem` | `0x50` switchgear | 5 | 600V Breaker Box |
 | `sixNodeItem` | `0x51` | 0 | MPPT Charge Controller |
 | `sixNodeItem` | `0x52` | 0 | Oscilloscope |
+| `sixNodeItem` | `0x53` | 0 | Power Bundle Cable (200 V) |
+| `sixNodeItem` | `0x53` | 1 | 600V Power Bundle Cable |
+| `sixNodeItem` | `0x53` | 2 | 50V Power Bundle Cable |
 | `transparentNodeItem` | `0x10` batteries | 8 | Lead-Acid Battery |
 | `transparentNodeItem` | `0x10` batteries | 9 | Nickel-Cadmium Battery |
 | `transparentNodeItem` | `0x10` batteries | 10 | Lithium-Ion Battery |

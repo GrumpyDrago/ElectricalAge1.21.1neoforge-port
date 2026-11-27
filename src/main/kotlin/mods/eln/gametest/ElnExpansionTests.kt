@@ -23,7 +23,14 @@ import mods.eln.sixnode.protection.OvercurrentRelayLogic
 import mods.eln.sixnode.protection.SwitchgearElement
 import mods.eln.sixnode.protection.TransferSwitchElement
 import mods.eln.sixnode.protection.TransferSwitchLogic
+import mods.eln.transparentnode.battery.BatteryDescriptor
 import mods.eln.transparentnode.battery.BatteryElement
+import mods.eln.sixnode.breakerbox.BreakerBoxElement
+import mods.eln.sixnode.breakerbox.BreakerBoxLogic
+import mods.eln.sixnode.electricalcable.ElectricalCableElement
+import mods.eln.sixnode.electricalcable.PowerBundle
+import mods.eln.sixnode.electricalcable.PowerBundleCableElement
+import net.minecraft.world.entity.EntityType
 import net.minecraft.core.BlockPos
 import net.minecraft.gametest.framework.GameTest
 import net.minecraft.gametest.framework.GameTestHelper
@@ -295,4 +302,147 @@ object ElnExpansionTests {
         helper.assertTrue(field(panel, "powerSource") is PvCurveSource, "the solar panel has no curve")
         helper.succeed()
     }
+
+    /** A power cable on the floor at [pos], painted [color] (a brush color; 0, black, is unpainted). */
+    private fun cable(helper: GameTestHelper, player: ServerPlayer, name: String, pos: BlockPos, color: Int): ElectricalCableElement {
+        val element = placeSix(helper, player, name, pos).getElement(Direction.YN) as ElectricalCableElement
+        ElectricalCableElement::class.java.getDeclaredField("color").apply { isAccessible = true }.setInt(element, color)
+        element.sixNode!!.reconnect()
+        return element
+    }
+
+    /**
+     * Supply, breaker box, two lengths of bundle and a red cable out of it to a slightly lower source: the current
+     * flows on the red line only. An unpainted cable on the bundle is on the black line, which is dead once its
+     * breaker is off, as the source right beside the bundle does not connect to it.
+     */
+    @GameTest(template = EMPTY, timeoutTicks = 200)
+    @JvmStatic
+    fun bundleCarriesEachColorOnItsOwnLine(helper: GameTestHelper) {
+        val player = player(helper)
+        floor(helper)
+        val boxPos = BlockPos(2, 1, 5)
+        source(helper, player, BlockPos(1, 1, 5), 50.0)
+        val box = part<BreakerBoxElement>(helper, player, "Breaker Box", boxPos, McDirection.WEST)
+        val first = placeSix(helper, player, "Power Bundle Cable", BlockPos(3, 1, 5)).getElement(Direction.YN) as PowerBundleCableElement
+        val second = placeSix(helper, player, "Power Bundle Cable", BlockPos(4, 1, 5)).getElement(Direction.YN) as PowerBundleCableElement
+        val red = cable(helper, player, "Medium Voltage Cable", BlockPos(5, 1, 5), RED)
+        // A bundle used as a plain multi-core cable, away from the box.
+        val lone = placeSix(helper, player, "Power Bundle Cable", BlockPos(8, 1, 8)).getElement(Direction.YN) as PowerBundleCableElement
+        placeSix(helper, player, "Power Bundle Cable", BlockPos(8, 1, 9))
+        source(helper, player, BlockPos(6, 1, 5), 49.0)
+        val black = cable(helper, player, "Medium Voltage Cable", BlockPos(4, 1, 6), 0)
+        source(helper, player, BlockPos(3, 1, 4), 30.0)
+        box.sixNode!!.reconnect()
+        helper.startSequence()
+            .thenWaitUntil {
+                // Every breaker is on: each line is live from the supply, but only the red one carries current.
+                helper.assertTrue(abs(red.electricalLoad.current) > 1, "no current on the red line: ${red.electricalLoad.current} A")
+                helper.assertTrue(abs(first.bundleLoads[RED].voltage - 49.5) < 1, "red line at ${first.bundleLoads[RED].voltage} V")
+                helper.assertTrue(abs(black.electricalLoad.voltage - 50) < 0.5, "the black cable is at ${black.electricalLoad.voltage} V")
+                helper.assertTrue(abs(black.electricalLoad.current) < 0.01, "current on the black line: ${black.electricalLoad.current} A")
+                // Fed by the box, both lengths are kept from overheating; the lone one is not.
+                helper.assertTrue(first.fedByBreakerBox && second.fedByBreakerBox, "the bundle does not see the box")
+                helper.assertTrue(!PowerBundle.reachesBreakerBox(lone), "the lone bundle thinks a box feeds it")
+            }
+            .thenExecute { box.toggle(0) }
+            .thenWaitUntil {
+                helper.assertTrue(abs(black.electricalLoad.voltage) < 0.5, "the black cable is at ${black.electricalLoad.voltage} V")
+                helper.assertTrue(abs(first.bundleLoads[RED].voltage - 49.5) < 1, "red line at ${first.bundleLoads[RED].voltage} V")
+                helper.assertTrue(box.logic.state.withIndex().all { it.index == 0 || it.value == BreakerBoxLogic.State.ON },
+                    "a breaker tripped: ${box.logic.state.toList()}")
+            }
+            .thenSucceed()
+    }
+
+    /** A short circuit on one line trips its breaker at once, the others stay on, and the arc burns a pig nearby. */
+    @GameTest(template = EMPTY, timeoutTicks = 200)
+    @JvmStatic
+    fun breakerBoxTripsOnAShortCircuitWithAnArcFlash(helper: GameTestHelper) {
+        val player = player(helper)
+        floor(helper)
+        val boxPos = BlockPos(2, 1, 5)
+        source(helper, player, BlockPos(1, 1, 5), 200.0)
+        val box = part<BreakerBoxElement>(helper, player, "Breaker Box", boxPos, McDirection.WEST)
+        placeSix(helper, player, "Power Bundle Cable", BlockPos(3, 1, 5))
+        cable(helper, player, "Medium Voltage Cable", BlockPos(4, 1, 5), RED)
+        placeSix(helper, player, "Ground Cable", BlockPos(5, 1, 5))
+        box.sixNode!!.reconnect()
+        val pig = helper.spawn(EntityType.PIG, BlockPos(2, 1, 7))
+        val health = pig.health
+        helper.startSequence()
+            .thenWaitUntil {
+                helper.assertTrue(box.logic.state[RED] == BreakerBoxLogic.State.TRIPPED, "the red breaker is ${box.logic.state[RED]}")
+                helper.assertTrue(box.logic.tripCurrent[RED] > BreakerBoxLogic.MAGNETIC_TRIP * box.logic.ratedCurrent(RED),
+                    "tripped at ${box.logic.tripCurrent[RED]} A")
+                helper.assertTrue(box.logic.state.withIndex().all { it.index == RED || it.value == BreakerBoxLogic.State.ON },
+                    "others tripped: ${box.logic.state.toList()}")
+            }
+            .thenWaitUntil { helper.assertTrue(pig.health < health || pig.isOnFire, "the pig was not hurt: ${pig.health}") }
+            .thenSucceed()
+    }
+
+    @GameTest(template = EMPTY, timeoutTicks = 20)
+    @JvmStatic
+    fun batteriesStayCoolAtRatedPower(helper: GameTestHelper) {
+        for (name in listOf("Cost Oriented Battery", "Capacity Oriented Battery", "Lead-Acid Battery", "Lithium-Ion Battery")) {
+            val d = Eln.transparentNodeItem.getDescriptor(Eln.findItemStack(name, 1)) as BatteryDescriptor
+            val current = d.electricalStdP / d.electricalU
+            val rise = current * current * d.electricalRs * 2 * d.thermalRp
+            // Steady state at rated power, in a hot place: under the limit with room to spare.
+            helper.assertTrue(BatteryDescriptor.DESIGN_AMBIENT + rise < d.thermalWarmLimit - 5,
+                "$name rises $rise °C at its rated power")
+        }
+        helper.succeed()
+    }
+
+    /** The 600 V box feeds a 600 V circuit through the 600 V bundle, and nothing burns. */
+    @GameTest(template = EMPTY, timeoutTicks = 200)
+    @JvmStatic
+    fun highVoltageBreakerBoxCarries600Volts(helper: GameTestHelper) =
+        breakerBoxCircuit(helper, "600V Breaker Box", "600V Power Bundle Cable", "High Voltage Cable", 600.0)
+
+    /** The 50 V box and bundle with a 50 V circuit. */
+    @GameTest(template = EMPTY, timeoutTicks = 200)
+    @JvmStatic
+    fun lowVoltageBreakerBoxCarries50Volts(helper: GameTestHelper) =
+        breakerBoxCircuit(helper, "50V Breaker Box", "50V Power Bundle Cable", "Low Voltage Cable", 50.0)
+
+    private fun breakerBoxCircuit(helper: GameTestHelper, boxName: String, bundleName: String, cableName: String, voltage: Double) {
+        val player = player(helper)
+        floor(helper)
+        val boxPos = BlockPos(2, 1, 5)
+        source(helper, player, BlockPos(1, 1, 5), voltage)
+        val box = part<BreakerBoxElement>(helper, player, boxName, boxPos, McDirection.WEST)
+        val bundle = placeSix(helper, player, bundleName, BlockPos(3, 1, 5)).getElement(Direction.YN) as PowerBundleCableElement
+        val red = cable(helper, player, cableName, BlockPos(4, 1, 5), RED)
+        source(helper, player, BlockPos(5, 1, 5), voltage * 0.99)
+        box.sixNode!!.reconnect()
+        helper.runAfterDelay(60) {
+            helper.assertTrue(abs(red.electricalLoad.current) > 1, "no current: ${red.electricalLoad.current} A")
+            helper.assertTrue(bundle.bundleLoads[RED].voltage > voltage * 0.985, "red line at ${bundle.bundleLoads[RED].voltage} V")
+            helper.assertTrue(box.logic.state.all { it == BreakerBoxLogic.State.ON }, "a breaker tripped: ${box.logic.state.toList()}")
+            helper.assertTrue(NodeManager.instance!!.getNodeFromCoordonate(box.sixNode!!.coordinate) != null, "the box burned out")
+            helper.succeed()
+        }
+    }
+
+    /** A 50 V box fed 200 V burns out. */
+    @GameTest(template = EMPTY, timeoutTicks = 200)
+    @JvmStatic
+    fun lowVoltageBreakerBoxBurnsOutOnTooHighAVoltage(helper: GameTestHelper) {
+        val player = player(helper)
+        floor(helper)
+        val boxPos = BlockPos(2, 1, 5)
+        source(helper, player, BlockPos(1, 1, 5), 200.0)
+        val box = part<BreakerBoxElement>(helper, player, "50V Breaker Box", boxPos, McDirection.WEST)
+        val coordinate = box.sixNode!!.coordinate
+        box.sixNode!!.reconnect()
+        helper.succeedWhen {
+            helper.assertTrue(NodeManager.instance!!.getNodeFromCoordonate(coordinate)?.let { (it as SixNode).getElement(Direction.YN) } !is BreakerBoxElement,
+                "the 50 V box takes 200 V")
+        }
+    }
+
+    private const val RED = 1
 }

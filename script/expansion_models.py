@@ -835,6 +835,75 @@ def pmg_wind_turbine():
 
 # ---------------------------------------------------------------- Tools
 
+# The brush colors, by index, as Utils.setGlColorFromDye draws cables.
+DYES = [(51, 51, 51), (255, 13, 13), (51, 128, 26), (77, 51, 26), (51, 51, 255), (179, 13, 255), (51, 179, 230),
+        (179, 179, 179), (102, 102, 102), (255, 128, 128), (13, 255, 13), (230, 204, 26), (102, 128, 255),
+        (230, 77, 230), (255, 153, 77), (255, 255, 255)]
+
+
+def breaker_box(folder='breakerbox', icon_name='breakerbox', body=(190, 192, 196), label=WHITE):
+    """A consumer unit: a grey enclosure with two rows of eight white breakers, each with a color tag below it.
+    Each breaker has its handle up (upN) and down (downN), of which the render draws one, and a trip LED (ledN).
+    The boxes for other voltages differ in the color of the enclosure and of the label strip."""
+    c = Canvas(64, 64)
+    entries = [('plate', STEEL, 6), ('body', body, 4), ('dark', BLACK, 3), ('breaker', (236, 236, 230), 3),
+               ('handle', (30, 30, 34), 2), ('red', RED, 0), ('rail', STEEL_DARK, 4), ('label', label, 2)]
+    entries += [('dye%d' % i, d, 0) for i, d in enumerate(DYES)]
+    s = swatches(c, entries)
+    m = Model(folder, 64, 64)
+    m.box('case', 'main', (0.0, -0.45, -0.46), (0.03, 0.45, 0.46), s['plate'])
+    m.box('case', 'main', (0.03, -0.42, -0.45), (0.16, 0.42, 0.45), s['body'])
+    for row, cy in enumerate((0.17, -0.17)):
+        m.box('case', 'main', (0.16, cy - 0.03, -0.44), (0.17, cy + 0.03, 0.44), s['rail'], faces='XyYzZ')
+        for k in range(8):
+            line = row * 8 + k
+            cz = -0.385 + k * 0.11
+            m.box('case', 'main', (0.16, cy - 0.12, cz - 0.045), (0.22, cy + 0.12, cz + 0.045), s['breaker'])
+            m.box('case', 'main', (0.22, cy - 0.025, cz - 0.03), (0.225, cy + 0.025, cz + 0.03), s['dark'], faces='X')
+            m.box('case', 'main', (0.16, cy - 0.155, cz - 0.04), (0.17, cy - 0.125, cz + 0.04), s['dye%d' % line],
+                  faces='XyYzZ')
+            m.box('up%d' % line, 'main', (0.22, cy + 0.01, cz - 0.02), (0.27, cy + 0.07, cz + 0.02), s['handle'])
+            m.box('down%d' % line, 'main', (0.22, cy - 0.07, cz - 0.02), (0.27, cy - 0.01, cz + 0.02), s['handle'])
+            m.box('led%d' % line, 'main', (0.22, cy + 0.085, cz - 0.015), (0.23, cy + 0.11, cz + 0.015), s['red'])
+    # A label strip across the middle.
+    m.box('case', 'main', (0.16, -0.025, -0.4), (0.162, 0.025, 0.4), s['label'], faces='X')
+    m.write(folder, {'main': folder + '.png'})
+    c.save(os.path.join(MODEL, folder, folder + '.png'))
+
+    def draw(i):
+        i.rect(1, 2, 31, 30, body)
+        i.frame(1, 2, 31, 30, tuple(min(255, v + 35) for v in body), tuple(max(0, v - 80) for v in body))
+        if label != WHITE:
+            i.rect(3, 3, 29, 4, label)
+        for row, top in enumerate((5, 18)):
+            for k in range(8):
+                x = 3 + k * 3 + (1 if k >= 4 else 0)
+                i.rect(x, top, x + 2, top + 8, (236, 236, 230))
+                i.rect(x, top + 2, x + 2, top + 4, (30, 30, 34))
+                i.rect(x, top + 9, x + 2, top + 11, DYES[row * 8 + k])
+    icon(icon_name, draw)
+
+
+def power_bundle_cable(sprite='powerbundle', icon_name='powerbundlecable', jacket=(38, 40, 44)):
+    """The cable sprite (a dark jacket flecked with the colors of its sixteen cores) and its icon."""
+    rnd = random.Random(16)
+    c = Canvas(32, 16)
+    c.rect(0, 0, 32, 16, jacket, 6)
+    for y in range(0, 16, 2):
+        for x in range(0, 32, 2):
+            if rnd.random() < 0.35:
+                c.rect(x, y, x + 1, y + 1, DYES[rnd.randrange(16)])
+    c.save(os.path.join(ROOT, 'sprites', sprite + '.png'))
+
+    def draw(i):
+        i.rect(0, 5, 16, 11, jacket)
+        i.rect(0, 5, 16, 6, tuple(min(255, v + 32) for v in jacket))
+        for k in range(8):
+            i.rect(k * 2, 7, k * 2 + 1, 8, DYES[(k * 2) % 16])
+            i.rect(k * 2 + 1, 9, k * 2 + 2, 10, DYES[(k * 2 + 1) % 16])
+    icon(icon_name, draw, size=16)
+
+
 def thermal_camera():
     def draw(i):
         i.rect(2, 4, 14, 12, (60, 62, 66))
@@ -860,4 +929,11 @@ if __name__ == '__main__':
     mono_solar_panel()
     pmg_wind_turbine()
     thermal_camera()
+    breaker_box()
+    power_bundle_cable()
+    # The 50 V and 600 V breaker boxes, and their bundles: orange for 600 V, as high voltage cables are, green for 50 V.
+    breaker_box('breakerbox50', '50vbreakerbox', body=(206, 214, 222), label=GREEN)
+    breaker_box('breakerbox600', '600vbreakerbox', body=(72, 76, 82), label=ORANGE)
+    power_bundle_cable('powerbundlehv', '600vpowerbundlecable', jacket=(170, 70, 20))
+    power_bundle_cable('powerbundlelv', '50vpowerbundlecable', jacket=(46, 96, 58))
     print('done')

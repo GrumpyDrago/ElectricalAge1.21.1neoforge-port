@@ -1265,6 +1265,24 @@ object CraftingRecipes {
             'T', findItemStack("Thermal Probe Chip"), 'C', Eln.dictCheapChip, 'R', "itemRubber"
         )
 
+        val medium = findItemStack("Medium Voltage Cable")
+        addRecipe(
+            findItemStack("Breaker Box"), "IBI", "BCB", "IBI", 'I', "plateIron", 'B', findItemStack("Electrical Breaker"),
+            'C', medium
+        )
+        addRecipe(Eln.findItemStack("Power Bundle Cable", 2), "MMM", "MRM", "MMM", 'M', medium, 'R', "itemRubber")
+        addRecipe(Eln.findItemStack("50V Power Bundle Cable", 2), "LLL", "LRL", "LLL", 'L', findItemStack("Low Voltage Cable"), 'R', "itemRubber")
+        addRecipe(
+            findItemStack("50V Breaker Box"), "IBI", "BCB", "IBI", 'I', "plateIron", 'B', findItemStack("Electrical Breaker"),
+            'C', findItemStack("Low Voltage Cable")
+        )
+        val high = findItemStack("High Voltage Cable")
+        addRecipe(
+            findItemStack("600V Breaker Box"), "IBI", "BCB", "IBI", 'I', "plateIron", 'B', findItemStack("Electrical Breaker"),
+            'C', high
+        )
+        addRecipe(Eln.findItemStack("600V Power Bundle Cable", 2), "HHH", "HRH", "HHH", 'H', high, 'R', "itemRubber")
+
         val cable = findItemStack("Low Voltage Cable")
         addRecipe(
             findItemStack("Lead-Acid Battery"), "C C", "PSP", "PPP", 'C', cable, 'P', "ingotLead",

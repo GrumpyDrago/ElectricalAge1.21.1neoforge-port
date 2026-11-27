@@ -157,6 +157,11 @@ public class ElectricalBreakerElement extends SixNodeElement {
     public void setSwitchState(boolean state) {
         if (state == switchState) return;
         play(new SoundCommand("minecraft:block.lever.click").mulVolume(0.3F, 0.6f).smallRange());
+        if (!state && cableDescriptor != null) {
+            mods.eln.sim.ArcFlash.INSTANCE.interrupt(getCoordinate(),
+                Math.max(Math.abs(aLoad.getVoltage()), Math.abs(bLoad.getVoltage())), switchResistor.getCurrent(),
+                cableDescriptor.electricalMaximalCurrent);
+        }
         switchState = state;
         refreshSwitchResistor();
         needPublish();

@@ -1261,7 +1261,8 @@ class ElnIconsCommand: IConsoleCommand {
     override fun runCommand(ics: CommandSourceStack, args: List<String>) {
         if (args.size == 1) {
             val symbols = args[0].equals("symbols", ignoreCase = true)
-            Eln.noSymbols = symbols
+            // "symbols" shows the electrical symbols, "items" the items: noSymbols is the opposite.
+            Eln.noSymbols = !symbols
             Eln.config.setBoolean("ui.icons.noSymbols", Eln.noSymbols)
             Eln.config.save()
             cprint(ics, "Icons mode: ${FC.DARK_GREEN}${boolToStr(symbols)}", indent = 1)

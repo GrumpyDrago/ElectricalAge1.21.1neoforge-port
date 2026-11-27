@@ -242,8 +242,13 @@ class BatteryDescriptor(
         lifeNominalCurrent = electricalStdP / electricalU
         lifeNominalLost = 0.5 / electricalStdHalfLife
         thermalPMax = electricalPMax / electricalU * electricalPMax / electricalU * electricalRs * 2
-        thermalC = Math.pow(electricalPMax / electricalU, 2.0) * electricalRs * thermalHeatTime / thermalWarmLimit
-        thermalRp = thermalWarmLimit / thermalPMax
+        // The heat limit is a real temperature, with the ambient temperature of the biome and depth added. Size the
+        // heating so that at full power the cells stay below it up to a warm ambient, instead of rising by the whole
+        // limit, which made batteries explode near their rated power on any day above about 18 °C. Batteries that
+        // stand more heat (the limit of some chemistries) are still sized for 60 °C.
+        val allowedRise = Math.max(Math.min(thermalWarmLimit, NORMAL_LIMIT) - DESIGN_AMBIENT, 10.0)
+        thermalC = Math.pow(electricalPMax / electricalU, 2.0) * electricalRs * thermalHeatTime / allowedRise
+        thermalRp = allowedRise / thermalPMax
         IMax = electricalStdI * 3
         obj = Eln.obj.getObj(modelName)
         if (obj != null) {
@@ -256,5 +261,12 @@ class BatteryDescriptor(
             }
         }
         voltageLevelColor = VoltageLevelColor.fromVoltage(electricalU)
+    }
+
+    companion object {
+        /** The ambient temperature batteries are made to work at full power in, in °C. */
+        const val DESIGN_AMBIENT = 35.0
+        /** The cell temperature batteries are made for at full power, in °C. */
+        const val NORMAL_LIMIT = 60.0
     }
 }

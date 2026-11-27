@@ -30,6 +30,8 @@ import mods.eln.sixnode.protection.OvercurrentRelayDescriptor
 import mods.eln.sixnode.protection.TransferSwitchDescriptor
 import mods.eln.sixnode.electricalcable.ElectricalCableDescriptor
 import mods.eln.sixnode.electricalcable.ElectricalSignalBusCableElement
+import mods.eln.sixnode.electricalcable.PowerBundleCableDescriptor
+import mods.eln.sixnode.breakerbox.BreakerBoxDescriptor
 import mods.eln.sixnode.electricaldatalogger.ElectricalDataLoggerDescriptor
 import mods.eln.sixnode.electricaldigitaldisplay.ElectricalDigitalDisplayDescriptor
 import mods.eln.sixnode.electricalentitysensor.ElectricalEntitySensorDescriptor
@@ -170,6 +172,8 @@ object SixNodeRegistration {
             val name = I18N.TR_NAME(I18N.Type.NONE, "Oscilloscope")
             Eln.sixNodeItem.addDescriptor(0 + (82 shl 6), OscilloscopeDescriptor(name, Eln.obj.getObj("Oscilloscope")))
         }
+        Eln.sixNodeItem.setCreativeTabForGroup(83, Eln.creativeTabPowerElectronics)
+        registerPowerBundleCable(83)
     }
 
     private fun registerSwitchgear(id: Int) {
@@ -185,6 +189,56 @@ object SixNodeRegistration {
             val name = I18N.TR_NAME(I18N.Type.NONE, "Automatic Transfer Switch")
             Eln.sixNodeItem.addDescriptor(2 + (id shl 6), TransferSwitchDescriptor(name, Eln.obj.getObj("TransferSwitch")))
         }
+        // Breaker boxes for 200 V (the first), 50 V and 600 V. The cable of their voltage sets the resistance of
+        // their contacts; above 1.3 times their voltage they burn out.
+        run {
+            val name = I18N.TR_NAME(I18N.Type.NONE, "Breaker Box")
+            Eln.sixNodeItem.addDescriptor(3 + (id shl 6), BreakerBoxDescriptor(name, Eln.obj.getObj("BreakerBox"), Eln.MVU,
+                { Eln.instance.meduimVoltageCableDescriptor }, { Eln.instance.powerBundleCableDescriptor }))
+        }
+        run {
+            val name = I18N.TR_NAME(I18N.Type.NONE, "50V Breaker Box")
+            Eln.sixNodeItem.addDescriptor(4 + (id shl 6), BreakerBoxDescriptor(name, Eln.obj.getObj("BreakerBox50"), Eln.LVU,
+                { Eln.instance.lowVoltageCableDescriptor }, { Eln.instance.lowVoltagePowerBundleCableDescriptor }))
+        }
+        run {
+            val name = I18N.TR_NAME(I18N.Type.NONE, "600V Breaker Box")
+            Eln.sixNodeItem.addDescriptor(5 + (id shl 6), BreakerBoxDescriptor(name, Eln.obj.getObj("BreakerBox600"), 600.0,
+                { Eln.instance.highVoltageCableDescriptor }, { Eln.instance.highVoltagePowerBundleCableDescriptor }))
+        }
+    }
+
+    /** Sixteen power lines in one cable, each like a 200 V cable for 20 A; and the same for 600 V and 50 V. */
+    private fun registerPowerBundleCable(id: Int) {
+        val name = I18N.TR_NAME(I18N.Type.NONE, "Power Bundle Cable")
+        val render = CableRenderDescriptor("eln", "sprites/powerbundle.png", 3.95f, 1.95f)
+        val desc = PowerBundleCableDescriptor(name, render)
+        desc.setPhysicalConstantLikeNormalCable(
+            Eln.MVU, Eln.MVU * 20.0, 0.10 / 20, Eln.MVU * 1.3, Eln.MVU * 20.0 * 1.2, 30.0, Eln.cableWarmLimit,
+            -100.0, Eln.cableHeatingTime, Eln.cableThermalConductionTao
+        )
+        Eln.instance.powerBundleCableDescriptor = desc
+        Eln.sixNodeItem.addDescriptor(0 + (id shl 6), desc)
+
+        // The same for 600 V, for the 600 V breaker box.
+        val hvName = I18N.TR_NAME(I18N.Type.NONE, "600V Power Bundle Cable")
+        val hv = PowerBundleCableDescriptor(hvName, CableRenderDescriptor("eln", "sprites/powerbundlehv.png", 3.95f, 1.95f))
+        hv.setPhysicalConstantLikeNormalCable(
+            600.0, 600.0 * 20.0, 0.05 / 20, 600.0 * 1.3, 600.0 * 20.0 * 1.2, 40.0, Eln.cableWarmLimit,
+            -100.0, Eln.cableHeatingTime, Eln.cableThermalConductionTao
+        )
+        Eln.instance.highVoltagePowerBundleCableDescriptor = hv
+        Eln.sixNodeItem.addDescriptor(1 + (id shl 6), hv)
+
+        // And for 50 V, for the 50 V breaker box: lines like the low voltage cable.
+        val lvName = I18N.TR_NAME(I18N.Type.NONE, "50V Power Bundle Cable")
+        val lv = PowerBundleCableDescriptor(lvName, CableRenderDescriptor("eln", "sprites/powerbundlelv.png", 3.95f, 1.95f))
+        lv.setPhysicalConstantLikeNormalCable(
+            Eln.LVU, Eln.LVU * 20.0, 0.2 / 20, Eln.LVU * 1.3, Eln.LVU * 20.0 * 1.2, 20.0, Eln.cableWarmLimit,
+            -100.0, Eln.cableHeatingTime, Eln.cableThermalConductionTao
+        )
+        Eln.instance.lowVoltagePowerBundleCableDescriptor = lv
+        Eln.sixNodeItem.addDescriptor(2 + (id shl 6), lv)
     }
 
     private fun registerGround(id: Int) {

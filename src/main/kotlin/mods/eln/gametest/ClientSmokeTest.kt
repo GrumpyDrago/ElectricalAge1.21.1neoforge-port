@@ -381,7 +381,7 @@ object ClientSmokeTest {
         val x0 = 60
         val parts = listOf(
             "Overcurrent Protection Relay", "Battery Management System", "Automatic Transfer Switch",
-            "MPPT Charge Controller", "Oscilloscope"
+            "MPPT Charge Controller", "Oscilloscope", "Breaker Box", "50V Breaker Box", "600V Breaker Box"
         )
         later(20) { onServer { level, player -> buildShowcase(level, player, parts, x0, z) } }
         later(40) { look(x0 + 8.0, GROUND + 3.5, z - 3.5, 0f, 40f) }
@@ -403,6 +403,9 @@ object ClientSmokeTest {
             later(20) { look(x + 0.5, GROUND + 1.6, z - 0.9, 0f, 50f) }
             later { shot("exp_" + name.lowercase().replace(Regex("[^a-z0-9]+"), "_")) }
         }
+        // The bundle out of the breaker box, with cables of three colors leaving it.
+        later(20) { look(x0 + 19.5, GROUND + 2.2, z - 1.5, 0f, 45f) }
+        later { shot("exp_power_bundle") }
         later(20) { look(x0 + 3.5, GROUND + 2.5, z + 1.5, 0f, 30f) }
         later { shot("exp_batteries") }
         later(40) { look(x0 + 7.0, GROUND + 6.0, z + 2.0, 0f, 15f) }
@@ -439,7 +442,7 @@ object ClientSmokeTest {
     }
 
     private fun buildShowcase(level: ServerLevel, player: ServerPlayer, parts: List<String>, x0: Int, z: Int) {
-        for (x in x0 - 4..x0 + 24) for (dz in -6..16) {
+        for (x in x0 - 4..x0 + 32) for (dz in -6..16) {
             level.setBlock(BlockPos(x, GROUND - 1, z + dz), Blocks.SMOOTH_STONE.defaultBlockState(), 2)
         }
         fun six(name: String, x: Int, zz: Int): SixNode? {
@@ -481,6 +484,27 @@ object ClientSmokeTest {
                     source(x - 1, z, 50.0)
                     val b = BlockPos(x, GROUND, z).relative(Direction.YN.applyLRDU(east.left()).toForge())
                     source(b.x, b.z, 50.0)
+                }
+                is mods.eln.sixnode.breakerbox.BreakerBoxElement -> {
+                    source(x + 1, z, 50.0)
+                    val bundle = when {
+                        name.startsWith("600V") -> "600V Power Bundle Cable"
+                        name.startsWith("50V") -> "50V Power Bundle Cable"
+                        else -> "Power Bundle Cable"
+                    }
+                    six(bundle, x - 1, z)
+                    six(bundle, x - 2, z)
+                    val color = mods.eln.sixnode.electricalcable.ElectricalCableElement::class.java.getDeclaredField("color")
+                        .apply { isAccessible = true }
+                    // Red, blue and yellow off the sides of the bundle; red and yellow side by side stay apart.
+                    for ((at, c) in listOf(Pair(x - 2, z + 1) to 1, Pair(x - 2, z - 1) to 4, Pair(x - 1, z + 1) to 11)) {
+                        val cable = six("Medium Voltage Cable", at.first, at.second)?.getElement(Direction.YN) ?: continue
+                        color.setInt(cable, c)
+                        cable.sixNode!!.reconnect()
+                    }
+                    element.toggle(5)
+                    element.toggle(3)
+                    element.logic.state[3] = mods.eln.sixnode.breakerbox.BreakerBoxLogic.State.TRIPPED
                 }
                 is mods.eln.sixnode.mppt.MpptControllerElement -> {
                     source(x + 1, z, 100.0)

@@ -1,4 +1,4 @@
-// 1.21.1	2026-11-26T12:53:41.8668099	Electrical Age assets and data
+// 1.21.1	2026-11-26T20:45:25.9715595	Electrical Age assets and data
 f9e1fbf3c707c65831b94091f76012c25d9274d4 assets/eln/blockstates/arc_clay_block.json
 728a176cb7d6580d79a788dad0cb2a8c02782b5a assets/eln/blockstates/arc_metal_block.json
 3f3711dc8a63efa9eac0ed4942886027c0f1f674 assets/eln/blockstates/cinnabar_ore.json
@@ -53,6 +53,7 @@ c84ba377b4854d92c28086640952c772a28edae7 assets/eln/models/item/3x_graphite_rods
 7b852251dc80b5cc13bdb276d42d1298beb87c31 assets/eln/models/item/3_2kv_tungsten_heating_element.json
 0143ddef0fd6babc4dfa17949f0e6e792ab35c1e assets/eln/models/item/4x_graphite_rods.json
 659cc318ce5ffabe2ddcd6fd3bed0b56616a0306 assets/eln/models/item/50v_battery_charger.json
+2d43414159f62ae6bce5e3eda627e470aac068d5 assets/eln/models/item/50v_breaker_box.json
 f4a85655bb6fd0954484acb379eddd32f12fcae3 assets/eln/models/item/50v_carbon_incandescent_light_bulb.json
 44387398f28917bbceb5145a35007d3cbc6b4a1a assets/eln/models/item/50v_compressor.json
 c1e74a1f4765552d74c30aa391ccf69726624410 assets/eln/models/item/50v_copper_heating_element.json
@@ -68,8 +69,11 @@ c1e74a1f4765552d74c30aa391ccf69726624410 assets/eln/models/item/50v_copper_heati
 2ca3aa59c5a0c556f99fa70b6b78a9d5b46d28b3 assets/eln/models/item/50v_macerator.json
 cf5c7151300dc0c4cf365c38c7777418319189fa assets/eln/models/item/50v_magnetizer.json
 19708d767b6b69da9639f3582b4beb1e89759348 assets/eln/models/item/50v_plate_machine.json
+62ed745b3d68b556be96ae5a3a83784c4c19fde8 assets/eln/models/item/50v_power_bundle_cable.json
 cc0ec133123992d0ebf77a3189c75a805ddba6e4 assets/eln/models/item/50v_tungsten_heating_element.json
 d88eb30952f01da4f214c02932f4858948c908af assets/eln/models/item/50v_turbine.json
+edead5ba67364873347d2eb71fb41886d00b1430 assets/eln/models/item/600v_breaker_box.json
+3d801798d198ea5ebf3c19daea84ad9a89b49d56 assets/eln/models/item/600v_power_bundle_cable.json
 6566d104811d9242a4bd4d5f9cb0260cdd1df90e assets/eln/models/item/800v_defence_turret.json
 d1a8815e13061f745040a7149c7e6cd1f04b6ecf assets/eln/models/item/800v_tungsten_heating_element.json
 d9777f1babf78dc209b5efffd3050fb7f6a2d486 assets/eln/models/item/advanced_chip.json
@@ -103,6 +107,7 @@ bb0542bd187b33f1ea919f0d67075403f5478e19 assets/eln/models/item/big_fuel_burner.
 9758e76f270bd5d72297ce550a4973c5a6008712 assets/eln/models/item/black_brush.json
 38840343597aa7f59057bc9c6ce55a488b5935f4 assets/eln/models/item/blown_lead_fuse.json
 4a0eef19be6e684726baa5c3fe07352a27f1049e assets/eln/models/item/blue_brush.json
+417d8676b8be59e41951e907edf81a2250971a79 assets/eln/models/item/breaker_box.json
 7d081a933d9ee70d77df07e7ceb69bea6a6d2edf assets/eln/models/item/brown_brush.json
 5f41f372ed7dfab8ebb5769fedd70d449ca775df assets/eln/models/item/canister_of_arc_water.json
 bf17c0dd430f56b7be618c40ea04c59475064eb1 assets/eln/models/item/canister_of_water.json
@@ -318,6 +323,7 @@ f76a038e8bdc79d5caa56d802dd516202844e616 assets/eln/models/item/portable_battery
 9a262d656a9fe19851895e1b0898b8bcf890a418 assets/eln/models/item/portable_electrical_axe.json
 493ee08046928ae40b3a8ee14df5b3f5d43d6325 assets/eln/models/item/portable_electrical_mining_drill.json
 247a6656937f603c4170890b1e2b67eb112a7b0c assets/eln/models/item/portable_nan.json
+53f8d2b873638d1ae0ab21de2ae2304cb4a07306 assets/eln/models/item/power_bundle_cable.json
 8bf6f4af981801f5162f1e7a52a6ef178de98183 assets/eln/models/item/power_capacitor.json
 7785d08862e01f17d6c194317dc872f9b5f22bb8 assets/eln/models/item/power_capacitor_84.json
 3b033c0173f8c9fce5ca6a7050ce9ad566fa1477 assets/eln/models/item/power_inductor.json

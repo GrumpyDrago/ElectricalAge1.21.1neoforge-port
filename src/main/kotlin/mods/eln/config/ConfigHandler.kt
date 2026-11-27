@@ -20,6 +20,7 @@ object ConfigHandler {
         Eln.simSnapshotEnabled = config.getBooleanOrElse("debug.logging.simSnapshot", false)
 
         Eln.explosionEnable = config.getBooleanOrElse("gameplay.hazards.explosionsEnabled", false)
+        Eln.arcFlashEnable = config.getBooleanOrElse("gameplay.hazards.arcFlashEnabled", true)
         Eln.enableFestivities = config.getBooleanOrElse("gameplay.seasonal.enableFestiveItems", true)
         Eln.verticalIronCableCrafting = config.getBooleanOrElse("gameplay.crafting.verticalIronCableCrafting", false)
 

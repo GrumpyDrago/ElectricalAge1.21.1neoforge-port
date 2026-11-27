@@ -54,6 +54,42 @@ Feeds a load (front) from the mains (back), and from a backup source (left) when
 **A UPS**: mains → battery charger → battery → *backup* side of the transfer switch, and mains → *mains* side. Add a
 battery management system between the battery and the switch to keep the battery from running flat.
 
+### Breaker Box and Power Bundle Cable
+
+A consumer unit, as in a house: one supply in, sixteen circuits out, each with its own breaker, all in one cable.
+
+There are three boxes: the **Breaker Box** for 200 V, the **50V Breaker Box** (light, with a green strip) and the
+**600V Breaker Box** (dark, with an orange strip). Each has the contact resistance of the cable of its voltage and
+burns out when fed more than 1.3 times its voltage. Each has its bundle: the **Power Bundle Cable** (black) for
+200 V, the **50V Power Bundle Cable** (green jacket) and the **600V Power Bundle Cable** (orange jacket). Run cables of
+the same voltage out of them. A bundle burns up when its lines get more than 1.3 times its voltage, so a 50 V bundle
+on a 200 V box does not last.
+
+- **Breaker box**: the supply on the front, a power bundle cable on the back. Each of its sixteen breakers feeds the
+  line of one brush color. Open its screen to switch breakers on and off and to set their ratings (2 to 20 A; click to
+  raise, shift-click to lower). A tripped breaker shows a red light; switch it on to reset it.
+- Each breaker trips much like a real (type B) one, only faster: never up to 1.13 times its rating, within five
+  seconds on any overload above that (about 3.4 s at twice its rating, 1.9 s at three times), and at once from five
+  times its rating, on a short circuit.
+- **Power bundle cable**: sixteen insulated lines in one cable, which join line for line from one bundle to the next.
+  It does not connect to machines. Run a power cable out of it instead: a cable painted with a brush joins the line
+  of its color, and an unpainted one the black line. Cables of other colors right next to it are left alone.
+- Each line is made for 20 A at the voltage of the bundle. **Fed by a breaker box**, whose breakers keep every line within that, the
+  bundle does not heat up, however many lines are in use. **Used as a plain multi-core cable**, without a box, its
+  sixteen lines share one jacket and its heat: it carries about six lines at their full current, or all sixteen at a
+  lighter load, and burns up beyond that. Jade shows the lines in use and whether a breaker box feeds it.
+
+## Arc flash
+
+When a breaker, switch or relay opens, the current keeps flowing for a moment as an arc between its contacts.
+
+- Opening within its rating, it puts the arc out at once: a few sparks.
+- Opening on a fault, over twice its rating and with more than 5 kW in the arc (breaking a short circuit), it
+  **flashes**: a blast of light, molten metal and smoke that burns and sets fire to whoever is close, and blinds them
+  for a moment when it is big. The higher the voltage and current, the bigger it is, up to 5 blocks across.
+- So stand back from breakers on circuits that may be shorted, and switch big loads off before working on them.
+- `gameplay.hazards.arcFlashEnabled` in the config turns it off.
+
 ## Batteries
 
 Four batteries of real chemistries. They work like the other batteries, with these differences:
@@ -80,6 +116,7 @@ Multiples are of the cost oriented battery.
 - The cold raises the internal resistance, so batteries give less power in a cold biome or in winter.
 - Jade shows the chemistry and the cell temperature. Ambient temperature comes from the biome and the depth, so batteries
   deep underground run warmer.
+- All batteries, these and the old ones, are made to work at full power in up to 35 °C ambient.
 
 ## Generation
 

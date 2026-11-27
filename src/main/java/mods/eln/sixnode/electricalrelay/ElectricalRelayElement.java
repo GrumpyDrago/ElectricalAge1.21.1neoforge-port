@@ -160,6 +160,11 @@ public class ElectricalRelayElement extends SixNodeElement implements IConfigura
 
     public void setSwitchState(boolean state) {
         if (state == switchState) return;
+        if (!state && !descriptor.cable.signalWire) {
+            mods.eln.sim.ArcFlash.INSTANCE.interrupt(getCoordinate(),
+                Math.max(Math.abs(aLoad.getVoltage()), Math.abs(bLoad.getVoltage())), switchResistor.getCurrent(),
+                descriptor.cable.electricalMaximalCurrent);
+        }
         switchState = state;
         refreshSwitchResistor();
         play(new SoundCommand("minecraft:block.lever.click").mulVolume(0.1F, 2.0F).smallRange());
